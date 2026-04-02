@@ -1,0 +1,16 @@
+[
+  {
+    "from": "+525539954872",
+    "estado": "ABIERTO",
+    "fecha": "2026-04-02",
+    "maquina": "320.5",
+    "serie": "SIN-SERIE",
+    "horometro_inicial": 320.5,
+    "horometro_final": null,
+    "unidades_horometro": null,
+    "horas_turno": null,
+    "validado_por_diferencia": false,
+    "timestamp_inicio": "2026-04-02T19:12:07.166Z",
+    "timestamp_fin": null
+  }
+]

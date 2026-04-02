@@ -1,0 +1,102 @@
+[
+  {
+    "event_id": "EVT-1774544838510-477753",
+    "occurred_at": "2026-03-25T10:00:00.000Z",
+    "occurred_at_unix_ms": 1774432800000,
+    "classification": "OK",
+    "pipeline_status": "APPROVED",
+    "stage": "VALIDATED",
+    "operator_name": "Ramón Torres",
+    "has_photo": true
+  },
+  {
+    "event_id": "EVT-1774547793544-581574",
+    "occurred_at": "2026-03-25T11:00:00.000Z",
+    "occurred_at_unix_ms": 1774436400000,
+    "classification": "OK",
+    "pipeline_status": "APPROVED",
+    "stage": "VALIDATED",
+    "operator_name": "Ramón Torres",
+    "has_photo": true
+  },
+  {
+    "event_id": "EVT-1774547793544-322128",
+    "occurred_at": "2026-03-25T11:05:00.000Z",
+    "occurred_at_unix_ms": 1774436700000,
+    "classification": "OK",
+    "pipeline_status": "APPROVED",
+    "stage": "VALIDATED",
+    "operator_name": "Ramón Torres",
+    "has_photo": true
+  },
+  {
+    "event_id": "EVT-1774547793544-189834",
+    "occurred_at": "2026-03-25T11:10:00.000Z",
+    "occurred_at_unix_ms": 1774437000000,
+    "classification": "INCOMPLETO",
+    "pipeline_status": "PENDING",
+    "stage": "RECEIVED",
+    "operator_name": "Ramón Torres",
+    "has_photo": false
+  },
+  {
+    "event_id": "EVT-1774548188446-421339",
+    "occurred_at": "2026-03-25T11:15:00.000Z",
+    "occurred_at_unix_ms": 1774437300000,
+    "classification": "OK",
+    "pipeline_status": "APPROVED",
+    "stage": "VALIDATED",
+    "operator_name": "ramon torres",
+    "has_photo": true
+  },
+  {
+    "event_id": "EVT-1774548188446-760295",
+    "occurred_at": "2026-03-25T11:15:00.000Z",
+    "occurred_at_unix_ms": 1774437300000,
+    "classification": "OK",
+    "pipeline_status": "APPROVED",
+    "stage": "VALIDATED",
+    "operator_name": "Ramón Torres ",
+    "has_photo": true
+  },
+  {
+    "event_id": "EVT-1774548188446-714000",
+    "occurred_at": "2026-03-25T11:15:00.000Z",
+    "occurred_at_unix_ms": 1774437300000,
+    "classification": "OK",
+    "pipeline_status": "APPROVED",
+    "stage": "VALIDATED",
+    "operator_name": "RAMON TORRES",
+    "has_photo": true
+  },
+  {
+    "event_id": "EVT-1774549791990-891184",
+    "occurred_at": "2026-03-25T11:20:00.000Z",
+    "occurred_at_unix_ms": 1774437600000,
+    "classification": "INCOMPLETO",
+    "pipeline_status": "PENDING",
+    "stage": "RECEIVED",
+    "operator_name": "ramon torres",
+    "has_photo": false
+  },
+  {
+    "event_id": "EVT-1774549791990-524871",
+    "occurred_at": "2026-03-25T11:25:00.000Z",
+    "occurred_at_unix_ms": 1774437900000,
+    "classification": "INCOMPLETO",
+    "pipeline_status": "PENDING",
+    "stage": "RECEIVED",
+    "operator_name": null,
+    "has_photo": true
+  },
+  {
+    "event_id": "EVT-1774549791990-434835",
+    "occurred_at": "2026-03-26T18:29:51.990Z",
+    "occurred_at_unix_ms": 1774549791990,
+    "classification": "OK",
+    "pipeline_status": "APPROVED",
+    "stage": "VALIDATED",
+    "operator_name": "ramon torres",
+    "has_photo": true
+  }
+]

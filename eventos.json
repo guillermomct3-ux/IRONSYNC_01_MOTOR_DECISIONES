@@ -1,0 +1,221 @@
+[
+  {
+    "from": "+525539954872",
+    "body": "Hola prueba 5",
+    "timestamp": "2026-03-31T18:19:01.611Z"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Cuantas horas llevo",
+    "timestamp": "2026-03-31T18:37:17.687Z"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Cuantas horas llevo",
+    "timestamp": "2026-03-31T18:43:01.749Z"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Cuantas horas llevo",
+    "timestamp": "2026-03-31T19:17:10.016Z",
+    "type": "REPORTE_HORAS"
+  },
+  {
+    "from": "+525539954872",
+    "body": "cuantas horas llevo ",
+    "timestamp": "2026-03-31T19:24:38.368Z",
+    "type": "REPORTE_HORAS"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Cuantas horas llevo",
+    "timestamp": "2026-03-31T19:25:21.683Z",
+    "type": "REPORTE_HORAS"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Cuantas horas llevo ",
+    "timestamp": "2026-03-31T19:32:13.956Z",
+    "type": "REPORTE_HORAS"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Cuantas horas llevo ",
+    "timestamp": "2026-04-01T16:21:58.887Z",
+    "type": "REPORTE_HORAS"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio de turno",
+    "timestamp": "2026-04-01T17:03:08.897Z",
+    "type": "MENSAJE_LIBRE"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio de turno ",
+    "timestamp": "2026-04-01T17:27:33.356Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Fin de turno",
+    "timestamp": "2026-04-01T17:28:44.700Z",
+    "type": "FIN_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Cuantas horas llevo ",
+    "timestamp": "2026-04-01T17:29:44.702Z",
+    "type": "REPORTE_HORAS"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Cuantas horas llevo ",
+    "timestamp": "2026-04-01T17:36:25.849Z",
+    "type": "REPORTE_HORAS"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio retro 416 f serie DPM-789 HOROMETRO 3250",
+    "timestamp": "2026-04-01T22:44:18.962Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Fin horometro 3278",
+    "timestamp": "2026-04-01T22:50:55.501Z",
+    "type": "FIN_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio retro 416 f serie DPM-789 HOROMETRO 3400",
+    "timestamp": "2026-04-01T22:53:37.701Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio retro 416 f serie DPM-789 HOROMETRO 3500",
+    "timestamp": "2026-04-01T22:56:53.083Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Fin horometro 3500",
+    "timestamp": "2026-04-01T23:00:06.370Z",
+    "type": "FIN_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Fin horometro 3690\n",
+    "timestamp": "2026-04-01T23:02:56.775Z",
+    "type": "FIN_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio retro 416 f serie DPM-789 HOROMETRO 3608",
+    "timestamp": "2026-04-01T23:05:37.433Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Fin horometro 3616",
+    "timestamp": "2026-04-01T23:06:44.282Z",
+    "type": "FIN_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Horas ",
+    "timestamp": "2026-04-01T23:06:49.372Z",
+    "type": "REPORTE_HORAS"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio retro 416 f serie DPM-789 HOROMETRO 3250",
+    "timestamp": "2026-04-01T23:24:03.368Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Fin horometro 3258",
+    "timestamp": "2026-04-01T23:25:02.831Z",
+    "type": "FIN_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio retro 416 f serie DPM-789 HOROMETRO 325.0",
+    "timestamp": "2026-04-02T17:40:30.066Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio retro 416 f serie DPM-789 HOROMETRO 320.5",
+    "timestamp": "2026-04-02T17:44:02.224Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio turno ",
+    "timestamp": "2026-04-02T17:48:08.333Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio 320.5",
+    "timestamp": "2026-04-02T17:56:38.160Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio 320.5",
+    "timestamp": "2026-04-02T18:02:54.171Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio 320.5",
+    "timestamp": "2026-04-02T18:09:19.009Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio 320.5\n",
+    "timestamp": "2026-04-02T18:19:15.433Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio 320.5 ",
+    "timestamp": "2026-04-02T18:29:10.720Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio 320.5 ",
+    "timestamp": "2026-04-02T18:34:18.847Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio 320.5 ",
+    "timestamp": "2026-04-02T18:55:43.832Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio 320.5 ",
+    "timestamp": "2026-04-02T19:03:51.630Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio 320.5 ",
+    "timestamp": "2026-04-02T19:07:26.086Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "+525539954872",
+    "body": "Inicio 320.5 ",
+    "timestamp": "2026-04-02T19:12:07.170Z",
+    "type": "INICIO_TURNO"
+  }
+]

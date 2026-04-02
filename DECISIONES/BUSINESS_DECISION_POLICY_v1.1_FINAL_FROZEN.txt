@@ -1,0 +1,241 @@
+BUSINESS_DECISION_POLICY_v1.1_FINAL_FROZEN
+
+--------------------------------------------------
+
+1. HEADER
+
+ID: IRONSYNC-POL-BUSINESS-v1.1
+STATUS: FROZEN
+DATE: 2026-03-27
+AUTHOR: IronSync Core System
+APPROVAL: War Room (GLM-5, DeepSeek, Grok, Gemini)
+
+--------------------------------------------------
+
+2. PROPÓSITO
+
+Definir la lógica de cobrabilidad bajo condiciones reales de operación:
+
+- incertidumbre
+- errores humanos
+- ruido de campo
+- incentivos perversos
+
+Garantizando:
+- no cobrar eventos inválidos
+- no perder ingresos legítimos
+- trazabilidad total
+
+--------------------------------------------------
+
+3. PRINCIPIO RECTOR
+
+No se cobra incertidumbre, pero tampoco se pierde ingreso recuperable.
+
+--------------------------------------------------
+
+4. ARQUITECTURA DE DECISIÓN
+
+evento
+→ integrity_gate
+→ duplicate_gate
+→ identity_gate
+→ temporal_gate
+→ decision_engine
+→ revenue_modulation
+→ decisión final
+
+--------------------------------------------------
+
+5. CAPAS DE EVALUACIÓN
+
+5.1 INTEGRITY GATE
+
+evidence_status:
+- missing
+- invalid
+- valid
+
+Reglas:
+missing → NON_BILLABLE
+invalid → PROVISIONAL (recoverable = true)
+valid → continuar
+
+--------------------------------------------------
+
+5.2 DUPLICATE GATE
+
+duplicate_status:
+- none
+- exact_duplicate
+- probable_duplicate
+- collision_duplicate
+
+Reglas:
+exact_duplicate → NON_BILLABLE
+probable_duplicate → PROVISIONAL
+collision_duplicate → PENDING_REVIEW
+
+Supervivencia:
+exact → primer evento
+probable → mejor evidencia
+
+--------------------------------------------------
+
+5.3 IDENTITY GATE
+
+identity_state:
+- stable
+- ambiguous
+- unresolved
+- conflict
+
+Reglas:
+stable → continuar
+ambiguous → PROVISIONAL
+unresolved → PROVISIONAL
+conflict → PENDING_REVIEW
+
+Invariante:
+la identidad nunca bloquea directamente un ingreso válido
+
+--------------------------------------------------
+
+5.4 TEMPORAL GATE
+
+Evalúa:
+- occurred_at
+- processed_at
+- turno
+
+Reglas:
+dentro de turno → continuar
+fuera de turno → PROVISIONAL
+delay alto → PROVISIONAL
+timestamp inválido → PROVISIONAL
+
+Invariante:
+delay de red no es fraude
+
+--------------------------------------------------
+
+6. ELEGIBILIDAD TÉCNICA
+
+Condición:
+evidence_status = valid
+AND duplicate_status = none
+AND identity_state = stable
+AND temporal = valid
+
+Resultado:
+technical_eligibility = TRUE
+
+--------------------------------------------------
+
+7. DECISION ENGINE
+
+Estados:
+- BILLABLE
+- NON_BILLABLE
+- PROVISIONAL
+- PENDING_REVIEW
+
+Reglas:
+IF technical_eligibility = TRUE → BILLABLE
+IF evidencia missing → NON_BILLABLE
+IF duplicado exacto → NON_BILLABLE
+IF evidencia invalid OR identidad ≠ stable OR temporal ≠ valid → PROVISIONAL
+IF conflicto estructural → PENDING_REVIEW
+
+--------------------------------------------------
+
+8. REVENUE MODULATION
+
+PROVISIONAL = ingreso en riesgo pero recuperable
+
+recoverable = TRUE / FALSE
+
+Regla de Recuperabilidad:
+valor_evento > costo_revision
+
+Regla de Prescripción:
+evidencia → 48 horas
+identidad → 5 días
+
+expiración → NON_BILLABLE
+
+Revenue at Risk:
+- provisional_amount
+- recovery_deadline
+- priority_score
+
+--------------------------------------------------
+
+9. HUMAN OVERRIDE
+
+Acciones:
+PROVISIONAL → BILLABLE
+PROVISIONAL → NON_BILLABLE
+PENDING → resolución
+
+Requisitos:
+- usuario
+- timestamp
+- motivo
+
+--------------------------------------------------
+
+10. TRAZABILIDAD
+
+Campos:
+- engine_decision
+- final_decision
+- decision_source
+- adjustment_reason
+
+--------------------------------------------------
+
+11. CIERRE DE TURNO
+
+total_cobrable = SUM(BILLABLE)
+
+Reglas:
+PROVISIONAL → no se cobra
+PENDING → no se cobra
+NON_BILLABLE → no se cobra
+
+--------------------------------------------------
+
+12. FLUJO FINANCIERO
+
+BILLABLE → ingreso confirmado
+PROVISIONAL → ingreso en riesgo
+PENDING → ingreso en disputa
+NON_BILLABLE → ingreso perdido
+
+--------------------------------------------------
+
+13. INVARIANTES
+
+- evidencia inválida nunca es cobrable directo
+- duplicado exacto nunca se cobra
+- identidad no bloquea ingreso válido
+- incertidumbre no se cobra automáticamente
+- todo ingreso provisional expira
+- toda decisión es trazable
+
+--------------------------------------------------
+
+14. MÉTRICAS DEL SISTEMA
+
+- total_billable
+- total_provisional
+- total_revenue_at_risk
+- total_lost_revenue
+
+--------------------------------------------------
+
+15. ESTADO FINAL
+
+Documento FROZEN.
+Fuente única de verdad para cobrabilidad en IronSync v1.1.

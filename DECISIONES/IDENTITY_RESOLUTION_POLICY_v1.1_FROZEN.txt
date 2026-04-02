@@ -1,0 +1,208 @@
+IDENTITY_RESOLUTION_POLICY_v1.1_FROZEN
+
+--------------------------------------------------
+
+1. HEADER
+
+ID: IRONSYNC-POL-IDENTITY-v1.1
+STATUS: FROZEN
+DATE: 2026-03-27
+AUTHOR: IronSync Core System
+APPROVAL: War Room (GLM-5, DeepSeek, Grok, Gemini)
+
+--------------------------------------------------
+
+2. PRINCIPIOS NO NEGOCIABLES
+
+- ZERO AUTO-MERGE
+- SOURCE_ACTOR_ID ≠ OPERATOR_ID
+- PROVISIONAL FIRST
+- HUMAN-IN-THE-LOOP CORE
+- TRACEABLE MERGE ONLY
+
+--------------------------------------------------
+
+3. DEFINICIÓN DE ENTIDADES
+
+source_actor_id:
+Identidad técnica del origen (ej. WhatsApp ID).
+No representa identidad operativa.
+
+operator_id:
+Identidad operativa persistente.
+Debe ser única y gestionada.
+
+identity_state:
+provisional
+stable
+ambiguous
+conflict
+unresolved
+
+identity_confidence:
+low
+medium
+high
+
+identity_flags:
+IDENTITY_SOURCE_MISMATCH
+IDENTITY_IMPUTED
+IDENTITY_AMBIGUOUS
+IDENTITY_COLLISION
+IDENTITY_DEVICE_CHANGE
+IDENTITY_ALIAS_CANDIDATE
+
+--------------------------------------------------
+
+4. STATE MACHINE
+
+Estados iniciales:
+provisional
+
+Transiciones permitidas:
+provisional → stable
+provisional → ambiguous
+provisional → unresolved
+stable → ambiguous
+ambiguous → conflict
+ambiguous → stable (solo vía revisión humana)
+conflict → stable (solo vía resolución humana)
+unresolved → stable (solo vía resolución humana)
+
+Transiciones prohibidas:
+stable → provisional
+conflict → stable (automático)
+cualquier transición sin trazabilidad
+
+--------------------------------------------------
+
+5. FLUJO DE RESOLUCIÓN
+
+1. Crear operator_id provisional
+2. Asociar source_actor_id (como señal)
+3. Evaluar señales: nombre, historial, consistencia temporal
+4. Asignar identity_state
+5. Generar identity_flags
+6. Generar identity_candidate_link (si aplica)
+7. Marcar requires_review cuando aplique
+
+--------------------------------------------------
+
+6. REGLAS OPERATIVAS
+
+Cold Start:
+IF no existe historial
+THEN operator_id nuevo, identity_state=provisional, confidence=low
+
+Mismo source_actor_id:
+IF comportamiento consistente
+THEN mantener operator_id y evolucionar a stable
+
+Cambio de nombre:
+IF mismo source_actor_id + nombre diferente
+THEN ambiguous + flag + revisión
+
+Distinto source mismo nombre:
+NO consolidar, conflict + revisión
+
+Sin operador:
+unresolved + flag + revisión
+
+Cambio de dispositivo:
+ambiguous + flag + revisión
+
+--------------------------------------------------
+
+7. PROHIBICIONES
+
+- Prohibido auto-merge
+- Prohibido usar source_actor_id como identidad final
+- Prohibido elevar confidence sin evidencia
+- Prohibido resolver conflictos sin trazabilidad
+- Prohibido asignar identidad definitiva en primer evento
+
+--------------------------------------------------
+
+8. SISTEMA DE PROPUESTAS
+
+identity_candidate_link:
+candidate_operator_id
+reason
+confidence
+
+Nunca ejecuta merge automático.
+
+--------------------------------------------------
+
+9. RESOLUCIÓN HUMANA
+
+Acciones:
+MERGE
+SPLIT
+REASSIGN
+
+Registro obligatorio:
+previous_operator_id
+new_operator_id
+action_type
+performed_by
+timestamp
+
+--------------------------------------------------
+
+10. INTERFAZ CON EVENT MODEL
+
+Campos:
+operator_id
+identity_state
+identity_confidence
+identity_flags
+requires_review
+
+--------------------------------------------------
+
+11. INTERFAZ CON DUPLICATE POLICY
+
+- duplicate_status puede generar identity_flags
+- collision_duplicate → conflict
+
+--------------------------------------------------
+
+12. TRAZABILIDAD
+
+Eventos:
+identity_merge
+identity_split
+identity_assignment
+
+Incluyen:
+actor
+timestamp
+motivo
+evidencia
+
+--------------------------------------------------
+
+13. NOTAS DE IMPLEMENTACIÓN
+
+- No ML en v1
+- No fuzzy cross-device
+- No auto-linking
+- Toda consolidación es manual
+
+--------------------------------------------------
+
+14. INVARIANTES
+
+- No auto-merge
+- source_actor_id no define identidad
+- identidad ambigua no se usa para decisiones críticas
+- toda fusión es trazable
+- identidad provisional no habilita cobro
+
+--------------------------------------------------
+
+15. ESTADO FINAL
+
+Documento FROZEN.
+Fuente única de verdad para identidad en IronSync v1.

@@ -1,0 +1,149 @@
+IRONSYNC — ANEXO_IMPLEMENTACION_v1
+
+STATUS: IMPLEMENTATION SPEC
+DATE: 2026-03-27
+
+--------------------------------------------------
+
+1. PURPOSE
+
+This document operationalizes BUSINESS_DECISION_POLICY_v1.1_FINAL_FROZEN.
+
+Defines exact rules for implementation in code.
+
+--------------------------------------------------
+
+2. EVIDENCE CLASSIFICATION
+
+evidence_status:
+
+valid:
+- readable image
+- relevant machinery content
+
+invalid_technical:
+- upload error
+- corrupted file
+→ recoverable = true
+
+invalid_content:
+- irrelevant image (wall, sky, etc.)
+- no technical value
+→ recoverable = false
+
+--------------------------------------------------
+
+3. IDENTITY CONFIDENCE
+
+identity_confidence:
+
+high:
+→ stable → proceed
+
+medium:
+→ ambiguous → PROVISIONAL
+
+low:
+→ unresolved → PENDING_REVIEW
+
+conflict:
+→ PENDING_REVIEW
+
+--------------------------------------------------
+
+4. DUPLICATE LOGIC
+
+exact_duplicate:
+→ NON_BILLABLE
+
+probable_duplicate:
+→ PROVISIONAL
+
+collision_duplicate:
+→ PENDING_REVIEW
+
+survivor rules:
+- first event wins (exact)
+- best evidence wins (probable)
+
+--------------------------------------------------
+
+5. TEMPORAL RULES
+
+delay_threshold = 2 hours
+
+rules:
+- delay < threshold → valid
+- delay > threshold → PROVISIONAL
+- impossible timestamp → PENDING_REVIEW
+- >24h delay → PENDING_REVIEW
+
+--------------------------------------------------
+
+6. RECOVERY WINDOW
+
+start:
+→ when event enters PROVISIONAL
+
+durations:
+- evidence issues → 48 hours
+- identity issues → 5 days
+
+expiration:
+→ NON_BILLABLE
+
+--------------------------------------------------
+
+7. COST VS VALUE RULE
+
+event_value = configurable
+review_cost = configurable
+
+rule:
+if event_value > review_cost:
+→ PROVISIONAL
+else:
+→ NON_BILLABLE
+
+--------------------------------------------------
+
+8. HUMAN OVERRIDE
+
+fields:
+- user_id
+- timestamp
+- reason
+
+rules:
+- override is final
+- cannot auto-revert
+
+--------------------------------------------------
+
+9. METRICS
+
+system must track:
+
+- total_billable
+- total_provisional
+- revenue_at_risk
+- recovery_rate
+- avg_recovery_time
+- revenue_saved
+
+--------------------------------------------------
+
+10. OUTPUT FIELDS
+
+each event:
+
+- billing_status
+- recoverable
+- provisional_amount
+- recovery_deadline
+- decision_source
+- adjustment_reason
+
+--------------------------------------------------
+
+END OF DOCUMENT

@@ -1,0 +1,95 @@
+{
+  "resumen": {
+    "ramon torres": {
+      "total": 4,
+      "aprobados": 1,
+      "pendientes": 0,
+      "rechazados": 3
+    },
+    "sin_nombre": {
+      "total": 1,
+      "aprobados": 0,
+      "pendientes": 1,
+      "rechazados": 0
+    }
+  },
+  "cierre": {
+    "ramon torres": {
+      "eventos_cobrables": 1,
+      "monto": 100
+    },
+    "sin_nombre": {
+      "eventos_cobrables": 0,
+      "monto": 0
+    }
+  },
+  "anomalias": [
+    {
+      "event_id": "EVT-1774822225011-391265",
+      "code": "DUPLICATE_EVENT",
+      "severity": "major"
+    },
+    {
+      "event_id": "EVT-1774822225011-708074",
+      "code": "DUPLICATE_EVENT",
+      "severity": "major"
+    },
+    {
+      "event_id": "EVT-1774822225011-887676",
+      "code": "MISSING_EVIDENCE",
+      "severity": "critical"
+    },
+    {
+      "event_id": "EVT-1774822225011-535169",
+      "code": "INCOMPLETE_DATA",
+      "severity": "major"
+    }
+  ],
+  "detalles": [
+    {
+      "event_id": "EVT-1774822225010-306944",
+      "occurred_at": "2026-03-25T11:15:00.000Z",
+      "operator_name": "ramon torres",
+      "pipeline_status": "BILLABLE",
+      "es_cobrable": true,
+      "motivo": "OK",
+      "recovery_deadline": null
+    },
+    {
+      "event_id": "EVT-1774822225011-391265",
+      "occurred_at": "2026-03-25T11:15:00.000Z",
+      "operator_name": "ramon torres",
+      "pipeline_status": "NON_BILLABLE",
+      "es_cobrable": false,
+      "motivo": "DUPLICADO",
+      "recovery_deadline": null
+    },
+    {
+      "event_id": "EVT-1774822225011-708074",
+      "occurred_at": "2026-03-25T11:15:00.000Z",
+      "operator_name": "ramon torres",
+      "pipeline_status": "NON_BILLABLE",
+      "es_cobrable": false,
+      "motivo": "DUPLICADO",
+      "recovery_deadline": null
+    },
+    {
+      "event_id": "EVT-1774822225011-887676",
+      "occurred_at": "2026-03-25T11:20:00.000Z",
+      "operator_name": "ramon torres",
+      "pipeline_status": "NON_BILLABLE",
+      "es_cobrable": false,
+      "motivo": "SIN_FOTO",
+      "recovery_deadline": null
+    },
+    {
+      "event_id": "EVT-1774822225011-535169",
+      "occurred_at": "2026-03-25T11:25:00.000Z",
+      "operator_name": "sin_nombre",
+      "pipeline_status": "PROVISIONAL",
+      "es_cobrable": false,
+      "motivo": "SIN_OPERADOR",
+      "recovery_deadline": "2026-03-26T11:25:00.000Z"
+    }
+  ]
+}

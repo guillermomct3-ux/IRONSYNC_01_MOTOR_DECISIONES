@@ -1,0 +1,120 @@
+// ===== GENERADOR DE ID =====
+function generateEventId() {
+  const now = Date.now();
+  const random = Math.floor(Math.random() * 1000000);
+  return `EVT-${now}-${random}`;
+}
+
+// ===== NORMALIZADOR DE TIMESTAMP =====
+function normalizeTimestamp(inputTimestamp) {
+  const baseDate = inputTimestamp ? new Date(inputTimestamp) : new Date();
+
+  if (isNaN(baseDate.getTime())) {
+    return {
+      raw: inputTimestamp || null,
+      iso: null,
+      unix_ms: null,
+      valid: false
+    };
+  }
+
+  return {
+    raw: inputTimestamp || null,
+    iso: baseDate.toISOString(),
+    unix_ms: baseDate.getTime(),
+    valid: true
+  };
+}
+
+// ===== EVALUADOR PRINCIPAL =====
+function evaluateEvent(event, contexto = {}) {
+  const timeline = contexto.timeline || [];
+
+  const hasFoto =
+    event &&
+    event.evidencia &&
+    typeof event.evidencia.foto === "string" &&
+    event.evidencia.foto.trim() !== "";
+
+  const hasOperador =
+    event &&
+    event.operador &&
+    typeof event.operador.nombre === "string" &&
+    event.operador.nombre.trim() !== "";
+
+  const timestampInfo = normalizeTimestamp(
+    event &&
+    event.metadata &&
+    event.metadata.timestamp
+  );
+
+  const hasTimestamp = timestampInfo.valid;
+
+  let classification = "";
+  let pipeline_status = "";
+  let stage = "";
+  let es_cobrable = false;
+  let motivo = "";
+
+  // ===== REGLA 1: INCOMPLETOS =====
+  if (!hasFoto || !hasOperador || !hasTimestamp) {
+    classification = "INCOMPLETO";
+    pipeline_status = "PENDING";
+    stage = "RECEIVED";
+    es_cobrable = false;
+
+    if (!hasFoto) motivo = "SIN_FOTO";
+    else if (!hasOperador) motivo = "SIN_OPERADOR";
+    else motivo = "SIN_TIMESTAMP";
+  } 
+  else {
+    // ===== REGLA 2: DUPLICADOS =====
+    const operador = event.operador.nombre.trim().toLowerCase();
+    const clave = operador + "|" + timestampInfo.iso;
+
+    const yaExiste = timeline.some(e =>
+      e.operator_name === operador &&
+      e.occurred_at === timestampInfo.iso
+    );
+
+    if (yaExiste) {
+      classification = "OK";
+      pipeline_status = "APPROVED";
+      stage = "VALIDATED";
+      es_cobrable = false;
+      motivo = "DUPLICADO";
+    } else {
+      // ===== REGLA 3: EVENTO VÁLIDO =====
+      classification = "OK";
+      pipeline_status = "APPROVED";
+      stage = "VALIDATED";
+      es_cobrable = true;
+      motivo = "OK";
+    }
+  }
+
+  const event_id = generateEventId();
+
+  return {
+    event_id,
+    timestamp: timestampInfo,
+    classification,
+    pipeline_status,
+    stage,
+    es_cobrable,
+    motivo,
+    timeline_event: {
+      event_id,
+      occurred_at: timestampInfo.iso,
+      operator_name: hasOperador
+        ? event.operador.nombre.trim().toLowerCase()
+        : "sin_nombre",
+      has_photo: hasFoto
+    }
+  };
+}
+
+// ===== EXPORT =====
+module.exports = {
+  evaluateEvent
+};

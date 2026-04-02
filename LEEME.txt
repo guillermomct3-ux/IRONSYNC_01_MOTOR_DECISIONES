@@ -1,0 +1,24 @@
+IRONSYNC — MOTOR DE DECISIONES v0.1
+
+Este folder contiene el primer motor ejecutable de IronSync.
+
+Qué hace:
+- Recibe un evento (foto, operador, timestamp)
+- Valida la información
+- Clasifica el evento
+- Decide si se puede usar o no
+
+Resultados:
+- APPROVED → se puede cobrar / válido
+- PENDING → falta información
+- REJECTED → no sirve
+
+Archivos:
+- engine.js → reglas del sistema (el cerebro)
+- test.js → pruebas del sistema
+
+Estado:
+Primera versión funcional validada (CMD funcionando)
+
+IMPORTANTE:
+Este es el inicio del sistema IronSync real.

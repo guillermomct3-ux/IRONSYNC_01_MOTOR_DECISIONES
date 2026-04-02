@@ -1,0 +1,68 @@
+IRONSYNC — SPRINT 0 BASELINE (FROZEN)
+
+1. TWILIO
+Número activo:
++1 260 525 5145
+
+Configuración:
+A message comes in → Webhook (POST)
+URL:
+https://oceanlike-lala-subduedly.ngrok-free.dev/webhook
+
+Cuenta:
+Trial (limitaciones outbound SMS a MX)
+
+---
+
+2. NGROK
+Comando:
+ngrok http 3000
+
+Nota crítica:
+La URL cambia en cada sesión → actualizar en Twilio
+
+---
+
+3. WEBHOOK (NODE)
+Puerto:
+3000
+
+Endpoint:
+POST /webhook
+
+Estado:
+Operativo — responde 200 OK
+
+---
+
+4. PRUEBA END-TO-END
+Flujo validado:
+Celular (+52) → SMS → Twilio → ngrok → Node.js → 200 OK
+
+Resultado:
+Inbound OK
+Outbound SMS → limitado por trial
+
+---
+
+5. NÚMERO DE PRUEBA
++52 55 3995 4872 (verificado en Twilio)
+
+---
+
+6. ESTADO DEL SISTEMA
+Infraestructura: OK
+Canal: OK
+Webhook: OK
+Pipeline base: VALIDADO
+
+---
+
+7. NOTA CRÍTICA
+Cada vez que se reinicie ngrok:
+→ actualizar URL en Twilio Console
+
+---
+
+8. PRÓXIMO PASO
+Persistencia de eventos + conexión motor de decisiones
