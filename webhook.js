@@ -1,11 +1,18 @@
+require('dotenv').config();
 const express = require('express');
 const twilio = require('twilio');
 const fs = require('fs');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 const { procesarInicioTurno, procesarFinTurno, procesarReporteHoras, verificarZombies } = require('./turnos');
 
 const app = express();
 app.use(express.urlencoded({ extended: false }));
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
 const ARCHIVO = path.join(__dirname, 'eventos.json');
 const cliente = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
@@ -37,13 +44,10 @@ app.post('/webhook', async (req, res) => {
 
   if (texto.includes('inicio') || texto.includes('entro') || texto.includes('llegue') || texto.includes('llegué')) {
     type = 'INICIO_TURNO';
-    console.log('✅ Detectado INICIO_TURNO. Llamando a procesarInicioTurno...');
     try {
       respuesta = await procesarInicioTurno(from, texto);
-      console.log('✅ RESPUESTA GENERADA:', respuesta);
     } catch (err) {
-      console.error('❌ ERROR EN procesarInicioTurno:', err.message);
-      console.error('❌ Stack:', err.stack);
+      console.error('ERROR INICIO:', err);
       respuesta = 'Error interno al procesar inicio de turno.';
     }
 
@@ -63,12 +67,29 @@ app.post('/webhook', async (req, res) => {
     respuesta = 'Mensaje recibido. Envía "inicio horometro XXXX" para comenzar tu turno.';
   }
 
-  const eventos = cargarEventos();
-  const evento = { from, body, timestamp: new Date().toISOString(), type };
-  eventos.push(evento);
-  guardarEventos(eventos);
+  // Guardar en JSON local (respaldo)
+const eventos = cargarEventos();
+const evento = { from, body, timestamp: new Date().toISOString(), type };
+eventos.push(evento);
+guardarEventos(eventos);
+console.log('EVENTO RECIBIDO:', evento);
 
-  console.log('EVENTO RECIBIDO:', evento);
+// Insertar en Supabase
+try {
+  const { error } = await supabase
+    .from('eventos')
+    .insert({
+      tipo: type,
+      payload: { from, body, timestamp: new Date().toISOString() }
+    });
+  if (error) {
+    console.error('❌ Supabase error:', error.message);
+  } else {
+    console.log('✅ Evento guardado en Supabase');
+  }
+} catch (err) {
+  console.error('❌ Supabase excepción:', err.message);
+}
 
   const twiml = new twilio.twiml.MessagingResponse();
   twiml.message(respuesta);
