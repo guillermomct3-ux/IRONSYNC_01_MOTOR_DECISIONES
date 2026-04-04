@@ -217,5 +217,23 @@
     "body": "Inicio 320.5 ",
     "timestamp": "2026-04-02T19:12:07.170Z",
     "type": "INICIO_TURNO"
+  },
+  {
+    "from": " 5215539954872",
+    "body": "inicio horometro 340",
+    "timestamp": "2026-04-04T19:16:41.881Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "5215539954872",
+    "body": "inicio horometro 345",
+    "timestamp": "2026-04-04T19:30:46.156Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "5215539954872",
+    "body": "fin horometro 350",
+    "timestamp": "2026-04-04T19:49:21.166Z",
+    "type": "FIN_TURNO"
   }
 ]

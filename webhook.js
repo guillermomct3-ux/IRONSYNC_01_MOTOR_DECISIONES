@@ -34,7 +34,7 @@ setInterval(() => {
 
 app.post('/webhook', async (req, res) => {
   const from = req.body.From;
-  const telefono = from.replace('whatsapp:', '');
+  const telefono = from.startsWith('whatsapp:') ? from.slice(9).trim() : from.trim();
   const body = req.body.Body;
   const texto = body.replace(/\n/g, ' ').replace(/\r/g, '').toLowerCase().trim();
 
