@@ -235,5 +235,35 @@
     "body": "fin horometro 350",
     "timestamp": "2026-04-04T19:49:21.166Z",
     "type": "FIN_TURNO"
+  },
+  {
+    "from": "5215539954872",
+    "body": "inicio horometro 500,75",
+    "timestamp": "2026-04-04T22:03:53.854Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "5215539954872",
+    "body": "fin horometro 505",
+    "timestamp": "2026-04-04T22:05:29.063Z",
+    "type": "FIN_TURNO"
+  },
+  {
+    "from": "5215539954872",
+    "body": "inicio horometro -100",
+    "timestamp": "2026-04-04T22:06:13.690Z",
+    "type": "INICIO_TURNO"
+  },
+  {
+    "from": "5215539954872",
+    "body": "fin horometro 100",
+    "timestamp": "2026-04-04T22:07:27.676Z",
+    "type": "FIN_TURNO"
+  },
+  {
+    "from": "5215539954872",
+    "body": "inicio horometro -100",
+    "timestamp": "2026-04-04T22:13:42.502Z",
+    "type": "INICIO_TURNO"
   }
 ]

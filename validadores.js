@@ -1,22 +1,27 @@
 function extraerHorometro(texto) {
   console.log('🔍 extraerHorometro recibió:', JSON.stringify(texto));
   
-  // Normalizar coma decimal mexicana → punto
   const textoNorm = texto.replace(',', '.');
   
-  const matchConPalabra = textoNorm.match(/horometro\s+(\d+\.?\d*)/);
+  const matchConPalabra = textoNorm.match(/horometro\s+(-?\d+\.?\d*)/);
   if (matchConPalabra) {
     const val = parseFloat(matchConPalabra[1]);
-    if (val < 0) return null;
+    if (val < 0) {
+      console.log('❌ Horómetro negativo rechazado:', val);
+      return null;
+    }
     return val;
   }
   
-  const matchDirecto = textoNorm.match(/(\d+\.?\d*)/);
+  const matchDirecto = textoNorm.match(/(-?\d+\.?\d*)/);
   console.log('🔍 matchDirecto:', matchDirecto);
   if (!matchDirecto) return null;
   
   const val = parseFloat(matchDirecto[1]);
-  if (val < 0) return null;
+  if (val < 0) {
+    console.log('❌ Horómetro negativo rechazado:', val);
+    return null;
+  }
   return val;
 }
 
