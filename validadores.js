@@ -1,10 +1,23 @@
 function extraerHorometro(texto) {
   console.log('🔍 extraerHorometro recibió:', JSON.stringify(texto));
-  const matchConPalabra = texto.match(/horometro\s+(\d+\.?\d*)/);
-  if (matchConPalabra) return parseFloat(matchConPalabra[1]);
-  const matchDirecto = texto.match(/(\d+\.?\d*)/);
+  
+  // Normalizar coma decimal mexicana → punto
+  const textoNorm = texto.replace(',', '.');
+  
+  const matchConPalabra = textoNorm.match(/horometro\s+(\d+\.?\d*)/);
+  if (matchConPalabra) {
+    const val = parseFloat(matchConPalabra[1]);
+    if (val < 0) return null;
+    return val;
+  }
+  
+  const matchDirecto = textoNorm.match(/(\d+\.?\d*)/);
   console.log('🔍 matchDirecto:', matchDirecto);
-  return matchDirecto ? parseFloat(matchDirecto[1]) : null;
+  if (!matchDirecto) return null;
+  
+  const val = parseFloat(matchDirecto[1]);
+  if (val < 0) return null;
+  return val;
 }
 
 function extraerDatosMaquina(texto) {
