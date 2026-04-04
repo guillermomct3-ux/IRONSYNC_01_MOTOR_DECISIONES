@@ -34,10 +34,12 @@ setInterval(() => {
 
 app.post('/webhook', async (req, res) => {
   const from = req.body.From;
+  const telefono = from.replace('whatsapp:', '');
   const body = req.body.Body;
   const texto = body.replace(/\n/g, ' ').replace(/\r/g, '').toLowerCase().trim();
 
   console.log("TEXTO NORMALIZADO:", texto);
+  console.log("TELEFONO NORMALIZADO:", telefono);
 
   let type = 'MENSAJE_LIBRE';
   let respuesta = '';
@@ -45,7 +47,7 @@ app.post('/webhook', async (req, res) => {
   if (texto.includes('inicio') || texto.includes('entro') || texto.includes('llegue') || texto.includes('llegué')) {
     type = 'INICIO_TURNO';
     try {
-      respuesta = await procesarInicioTurno(from, texto);
+      respuesta = await procesarInicioTurno(telefono, texto);
     } catch (err) {
       console.error('ERROR INICIO:', err);
       respuesta = 'Error interno al procesar inicio de turno.';
@@ -53,11 +55,11 @@ app.post('/webhook', async (req, res) => {
 
   } else if (texto.includes('fin') || texto.includes('salgo') || texto.includes('termine') || texto.includes('terminé')) {
     type = 'FIN_TURNO';
-    respuesta = await procesarFinTurno(from, texto);
+    respuesta = await procesarFinTurno(telefono, texto);
 
   } else if (texto.includes('horas')) {
     type = 'REPORTE_HORAS';
-    respuesta = await procesarReporteHoras(from);
+    respuesta = await procesarReporteHoras(telefono);
 
   } else if (texto.includes('aceite') || texto.includes('falla') || texto.includes('problema')) {
     type = 'CONSULTA_OPERATIVA';
@@ -67,29 +69,27 @@ app.post('/webhook', async (req, res) => {
     respuesta = 'Mensaje recibido. Envía "inicio horometro XXXX" para comenzar tu turno.';
   }
 
-  // Guardar en JSON local (respaldo)
-const eventos = cargarEventos();
-const evento = { from, body, timestamp: new Date().toISOString(), type };
-eventos.push(evento);
-guardarEventos(eventos);
-console.log('EVENTO RECIBIDO:', evento);
+  const eventos = cargarEventos();
+  const evento = { from: telefono, body, timestamp: new Date().toISOString(), type };
+  eventos.push(evento);
+  guardarEventos(eventos);
+  console.log('EVENTO RECIBIDO:', evento);
 
-// Insertar en Supabase
-try {
-  const { error } = await supabase
-    .from('eventos')
-    .insert({
-      tipo: type,
-      payload: { from, body, timestamp: new Date().toISOString() }
-    });
-  if (error) {
-    console.error('❌ Supabase error:', error.message);
-  } else {
-    console.log('✅ Evento guardado en Supabase');
+  try {
+    const { error } = await supabase
+      .from('eventos')
+      .insert({
+        tipo: type,
+        payload: { from: telefono, body, timestamp: new Date().toISOString() }
+      });
+    if (error) {
+      console.error('❌ Supabase error:', error.message);
+    } else {
+      console.log('✅ Evento guardado en Supabase');
+    }
+  } catch (err) {
+    console.error('❌ Supabase excepción:', err.message);
   }
-} catch (err) {
-  console.error('❌ Supabase excepción:', err.message);
-}
 
   const twiml = new twilio.twiml.MessagingResponse();
   twiml.message(respuesta);
