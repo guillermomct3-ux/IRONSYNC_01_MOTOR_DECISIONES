@@ -1,32 +1,15 @@
 require('dotenv').config();
 const express = require('express');
 const twilio = require('twilio');
-const fs = require('fs');
-const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
+const supabase = require('./lib/supabaseClient');
 const { procesarInicioTurno, procesarFinTurno, procesarReporteHoras, verificarZombies } = require('./turnos');
+const { requiresAuth, login, getOperador } = require('./services/authService');
 
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
-
-const ARCHIVO = path.join(__dirname, 'eventos.json');
 const cliente = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const NUMERO_TWILIO = process.env.TWILIO_PHONE_NUMBER;
-
-function cargarEventos() {
-  if (!fs.existsSync(ARCHIVO)) return [];
-  const contenido = fs.readFileSync(ARCHIVO, 'utf8');
-  try { return JSON.parse(contenido); } catch { return []; }
-}
-
-function guardarEventos(eventos) {
-  fs.writeFileSync(ARCHIVO, JSON.stringify(eventos, null, 2));
-}
 
 setInterval(() => {
   verificarZombies(cliente, NUMERO_TWILIO);
@@ -34,69 +17,71 @@ setInterval(() => {
 
 app.post('/webhook', async (req, res) => {
   const from = req.body.From;
-  const telefono = from.startsWith('whatsapp:') ? from.slice(9).trim() : from.trim();
   const body = req.body.Body;
-  const texto = body.replace(/\n/g, ' ').replace(/\r/g, '').toLowerCase().trim();
+  const texto = body.replace(/\n/g, ' ').replace(/\r/g, '').trim();
+  const textoNorm = texto.toLowerCase();
 
-  console.log("TEXTO NORMALIZADO:", texto);
-  console.log("TELEFONO NORMALIZADO:", telefono);
-
-  let type = 'MENSAJE_LIBRE';
-  let respuesta = '';
-
-  if (texto.includes('inicio') || texto.includes('entro') || texto.includes('llegue') || texto.includes('llegué')) {
-    type = 'INICIO_TURNO';
-    try {
-      respuesta = await procesarInicioTurno(telefono, texto);
-    } catch (err) {
-      console.error('ERROR INICIO:', err);
-      respuesta = 'Error interno al procesar inicio de turno.';
-    }
-
-  } else if (texto.includes('fin') || texto.includes('salgo') || texto.includes('termine') || texto.includes('terminé')) {
-    type = 'FIN_TURNO';
-    respuesta = await procesarFinTurno(telefono, texto);
-
-  } else if (texto.includes('horas')) {
-    type = 'REPORTE_HORAS';
-    respuesta = await procesarReporteHoras(telefono);
-
-  } else if (texto.includes('aceite') || texto.includes('falla') || texto.includes('problema')) {
-    type = 'CONSULTA_OPERATIVA';
-    respuesta = 'Consulta operativa recibida. Ulises será notificado.';
-
-  } else {
-    respuesta = 'Mensaje recibido. Envía "inicio horometro XXXX" para comenzar tu turno.';
-  }
-
-  const eventos = cargarEventos();
-  const evento = { from: telefono, body, timestamp: new Date().toISOString(), type };
-  eventos.push(evento);
-  guardarEventos(eventos);
-  console.log('EVENTO RECIBIDO:', evento);
-
-  try {
-    const { error } = await supabase
-      .from('eventos')
-      .insert({
-        tipo: type,
-        payload: { from: telefono, body, timestamp: new Date().toISOString() }
-      });
-    if (error) {
-      console.error('❌ Supabase error:', error.message);
-    } else {
-      console.log('✅ Evento guardado en Supabase');
-    }
-  } catch (err) {
-    console.error('❌ Supabase excepción:', err.message);
-  }
+  console.log("TEXTO NORMALIZADO:", textoNorm);
 
   const twiml = new twilio.twiml.MessagingResponse();
+  let respuesta = '';
+
+  try {
+    // 1. ¿Es intento de PIN?
+    if (/^\d{4}$/.test(texto)) {
+      const result = await login(from, texto);
+      respuesta = result.success
+        ? `✅ Listo ${result.operador.nombre}, ya puedes registrar tu turno.`
+        : result.mensaje;
+      twiml.message(respuesta);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    // 2. ¿Requiere autenticación?
+    const auth = await requiresAuth(from);
+    if (auth.requiere) {
+      if (auth.bloqueado) {
+        respuesta = '🔒 Tu acceso está bloqueado temporalmente. Intenta más tarde.';
+      } else if (!auth.existe) {
+        respuesta = '⚠️ Tu número no está registrado. Habla con tu supervisor.';
+      } else {
+        respuesta = '🔒 Envía tu PIN de 4 dígitos para comenzar.';
+      }
+      twiml.message(respuesta);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    // 3. Autenticado — procesar comando
+    if (textoNorm.includes('inicio') || textoNorm.includes('entro') || textoNorm.includes('llegue') || textoNorm.includes('llegué')) {
+      respuesta = await procesarInicioTurno(from, textoNorm);
+    } else if (textoNorm.includes('fin') || textoNorm.includes('salgo') || textoNorm.includes('termine') || textoNorm.includes('terminé')) {
+      respuesta = await procesarFinTurno(from, textoNorm);
+    } else if (textoNorm.includes('horas')) {
+      respuesta = await procesarReporteHoras(from, textoNorm);
+    } else {
+      const operador = await getOperador(from);
+      respuesta = operador
+        ? `Hola ${operador.nombre}. Comandos: INICIO [horómetro], FIN [horómetro], HORAS.`
+        : 'Comandos: INICIO [horómetro], FIN [horómetro], HORAS.';
+    }
+
+  } catch (err) {
+    console.error('[Webhook Error]:', err);
+    respuesta = 'Error interno. Intenta de nuevo.';
+  }
+
+  // Log asíncrono a Supabase — no bloquea respuesta (R-ASYNC)
+  supabase.from('eventos').insert({
+    tipo: 'mensaje_webhook',
+    operador_id: from,
+    payload: { mensaje: textoNorm },
+    creado_en: new Date().toISOString()
+  }).catch(err => console.error('[Error Log Evento]:', err));
+
   twiml.message(respuesta);
-  res.type('text/xml');
-  res.send(twiml.toString());
+  res.type('text/xml').send(twiml.toString());
 });
 
 app.listen(3000, () => {
-  console.log('Webhook corriendo en puerto 3000');
+  console.log('IronSync Webhook corriendo en puerto 3000');
 });
