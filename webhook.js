@@ -5,6 +5,16 @@ const supabase = require('./lib/supabaseClient');
 const { procesarInicioTurno, procesarFinTurno, procesarReporteHoras, verificarZombies } = require('./turnos');
 const { requiresAuth, login, getOperador } = require('./services/authService');
 
+process.on('uncaughtException', (err) => {
+  console.error('💥 UNCAUGHT EXCEPTION:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('💥 UNHANDLED REJECTION:', reason);
+  process.exit(1);
+});
+
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 
@@ -70,7 +80,6 @@ app.post('/webhook', async (req, res) => {
     respuesta = 'Error interno. Intenta de nuevo.';
   }
 
-  // Log asíncrono a Supabase — no bloquea respuesta (R-ASYNC)
   supabase.from('eventos').insert({
     tipo: 'mensaje_webhook',
     operador_id: from,

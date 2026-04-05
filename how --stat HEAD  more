@@ -1,0 +1,8 @@
+[33mcommit be69de9c65dd765f983618812fe270e812f91cb5[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: Guillermo <guillermomct3@gmail.com>
+Date:   Sun Apr 5 13:49:34 2026 -0600
+
+    Fix: webhook raiz actualizado con auth PIN
+
+ webhook.js | 119 [32m+++++++++++++++++++++++++++[m[31m----------------------------------[m
+ 1 file changed, 52 insertions(+), 67 deletions(-)
