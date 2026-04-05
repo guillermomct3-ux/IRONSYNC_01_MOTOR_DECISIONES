@@ -1,144 +1,87 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-
-// IMPORTANTE: asegúrate que la ruta sea correcta
-const { processEvents } = require("../ENGINE/engine_v1_FINAL_FROZEN");
+require('dotenv').config();
+const express = require('express');
+const twilio = require('twilio');
+const supabase = require('./lib/supabaseClient');
+const { procesarInicioTurno, procesarFinTurno, procesarReporteHoras, verificarZombies } = require('./turnos');
+const { requiresAuth, login, getOperador } = require('./services/authService');
 
 const app = express();
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false }));
 
-// ------------------------
-// VALIDACIÓN DE INPUT
-// ------------------------
-function validateInput(req) {
-  const text = (req.body.Body || "").trim();
-  const hasText = text.length > 0;
-  const hasMedia = req.body.MediaUrl0 ? true : false;
+const cliente = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const NUMERO_TWILIO = process.env.TWILIO_PHONE_NUMBER;
 
-  if (!hasText && !hasMedia) {
-    return { valid: false, message: null };
-  }
+setInterval(() => {
+  verificarZombies(cliente, NUMERO_TWILIO);
+}, 60 * 60 * 1000);
 
-  if (hasMedia && !hasText) {
-    return {
-      valid: false,
-      message:
-        "Recibido ✓\n\n⚠️ Falta información\n→ Escribe el dato (ej: '3 viajes')",
-    };
-  }
+app.post('/webhook', async (req, res) => {
+  const from = req.body.From;
+  const body = req.body.Body;
+  const texto = body.replace(/\n/g, ' ').replace(/\r/g, '').trim();
+  const textoNorm = texto.toLowerCase();
 
-  if (!hasMedia && hasText) {
-    return {
-      valid: false,
-      message:
-        "Recibido ✓\n\n⚠️ Falta foto\n→ Envíala junto con el texto",
-    };
-  }
+  console.log("TEXTO NORMALIZADO:", textoNorm);
 
-  return { valid: true };
-}
-
-// ------------------------
-// ADAPTADOR
-// ------------------------
-function adaptTwilioToEvent(req) {
-  const foto = req.body.MediaUrl0 || "no_foto";
-
-  const operador = (req.body.From || "sin_nombre")
-    .replace("whatsapp:", "")
-    .replace("+52", "")
-    .trim();
-
-  const timestamp = new Date().toISOString();
-
-  return `${foto}|${operador}|${timestamp}`;
-}
-
-// ------------------------
-// EXTRACTOR STATUS
-// ------------------------
-function extractStatus(result) {
-  if (!result) return "NON_BILLABLE";
-
-  return (
-    result.pipeline_status ||
-    (result.details &&
-      result.details[0] &&
-      result.details[0].pipeline_status) ||
-    "NON_BILLABLE"
-  );
-}
-
-// ------------------------
-// RESPUESTA AL OPERADOR
-// ------------------------
-function formatResponse(result) {
-  const status = extractStatus(result);
-
-  if (status === "BILLABLE") {
-    return "Recibido ✓\n\n✅ Registro válido";
-  }
-
-  if (status === "PROVISIONAL") {
-    return "Recibido ✓\n\n⚠️ Falta información\n→ No borres la foto";
-  }
-
-  return "Recibido ✓\n\n❌ No se pudo procesar\n→ Reenvía foto + texto juntos";
-}
-
-// ------------------------
-// LOGGING
-// ------------------------
-function logEvent(from, raw, result, response) {
-  console.log(
-    JSON.stringify({
-      ts: new Date().toISOString(),
-      from,
-      raw,
-      status: extractStatus(result),
-      response,
-    })
-  );
-}
-
-// ------------------------
-// WEBHOOK
-// ------------------------
-app.post("/webhook", (req, res) => {
-  let message = "Recibido ✓";
-  let result = null;
-  let rawEvent = null;
+  const twiml = new twilio.twiml.MessagingResponse();
+  let respuesta = '';
 
   try {
-    const validation = validateInput(req);
-
-    if (!validation.valid) {
-      message = validation.message || message;
-    } else {
-      rawEvent = adaptTwilioToEvent(req);
-
-      const output = processEvents([rawEvent]);
-
-      result = output[0];
-
-      message = formatResponse(result);
+    // 1. ¿Es intento de PIN?
+    if (/^\d{4}$/.test(texto)) {
+      const result = await login(from, texto);
+      respuesta = result.success
+        ? `✅ Listo ${result.operador.nombre}, ya puedes registrar tu turno.`
+        : result.mensaje;
+      twiml.message(respuesta);
+      return res.type('text/xml').send(twiml.toString());
     }
 
-    logEvent(req.body.From, rawEvent, result, message);
+    // 2. ¿Requiere autenticación?
+    const auth = await requiresAuth(from);
+    if (auth.requiere) {
+      if (auth.bloqueado) {
+        respuesta = '🔒 Tu acceso está bloqueado temporalmente. Intenta más tarde.';
+      } else if (!auth.existe) {
+        respuesta = '⚠️ Tu número no está registrado. Habla con tu supervisor.';
+      } else {
+        respuesta = '🔒 Envía tu PIN de 4 dígitos para comenzar.';
+      }
+      twiml.message(respuesta);
+      return res.type('text/xml').send(twiml.toString());
+    }
 
-  } catch (error) {
-    console.error("Error interno:", error);
+    // 3. Autenticado — procesar comando
+    if (textoNorm.includes('inicio') || textoNorm.includes('entro') || textoNorm.includes('llegue') || textoNorm.includes('llegué')) {
+      respuesta = await procesarInicioTurno(from, textoNorm);
+    } else if (textoNorm.includes('fin') || textoNorm.includes('salgo') || textoNorm.includes('termine') || textoNorm.includes('terminé')) {
+      respuesta = await procesarFinTurno(from, textoNorm);
+    } else if (textoNorm.includes('horas')) {
+      respuesta = await procesarReporteHoras(from, textoNorm);
+    } else {
+      const operador = await getOperador(from);
+      respuesta = operador
+        ? `Hola ${operador.nombre}. Comandos: INICIO [horómetro], FIN [horómetro], HORAS.`
+        : 'Comandos: INICIO [horómetro], FIN [horómetro], HORAS.';
+    }
+
+  } catch (err) {
+    console.error('[Webhook Error]:', err);
+    respuesta = 'Error interno. Intenta de nuevo.';
   }
 
-  // 🔴 CRÍTICO — SIEMPRE 200
-  res.status(200).send(`
-    <Response>
-      <Message>${message}</Message>
-    </Response>
-  `);
+  // Log asíncrono a Supabase — no bloquea respuesta (R-ASYNC)
+  supabase.from('eventos').insert({
+    tipo: 'mensaje_webhook',
+    operador_id: from,
+    payload: { mensaje: textoNorm },
+    creado_en: new Date().toISOString()
+  }).catch(err => console.error('[Error Log Evento]:', err));
+
+  twiml.message(respuesta);
+  res.type('text/xml').send(twiml.toString());
 });
 
-// ------------------------
 app.listen(3000, () => {
-  console.log("Webhook corriendo en puerto 3000");
+  console.log('IronSync Webhook corriendo en puerto 3000');
 });
