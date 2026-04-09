@@ -4,10 +4,12 @@ const twilio = require('twilio');
 const supabase = require('./lib/supabaseClient');
 const { procesarInicioTurno, procesarFinTurno, procesarReporteHoras, verificarZombies } = require('./turnos');
 const { requiresAuth, login, getOperador } = require('./services/authService');
-
+const { procesarMensajeFirma } = require('./webhooks/whatsapp');
+const signaturesRouter = require('./api/v1/signatures');
 const app = express();
 app.use(express.urlencoded({ extended: false }));
-
+app.use(express.json());
+app.use('/api/v1/signatures', signaturesRouter);
 const cliente = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const NUMERO_TWILIO = process.env.TWILIO_PHONE_NUMBER;
 
@@ -27,7 +29,19 @@ app.post('/webhook', async (req, res) => {
   let respuesta = '';
 
   try {
-    // 1. ¿Es intento de PIN?
+    // 0. ¿Es respuesta de firma del residente? (SI/NO o PIN)
+    const esFirmaResidente = await supabase
+      .from('signature_requests')
+      .select('id')
+      .eq('firmante_telefono', from)
+      .in('estado', ['pendiente', 'enviada', 'vista'])
+      .single();
+
+    if (esFirmaResidente.data) {
+      const respuestaFirma = await procesarMensajeFirma(from, texto, 'text');
+      twiml.message(respuestaFirma);
+      return res.type('text/xml').send(twiml.toString());
+    }// 1. ¿Es intento de PIN?
     if (/^\d{4}$/.test(texto)) {
       const result = await login(from, texto);
       respuesta = result.success

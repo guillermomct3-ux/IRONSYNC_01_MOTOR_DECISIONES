@@ -18,6 +18,11 @@ process.on('unhandledRejection', (reason) => {
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 
+app.use((req, res, next) => {
+  console.log('📨 REQUEST RECIBIDO:', req.method, req.path, req.body);
+  next();
+});
+
 const cliente = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const NUMERO_TWILIO = process.env.TWILIO_PHONE_NUMBER;
 
@@ -37,7 +42,6 @@ app.post('/webhook', async (req, res) => {
   let respuesta = '';
 
   try {
-    // 1. ¿Es intento de PIN?
     if (/^\d{4}$/.test(texto)) {
       const result = await login(from, texto);
       respuesta = result.success
@@ -47,7 +51,6 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
-    // 2. ¿Requiere autenticación?
     const auth = await requiresAuth(from);
     if (auth.requiere) {
       if (auth.bloqueado) {
@@ -61,7 +64,6 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
-    // 3. Autenticado — procesar comando
     if (textoNorm.includes('inicio') || textoNorm.includes('entro') || textoNorm.includes('llegue') || textoNorm.includes('llegué')) {
       respuesta = await procesarInicioTurno(from, textoNorm);
     } else if (textoNorm.includes('fin') || textoNorm.includes('salgo') || textoNorm.includes('termine') || textoNorm.includes('terminé')) {

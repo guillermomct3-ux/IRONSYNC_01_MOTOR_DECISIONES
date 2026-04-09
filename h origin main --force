@@ -1,0 +1,5 @@
+[33m72e4c7c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Debug: capturar errores silenciosos Railway
+[33mbe69de9[m Fix: webhook raiz actualizado con auth PIN
+[33mce2ebf5[m Force redeploy Bloque C
+[33m9745247[m Bloque C: PIN operador + authService + supabaseClient
+[33mda0c206[m Fix: rechazar horometro negativo con regex actualizado
