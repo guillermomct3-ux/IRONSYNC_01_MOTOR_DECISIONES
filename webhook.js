@@ -4,6 +4,8 @@ const twilio = require('twilio');
 const supabase = require('./lib/supabaseClient');
 const { procesarInicioTurno, procesarFinTurno, procesarReporteHoras, verificarZombies } = require('./turnos');
 const { requiresAuth, login, getOperador } = require('./services/authService');
+const { procesarMensajeFirma } = require('./webhooks/whatsapp');
+const signaturesRouter = require('./api/v1/signatures');
 
 process.on('uncaughtException', (err) => {
   console.error('💥 UNCAUGHT EXCEPTION:', err);
@@ -17,6 +19,8 @@ process.on('unhandledRejection', (reason) => {
 
 const app = express();
 app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+app.use('/api/v1/signatures', signaturesRouter);
 
 app.use((req, res, next) => {
   console.log('📨 REQUEST RECIBIDO:', req.method, req.path, req.body);
@@ -42,6 +46,21 @@ app.post('/webhook', async (req, res) => {
   let respuesta = '';
 
   try {
+    // 0. ¿Es respuesta de firma del residente?
+    const esFirmaResidente = await supabase
+      .from('signature_requests')
+      .select('id')
+      .eq('firmante_telefono', from)
+      .in('estado', ['pendiente', 'enviada', 'vista'])
+      .single();
+
+    if (esFirmaResidente.data) {
+      const respuestaFirma = await procesarMensajeFirma(from, texto, 'text');
+      twiml.message(respuestaFirma);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    // 1. ¿Es intento de PIN del operador?
     if (/^\d{4}$/.test(texto)) {
       const result = await login(from, texto);
       respuesta = result.success
@@ -51,6 +70,7 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
+    // 2. ¿Requiere autenticación?
     const auth = await requiresAuth(from);
     if (auth.requiere) {
       if (auth.bloqueado) {
@@ -64,6 +84,7 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
+    // 3. Autenticado — procesar comando
     if (textoNorm.includes('inicio') || textoNorm.includes('entro') || textoNorm.includes('llegue') || textoNorm.includes('llegué')) {
       respuesta = await procesarInicioTurno(from, textoNorm);
     } else if (textoNorm.includes('fin') || textoNorm.includes('salgo') || textoNorm.includes('termine') || textoNorm.includes('terminé')) {
