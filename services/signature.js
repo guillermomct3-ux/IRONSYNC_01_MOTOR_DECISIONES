@@ -1,8 +1,10 @@
-// IronSync Sign — Signature Service
 // ============================================================
-// IRONSYNC SIGN — Signature Service
+// IRONSYNC SIGN — Signature Service v2.0
 // Archivo: services/signature.js
-// Motores A, B, C, D integrados
+// Actualizado para usar C1_VERSIONADO:
+//   → crear_solicitud_firma_snapshot() en Supabase
+//   → verificar_snapshot_vigente() en Supabase
+//   → Firma apunta al snapshot exacto
 // ============================================================
 
 const crypto = require('crypto');
@@ -16,120 +18,91 @@ const supabase = createClient(
 
 // ============================================================
 // MOTOR A: Crear solicitud de firma
+// Usa función SQL crear_solicitud_firma_snapshot()
+// El contenido viene del snapshot — no del turno vivo
 // ============================================================
 
 class SignatureService {
 
     static async crearSolicitud(params) {
         const {
-            tipo_documento,
             documento_id,
-            documento_tabla = 'turnos',
-            contenido,
-            firmante_rol,
-            firmante_nombre,
             firmante_telefono,
-            solicitado_por,
-            contrato_id
+            firmante_nombre,
+            solicitado_por = 'ulises'
         } = params;
 
-        const contenidoResumen = this.generarResumenWhatsApp(tipo_documento, contenido);
-        const contenidoCompleto = JSON.stringify(contenido);
-        const contenidoHash = crypto
-            .createHash('sha256')
-            .update(contenidoCompleto)
-            .digest('hex');// Anti-replay: verificar si ya existe firma para este turno+rol
-        const { data: firmaExistente } = await supabase
-            .from('signature_records')
-            .select('id')
-            .eq('documento_id', documento_id)
-            .eq('documento_tabla', documento_tabla)
-            .eq('firmante_rol', firmante_rol)
+        // Verificar que el teléfono está configurado
+        const { data: config } = await supabase
+            .from('firmas_config')
+            .select('id, nombre')
+            .eq('telefono', firmante_telefono)
+            .eq('activo', true)
             .single();
 
-        if (firmaExistente) {
+        if (!config) {
             return {
                 success: false,
-                error: 'Este turno ya tiene firma registrada para este rol'
+                error: `Teléfono ${firmante_telefono} no configurado para firmar`
             };
         }
 
-        // Detectar si hay tenant link activo (Escenario B)
-        const { data: tenantLink } = await supabase
-            .from('tenant_links')
-            .select('id')
-            .eq('contrato_id', contrato_id)
-            .eq('rol', 'arrendatario')
-            .eq('conexion_estado', 'activa')
-            .single();
+        // Usar función SQL que crea solicitud sobre snapshot más reciente
+        const { data: requestId, error } = await supabase
+            .rpc('crear_solicitud_firma_snapshot', {
+                p_turno_id:          documento_id,
+                p_firmante_telefono: firmante_telefono,
+                p_firmante_nombre:   firmante_nombre || config.nombre,
+                p_solicitado_por:    solicitado_por
+            });
 
-        const resolver = tenantLink ? 'federado' : 'whatsapp';
+        if (error) {
+            return { success: false, error: error.message };
+        }
 
-        const { data: solicitud, error } = await supabase
+        // Obtener la solicitud creada para enviar por WhatsApp
+        const { data: solicitud } = await supabase
             .from('signature_requests')
-            .insert({
-                tipo_documento,
-                documento_id,
-                documento_tabla,
-                contenido_resumen: contenidoResumen,
-                contenido_completo: contenido,
-                contenido_hash: contenidoHash,
-                firmante_rol,
-                firmante_nombre,
-                firmante_telefono,
-                firmante_canal: resolver === 'federado' ? 'is_dashboard' : 'whatsapp',
-                solicitado_por,
-                resolver,
-                contrato_id,
-                estado: 'pendiente',
-                intentos_envio: 0
-            })
-            .select()
+            .select('*')
+            .eq('id', requestId)
             .single();
 
-        if (error) throw error;
-
-        // Actualizar turno con referencia a la solicitud
-        if (documento_tabla === 'turnos') {
-            await supabase
-                .from('turnos')
-                .update({
-                    firma_residente_status: 'pending',
-                    firma_residente_request_id: solicitud.id
-                })
-                .eq('id', documento_id);
+        if (!solicitud) {
+            return { success: false, error: 'Solicitud creada pero no encontrada' };
         }
 
-        // Enviar por canal apropiado
-        if (resolver === 'whatsapp') {
-            await this.enviarWhatsApp(solicitud);
-        }
+        // Enviar por WhatsApp
+        await this.enviarWhatsApp(solicitud);
 
-        return solicitud;
+        return { success: true, solicitud };
     }
 
     // ============================================================
     // MOTOR B: Enviar por WhatsApp
+    // El contenido_resumen ya viene formateado desde la función SQL
+    // con mensaje de firma consciente
     // ============================================================
 
     static async enviarWhatsApp(solicitud) {
         const urlFirma = `${process.env.APP_URL}/f/${solicitud.token_acceso}`;
 
+        const mensajeCompleto = solicitud.contenido_resumen +
+            `\n\n🔗 Ver detalle: ${urlFirma}`;
+
         const response = await fetch(
-            `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_ID}/messages`,
+            `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
             {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`,
-                    'Content-Type': 'application/json'
+                    'Authorization': 'Basic ' + Buffer.from(
+                        `${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`
+                    ).toString('base64'),
+                    'Content-Type': 'application/x-www-form-urlencoded'
                 },
-                body: JSON.stringify({
-                    messaging_product: 'whatsapp',
-                    to: solicitud.firmante_telefono,
-                    type: 'text',
-                    text: {
-                        body: `${solicitud.contenido_resumen}\n\n✅ Responda: SI\n❌ Responda: NO\n\n🔗 Ver detalle: ${urlFirma}`
-                    }
+                body: new URLSearchParams({
+                    From: `whatsapp:${process.env.TWILIO_PHONE_NUMBER}`,
+                    To:   `whatsapp:${solicitud.firmante_telefono}`,
+                    Body: mensajeCompleto
                 })
             }
         );
@@ -139,10 +112,10 @@ class SignatureService {
         await supabase
             .from('signature_requests')
             .update({
-                estado: response.ok ? 'enviada' : 'error',
-                intentos_envio: solicitud.intentos_envio + 1,
-                ultimo_envio_en: new Date().toISOString(),
-                ultimo_error: response.ok ? null : JSON.stringify(result),
+                estado:           response.ok ? 'enviada' : 'error',
+                intentos_envio:   solicitud.intentos_envio + 1,
+                ultimo_envio_en:  new Date().toISOString(),
+                ultimo_error:     response.ok ? null : JSON.stringify(result),
                 proximo_reintento_en: response.ok
                     ? null
                     : new Date(Date.now() + this.calcularBackoff(solicitud.intentos_envio + 1)).toISOString()
@@ -154,6 +127,7 @@ class SignatureService {
 
     // ============================================================
     // MOTOR C: Registrar firma inmutable
+    // Verifica snapshot vigente antes de registrar
     // ============================================================
 
     static async registrarFirma(params) {
@@ -179,6 +153,15 @@ class SignatureService {
             return { success: false, error: 'Solicitud no encontrada o ya procesada' };
         }
 
+        // Verificar que no fue invalidada por cambio post-cierre
+        if (solicitud.invalidado_por_cambio) {
+            return {
+                success: false,
+                error: 'Esta solicitud fue invalidada porque los datos del turno cambiaron. ' +
+                       'Solicita una nueva firma a Ulises.'
+            };
+        }
+
         // Verificar expiración
         if (new Date(solicitud.expira_en) < new Date()) {
             await supabase
@@ -187,6 +170,29 @@ class SignatureService {
                 .eq('id', solicitud.id);
             await this.actualizarEstadoFirmaTurno(solicitud, 'expired');
             return { success: false, error: 'Solicitud expirada' };
+        }
+
+        // Verificar que el snapshot sigue siendo el más reciente
+        // Protege contra cambios de último minuto
+        const { data: snapshotVigente } = await supabase
+            .rpc('verificar_snapshot_vigente', { p_request_id: request_id });
+
+        if (snapshotVigente === false) {
+            // Invalidar esta solicitud
+            await supabase
+                .from('signature_requests')
+                .update({
+                    estado:               'error',
+                    invalidado_por_cambio: true,
+                    ultimo_error:         'Turno modificado después de crear la solicitud.'
+                })
+                .eq('id', solicitud.id);
+
+            return {
+                success: false,
+                error: 'Los datos del turno cambiaron después de que se envió esta solicitud. ' +
+                       'Ulises debe crear una nueva solicitud.'
+            };
         }
 
         // Buscar config del firmante para verificar PIN
@@ -233,35 +239,48 @@ class SignatureService {
             };
         }
 
-        // Generar hash de la firma
+        // Generar hash de la firma vinculado al snapshot
         const timestampFirma = new Date().toISOString();
-        const hashInput = JSON.stringify(solicitud.contenido_completo) + timestampFirma + config.pin_hash;
-        const firmaHash = crypto.createHash('sha256').update(hashInput).digest('hex');
+        const hashInput = [
+            solicitud.documento_id,
+            solicitud.snapshot_id || '',
+            solicitud.contenido_hash,
+            timestampFirma,
+            firmante_telefono
+        ].join('|');
 
-        // Crear registro inmutable
+        const firmaHash = crypto
+            .createHash('sha256')
+            .update(hashInput)
+            .digest('hex');
+
+        // Crear registro inmutable apuntando al snapshot
         const { data: record, error: recordError } = await supabase
             .from('signature_records')
             .insert({
-                request_id: solicitud.id,
+                request_id:        solicitud.id,
                 firmante_config_id: config.id,
-                tipo_documento: solicitud.tipo_documento,
-                documento_id: solicitud.documento_id,
-                documento_tabla: solicitud.documento_tabla,
-                firmante_rol: firmante_rol || solicitud.firmante_rol,
-                firmante_nombre: firmante_nombre || config.nombre,
-                firmante_telefono: firmante_telefono,
-                firmante_canal: firmante_canal || solicitud.firmante_canal,
-                pin_verificado: true,
-                pin_verificado_en: timestampFirma,
-                firma_hash: firmaHash,
+                snapshot_id:        solicitud.snapshot_id,
+                snapshot_version:   solicitud.snapshot_version,
+                snapshot_hash:      solicitud.contenido_hash,
+                tipo_documento:     solicitud.tipo_documento,
+                documento_id:       solicitud.documento_id,
+                documento_tabla:    solicitud.documento_tabla,
+                firmante_rol:       firmante_rol || solicitud.firmante_rol,
+                firmante_nombre:    firmante_nombre || config.nombre,
+                firmante_telefono:  firmante_telefono,
+                firmante_canal:     firmante_canal || solicitud.firmante_canal,
+                pin_verificado:     true,
+                pin_verificado_en:  timestampFirma,
+                firma_hash:         firmaHash,
                 contenido_snapshot: solicitud.contenido_completo,
-                contenido_hash: solicitud.contenido_hash,
-                ip_address: contexto.ip || null,
-                user_agent: contexto.dispositivo || null,
-                ubicacion_lat: contexto.lat || null,
-                ubicacion_lng: contexto.lng || null,
-                firmado_en: timestampFirma,
-                origen_canal: firmante_canal || 'whatsapp'
+                contenido_hash:     solicitud.contenido_hash,
+                ip_address:         contexto.ip || null,
+                user_agent:         contexto.dispositivo || null,
+                ubicacion_lat:      contexto.lat || null,
+                ubicacion_lng:      contexto.lng || null,
+                firmado_en:         timestampFirma,
+                origen_canal:       firmante_canal || 'whatsapp'
             })
             .select()
             .single();
@@ -273,16 +292,27 @@ class SignatureService {
             throw recordError;
         }
 
+        // Marcar snapshot como firmado
+        if (solicitud.snapshot_id) {
+            await supabase
+                .from('turno_snapshots')
+                .update({
+                    fue_firmado: true,
+                    firmado_en:  timestampFirma
+                })
+                .eq('id', solicitud.snapshot_id);
+        }
+
         // Actualizar solicitud
         await supabase
             .from('signature_requests')
             .update({
-                estado: 'firmada',
-                signature_record_id: record.id
+                estado:               'firmada',
+                signature_record_id:  record.id
             })
             .eq('id', solicitud.id);
 
-        // Actualizar estado de firma en turno (Motor D)
+        // Actualizar estado de firma en turno
         await this.actualizarEstadoFirmaTurno(solicitud, 'signed', firmaHash, timestampFirma);
 
         // Resetear intentos PIN
@@ -293,18 +323,19 @@ class SignatureService {
 
         // Notificar a Ulises
         await supabase.from('notificaciones').insert({
-            tipo: 'firma_recibida',
-            titulo: `Firma recibida — ${solicitud.contenido_completo?.equipo_modelo || 'Turno'}`,
-            mensaje: `${firmante_nombre || config.nombre} firmó por ${firmante_canal || 'whatsapp'}`,
-            turno_id: solicitud.documento_id,
+            tipo:      'firma_recibida',
+            titulo:    `Firma recibida — ${solicitud.contenido_completo?.maquina || 'Turno'}`,
+            mensaje:   `${firmante_nombre || config.nombre} firmó el turno. Snapshot v${solicitud.snapshot_version}.`,
+            turno_id:  solicitud.documento_id,
             para_usuario: 'ulises'
         });
 
         return {
-            success: true,
-            firma_id: record.id,
-            firma_hash: firmaHash,
-            firmado_en: timestampFirma
+            success:     true,
+            firma_id:    record.id,
+            firma_hash:  firmaHash,
+            firmado_en:  timestampFirma,
+            snapshot_version: solicitud.snapshot_version
         };
     }
 
@@ -315,15 +346,15 @@ class SignatureService {
     static async actualizarEstadoFirmaTurno(solicitud, estado, hash = null, timestamp = null) {
         if (solicitud.documento_tabla !== 'turnos') return;
 
-        const esResidente = solicitud.firmante_rol.includes('arrendatario');
+        const esResidente = solicitud.firmante_rol?.includes('arrendatario');
 
         if (esResidente) {
             await supabase
                 .from('turnos')
                 .update({
                     firma_residente_status: estado,
-                    firma_residente_hash: hash,
-                    firma_residente_en: timestamp
+                    firma_residente_hash:   hash,
+                    firma_residente_en:     timestamp
                 })
                 .eq('id', solicitud.documento_id);
         } else {
@@ -331,8 +362,8 @@ class SignatureService {
                 .from('turnos')
                 .update({
                     firma_supervisor_status: estado,
-                    firma_supervisor_hash: hash,
-                    firma_supervisor_en: timestamp
+                    firma_supervisor_hash:   hash,
+                    firma_supervisor_en:     timestamp
                 })
                 .eq('id', solicitud.documento_id);
         }
@@ -355,7 +386,12 @@ class SignatureService {
                 `Fecha: ${doc.fecha || ''}\n` +
                 `Horómetro: ${doc.horometro_inicio} → ${doc.horometro_fin}\n` +
                 `Horas: ${doc.horas}h — ${montoFmt}\n\n` +
-                `¿Confirma este turno?`,
+                `Al responder SI y tu PIN confirmas que:\n` +
+                `→ Revisaste estos datos\n` +
+                `→ Coinciden con lo observado en campo\n` +
+                `→ Autorizas el cobro de este monto a Mota\n\n` +
+                `✅ Responde: SI\n` +
+                `❌ Responde: NO`,
 
             turno_excepcion:
                 `IronSync — Excepción registrada\n\n` +
@@ -375,14 +411,14 @@ class SignatureService {
     }
 
     static calcularBackoff(intentos) {
-        // 30s → 2min → 8min
         return Math.min(30000 * Math.pow(4, intentos - 1), 480000);
     }
 }
+
 function calcularBloqueoMs(intentos) {
-    if (intentos <= 3)  return 15 * 60 * 1000;
-    if (intentos <= 6)  return 60 * 60 * 1000;
-    if (intentos <= 9)  return 6 * 60 * 60 * 1000;
+    if (intentos <= 3) return 15 * 60 * 1000;
+    if (intentos <= 6) return 60 * 60 * 1000;
+    if (intentos <= 9) return 6 * 60 * 60 * 1000;
     return 24 * 60 * 60 * 1000;
 }
 
