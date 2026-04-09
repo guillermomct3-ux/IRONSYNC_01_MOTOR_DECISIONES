@@ -38,7 +38,21 @@ class SignatureService {
         const contenidoHash = crypto
             .createHash('sha256')
             .update(contenidoCompleto)
-            .digest('hex');
+            .digest('hex');// Anti-replay: verificar si ya existe firma para este turno+rol
+        const { data: firmaExistente } = await supabase
+            .from('signature_records')
+            .select('id')
+            .eq('documento_id', documento_id)
+            .eq('documento_tabla', documento_tabla)
+            .eq('firmante_rol', firmante_rol)
+            .single();
+
+        if (firmaExistente) {
+            return {
+                success: false,
+                error: 'Este turno ya tiene firma registrada para este rol'
+            };
+        }
 
         // Detectar si hay tenant link activo (Escenario B)
         const { data: tenantLink } = await supabase
@@ -207,7 +221,7 @@ class SignatureService {
                 .update({
                     pin_intentos_fallidos: nuevosIntentos,
                     pin_bloqueado_hasta: nuevosIntentos >= 3
-                        ? new Date(Date.now() + 15 * 60 * 1000).toISOString()
+                        ? new Date(Date.now() + calcularBloqueoMs(nuevosIntentos)).toISOString()
                         : null
                 })
                 .eq('id', config.id);
@@ -364,6 +378,12 @@ class SignatureService {
         // 30s → 2min → 8min
         return Math.min(30000 * Math.pow(4, intentos - 1), 480000);
     }
+}
+function calcularBloqueoMs(intentos) {
+    if (intentos <= 3)  return 15 * 60 * 1000;
+    if (intentos <= 6)  return 60 * 60 * 1000;
+    if (intentos <= 9)  return 6 * 60 * 60 * 1000;
+    return 24 * 60 * 60 * 1000;
 }
 
 module.exports = SignatureService;
