@@ -20,6 +20,7 @@ process.on('unhandledRejection', (reason) => {
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.4' }));
 app.use('/api/v1/signatures', signaturesRouter);
 
 app.use((req, res, next) => {
