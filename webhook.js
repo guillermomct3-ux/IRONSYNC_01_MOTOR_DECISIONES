@@ -55,7 +55,8 @@ app.post('/webhook', async (req, res) => {
       .single();
 
     if (esFirmaResidente.data) {
-      const respuestaFirma = await procesarMensajeFirma(from, texto, 'text');
+      // C2: pasar req para contexto de firma
+      const respuestaFirma = await procesarMensajeFirma(from, texto, 'text', req);
       twiml.message(respuestaFirma);
       return res.type('text/xml').send(twiml.toString());
     }
@@ -78,7 +79,7 @@ app.post('/webhook', async (req, res) => {
       } else if (!auth.existe) {
         respuesta = '⚠️ Tu número no está registrado. Habla con tu supervisor.';
       } else {
-        respuesta = '🔒 Envía tu PIN de 4 dígitos para comenzar.';
+        respuesta = '🔑 Envía tu PIN de 4 dígitos para comenzar.';
       }
       twiml.message(respuesta);
       return res.type('text/xml').send(twiml.toString());
