@@ -33,7 +33,8 @@ const NUMERO_TWILIO = process.env.TWILIO_PHONE_NUMBER;
 setInterval(() => {
   verificarZombies(cliente, NUMERO_TWILIO);
 }, 60 * 60 * 1000);
-
+const pdfRoutes = require('./routes/pdf');
+app.use('/api/v1/pdf', pdfRoutes);
 app.post('/webhook', async (req, res) => {
   const from = req.body.From;
   const body = req.body.Body;
