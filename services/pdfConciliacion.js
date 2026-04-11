@@ -14,7 +14,7 @@ async function generarPDFConciliacion(turnoId) {
   const { data: firma } = await supabase
     .from('signature_records')
     .select('*')
-    .eq('turno_id', turnoId)
+    .eq('documento_id', turnoId)
     .single();
 
   if (!firma) throw new Error('El turno no tiene firma del residente');
