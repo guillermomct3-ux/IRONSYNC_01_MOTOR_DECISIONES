@@ -106,12 +106,16 @@ app.post('/webhook', async (req, res) => {
     respuesta = 'Error interno. Intenta de nuevo.';
   }
 
-  supabase.from('eventos').insert({
+  try {
+  await supabase.from('eventos').insert({
     tipo: 'mensaje_webhook',
     operador_id: from,
     payload: { mensaje: textoNorm },
     creado_en: new Date().toISOString()
-  }).catch(err => console.error('[Error Log Evento]:', err));
+  });
+} catch(err) {
+  console.error('[Error Log Evento]:', err);
+}
 
   twiml.message(respuesta);
   res.type('text/xml').send(twiml.toString());
