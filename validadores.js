@@ -1,28 +1,10 @@
 function extraerHorometro(texto) {
   console.log('🔍 extraerHorometro recibió:', JSON.stringify(texto));
-  
-  const textoNorm = texto.replace(',', '.');
-  
-  const matchConPalabra = textoNorm.match(/horometro\s+(-?\d+\.?\d*)/);
-  if (matchConPalabra) {
-    const val = parseFloat(matchConPalabra[1]);
-    if (val < 0) {
-      console.log('❌ Horómetro negativo rechazado:', val);
-      return null;
-    }
-    return val;
-  }
-  
-  const matchDirecto = textoNorm.match(/(-?\d+\.?\d*)/);
+  const matchConPalabra = texto.match(/horometro\s+(\d+\.?\d*)/);
+  if (matchConPalabra) return parseFloat(matchConPalabra[1]);
+  const matchDirecto = texto.match(/(\d+\.?\d*)/);
   console.log('🔍 matchDirecto:', matchDirecto);
-  if (!matchDirecto) return null;
-  
-  const val = parseFloat(matchDirecto[1]);
-  if (val < 0) {
-    console.log('❌ Horómetro negativo rechazado:', val);
-    return null;
-  }
-  return val;
+  return matchDirecto ? parseFloat(matchDirecto[1]) : null;
 }
 
 function extraerDatosMaquina(texto) {
@@ -68,7 +50,8 @@ function calcularAcumuladoHoy(turnos, from) {
 
 function esRangoRazonable(inicial, final) {
   const diff = final - inicial;
-  return diff <= 20;
+  // FIX C2: umbral de 24 horas (antes era 20, inconsistente)
+  return diff <= 24;
 }
 
 module.exports = {

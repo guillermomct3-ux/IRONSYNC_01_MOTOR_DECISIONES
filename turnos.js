@@ -1,77 +1,82 @@
-require('dotenv').config();
-const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs');
+const path = require('path');
 const validadores = require('./validadores');
 const RESPUESTAS = require('./respuestas');
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+// FIX CRÍTICO: declarar ANTES de cualquier función
+const ARCHIVO_TURNOS = path.join(__dirname, 'turnos_activos.json');
 
-// ── CARGAR TURNO ACTIVO ──────────────────────────────────────
-async function cargarTurnoActivo(from) {
-  const { data, error } = await supabase
-    .from('turnos')
-    .select('*')
-    .eq('operador_id', from)
-    .eq('estado', 'ABIERTO')
-    .single();
-  if (error && error.code !== 'PGRST116') {
-    console.error('❌ Error cargarTurnoActivo:', error.message);
+function cargarTurnos() {
+  if (!fs.existsSync(ARCHIVO_TURNOS)) return [];
+  try {
+    const data = fs.readFileSync(ARCHIVO_TURNOS, 'utf8');
+    console.log('📋 JSON leído:', data);
+    return JSON.parse(data);
+  } catch (e) {
+    console.error('⚠️ turnos_activos.json corrupto. Creando respaldo.');
+    fs.renameSync(ARCHIVO_TURNOS, ARCHIVO_TURNOS + '.corrupto');
+    return [];
   }
-  return data || null;
 }
 
-// ── INICIO DE TURNO ──────────────────────────────────────────
+function guardarTurnos(turnos) {
+  fs.writeFileSync(ARCHIVO_TURNOS, JSON.stringify(turnos, null, 2));
+  console.log('📁 turnos_activos.json actualizado. Total turnos:', turnos.length);
+}
+
 async function procesarInicioTurno(from, texto) {
-  console.log(`🚀 procesarInicioTurno | from: ${from} | texto: "${texto}"`);
+  console.log(`🚀 procesarInicioTurno iniciado para ${from} | texto: "${texto}"`);
+  console.log('📁 Ruta archivo:', ARCHIVO_TURNOS);
+  try {
+    const turnos = cargarTurnos();
+    console.log('📋 Turnos actuales:', turnos.length);
 
-  const horometro = validadores.extraerHorometro(texto);
-  const { maquina, serie } = validadores.extraerDatosMaquina(texto);
+    const horometro = validadores.extraerHorometro(texto);
+    const { maquina, serie } = validadores.extraerDatosMaquina(texto);
 
-  const turnoActivo = await cargarTurnoActivo(from);
+    if (validadores.tieneTurnoAbierto(turnos, from)) {
+      const turnoActivo = validadores.obtenerTurnoAbierto(turnos, from);
+      return RESPUESTAS.DOBLE_INICIO(turnoActivo.maquina, turnoActivo.horometro_inicial);
+    }
 
-  if (turnoActivo) {
-    return RESPUESTAS.DOBLE_INICIO(turnoActivo.maquina, turnoActivo.horometro_inicio);
-  }
+    if (!horometro) {
+      return RESPUESTAS.HOROMETRO_FALTANTE();
+    }
 
-  if (!horometro) {
-    return RESPUESTAS.HOROMETRO_FALTANTE();
-  }
+    const hoy = new Date().toISOString().split('T')[0];
 
-  const hoy = new Date().toISOString().split('T')[0];
-
-  const { data, error } = await supabase
-    .from('turnos')
-    .insert({
-      operador_id: from,
+    const nuevoTurno = {
+      from,
       estado: 'ABIERTO',
-      fecha_turno: hoy,
-      maquina: maquina,
-      serie: serie,
-      horometro_inicio: horometro,
-      horometro_fin: null,
+      fecha: hoy,
+      maquina,
+      serie,
+      horometro_inicial: horometro,
+      horometro_final: null,
+      unidades_horometro: null,
       horas_turno: null,
-      inicio: new Date().toISOString(),
-      fin: null
-    })
-    .select()
-    .single();
+      validado_por_diferencia: false,
+      timestamp_inicio: new Date().toISOString(),
+      timestamp_fin: null
+    };
 
-  if (error) {
-    console.error('❌ Error insertar turno:', error.message);
+    turnos.push(nuevoTurno);
+    guardarTurnos(turnos);
+    console.log('✅ Turno creado:', JSON.stringify(nuevoTurno, null, 2));
+
+    return RESPUESTAS.INICIO_OK(maquina, serie, horometro);
+
+  } catch (error) {
+    console.error('❌ Error dentro de procesarInicioTurno:', error.message);
+    console.error('❌ Stack:', error.stack);
     throw error;
   }
-
-  console.log('✅ Turno creado en Supabase:', data.id);
-  return RESPUESTAS.INICIO_OK(maquina, serie, horometro);
 }
 
-// ── FIN DE TURNO ─────────────────────────────────────────────
 async function procesarFinTurno(from, texto) {
-  const turno = await cargarTurnoActivo(from);
+  const turnos = cargarTurnos();
 
-  if (!turno) {
+  if (!validadores.tieneTurnoAbierto(turnos, from)) {
     return RESPUESTAS.FIN_SIN_INICIO();
   }
 
@@ -80,84 +85,77 @@ async function procesarFinTurno(from, texto) {
   if (horometroFinal === null) return RESPUESTAS.HOROMETRO_FALTANTE();
   if (isNaN(horometroFinal)) return RESPUESTAS.HOROMETRO_INVALIDO();
 
-  if (horometroFinal < turno.horometro_inicio) {
-    return RESPUESTAS.HOROMETRO_MENOR(horometroFinal, turno.horometro_inicio);
+  const turno = validadores.obtenerTurnoAbierto(turnos, from);
+
+  if (horometroFinal < turno.horometro_inicial) {
+    return RESPUESTAS.HOROMETRO_MENOR(horometroFinal, turno.horometro_inicial);
   }
 
-  const horas = parseFloat((horometroFinal - turno.horometro_inicio).toFixed(2));
+  const unidades = horometroFinal - turno.horometro_inicial;
+  const horasTurno = Math.max(0, unidades);
 
-  const { error } = await supabase
-    .from('turnos')
-    .update({
-      estado: 'CERRADO',
-      horometro_fin: horometroFinal,
-      horas_turno: horas,
-      fin: new Date().toISOString()
-    })
-    .eq('id', turno.id);
-
-  if (error) {
-    console.error('❌ Error cerrar turno:', error.message);
-    throw error;
+  if (!validadores.esRangoRazonable(turno.horometro_inicial, horometroFinal)) {
+    console.log('⚠️ Rango inusual detectado:', turno.horometro_inicial, '->', horometroFinal);
+    // FIX C2: diferencia > 24 hrs — registrar pero avisar en la respuesta
+    // R-VERDAD: el operador es la fuente de verdad, NO rechazamos
+    // Solo alertamos a Ulises con la respuesta
+    turno.estado = 'CERRADO';
+    turno.horometro_final = horometroFinal;
+    turno.unidades_horometro = unidades;
+    turno.horas_turno = horasTurno;
+    turno.validado_por_diferencia = true;
+    turno.timestamp_fin = new Date().toISOString();
+    turno.alerta_rango = true;
+    guardarTurnos(turnos);
+    const turnosActualizados = cargarTurnos();
+    const acumulado = validadores.calcularAcumuladoHoy(turnosActualizados, from);
+    return RESPUESTAS.FIN_RANGO_INUSUAL(horasTurno, acumulado, turno.horometro_inicial, horometroFinal);
   }
 
-  console.log('✅ Turno cerrado en Supabase:', turno.id);
+  turno.estado = 'CERRADO';
+  turno.horometro_final = horometroFinal;
+  turno.unidades_horometro = unidades;
+  turno.horas_turno = horasTurno;
+  turno.validado_por_diferencia = true;
+  turno.timestamp_fin = new Date().toISOString();
 
-  const acumulado = await calcularAcumuladoHoy(from);
-  return RESPUESTAS.FIN_OK(horas, acumulado);
+  guardarTurnos(turnos);
+
+  // FIX C3: recargar desde disco para incluir el turno recién cerrado en el acumulado
+  const turnosActualizados = cargarTurnos();
+  const acumulado = validadores.calcularAcumuladoHoy(turnosActualizados, from);
+  return RESPUESTAS.FIN_OK(horasTurno, acumulado);
 }
 
-// ── REPORTE DE HORAS ─────────────────────────────────────────
 async function procesarReporteHoras(from) {
-  const turno = await cargarTurnoActivo(from);
+  const turnos = cargarTurnos();
 
-  if (!turno) {
+  if (!validadores.tieneTurnoAbierto(turnos, from)) {
     return RESPUESTAS.REPORTE_SIN_TURNO();
   }
 
+  const turno = validadores.obtenerTurnoAbierto(turnos, from);
   const ahora = new Date();
-  const inicio = new Date(turno.inicio);
+  const inicio = new Date(turno.timestamp_inicio);
   const minutos = Math.round((ahora - inicio) / 60000);
 
-  return RESPUESTAS.REPORTE_TURNO_ABIERTO(minutos, turno.horometro_inicio);
+  return RESPUESTAS.REPORTE_TURNO_ABIERTO(minutos, turno.horometro_inicial);
 }
 
-// ── ACUMULADO DEL DÍA ────────────────────────────────────────
-async function calcularAcumuladoHoy(from) {
-  const hoy = new Date().toISOString().split('T')[0];
-
-  const { data, error } = await supabase
-    .from('turnos')
-    .select('horas_turno')
-    .eq('operador_id', from)
-    .eq('estado', 'CERRADO')
-    .eq('fecha_turno', hoy);
-
-  if (error) return 0;
-  return data.reduce((sum, t) => sum + (parseFloat(t.horas_turno) || 0), 0);
-}
-
-// ── ZOMBIES ──────────────────────────────────────────────────
-async function verificarZombies(twilioClient, numeroOrigen) {
-  const { data: turnos, error } = await supabase
-    .from('turnos')
-    .select('*')
-    .eq('estado', 'ABIERTO');
-
-  if (error || !turnos) return;
-
+function verificarZombies(twilioClient, numeroOrigen) {
+  const turnos = cargarTurnos();
   turnos.forEach(turno => {
-    if (validadores.esTurnoZombie(turno)) {
+    if (turno.estado === 'ABIERTO' && validadores.esTurnoZombie(turno)) {
       const ahora = new Date();
-      const inicio = new Date(turno.inicio);
+      const inicio = new Date(turno.timestamp_inicio);
       const horas = Math.round((ahora - inicio) / (1000 * 60 * 60));
       const mensaje = RESPUESTAS.ZOMBIE_ALERTA(turno.maquina, horas);
-      console.log('🚨 ZOMBIE:', mensaje);
+      console.log('🚨 TURNO ZOMBIE DETECTADO:', mensaje);
       if (twilioClient && numeroOrigen) {
         twilioClient.messages.create({
           body: mensaje,
           from: numeroOrigen,
-          to: turno.operador_id
+          to: turno.from
         });
       }
     }
