@@ -1,6 +1,6 @@
 function extraerHorometro(texto) {
   console.log('🔍 extraerHorometro recibió:', JSON.stringify(texto));
-  const textoLimpio = texto.replace(/,/g, '');
+  const textoLimpio = texto.replace(/,/g, '.');
 
   const matchConPalabra = textoLimpio.match(/horometro\s+(\d+\.?\d*)/i);
   if (matchConPalabra) {
@@ -83,7 +83,7 @@ function calcularAcumuladoHoy(turnos, from) {
     t.estado === 'CERRADO' &&
     t.fecha === hoy
   );
-  return turnosCerradosHoy.reduce((sum, t) => sum + (t.horas_turno || 0), 0);
+  return Math.round(turnosCerradosHoy.reduce((sum, t) => sum + (t.horas_turno || 0), 0) * 10) / 10;
 }
 
 function esRangoRazonable(inicial, final) {

@@ -111,7 +111,7 @@ async function procesarFinTurno(from, texto) {
   }
 
   const unidades = horometroFinal - turno.horometro_inicial;
-  const horasTurno = Math.max(0, unidades);
+  const horasTurno = Math.round(Math.max(0, unidades) * 10) / 10;
 
   if (!validadores.esRangoRazonable(turno.horometro_inicial, horometroFinal)) {
     console.log('⚠️ Rango inusual detectado:', turno.horometro_inicial, '->', horometroFinal);
