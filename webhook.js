@@ -38,7 +38,7 @@ const pdfRoutes = require('./routes/pdf');
 app.use('/api/v1/pdf', pdfRoutes);
 app.post('/webhook', async (req, res) => {
   const from = req.body.From;
-  const body = req.body.Body;
+  const body = (req.body.Body || '').split('\n')[0].split('\r')[0].trim();
   const texto = body.replace(/\n/g, ' ').replace(/\r/g, '').trim();
   const textoNorm = texto.toLowerCase();
 
