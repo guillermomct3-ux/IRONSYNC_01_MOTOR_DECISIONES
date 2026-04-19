@@ -1,29 +1,43 @@
 function extraerHorometro(texto) {
   console.log('🔍 extraerHorometro recibió:', JSON.stringify(texto));
   const textoLimpio = texto.replace(/,/g, '');
+
   const matchConPalabra = textoLimpio.match(/horometro\s+(\d+\.?\d*)/i);
-  if (matchConPalabra) return parseFloat(matchConPalabra[1]);
+  if (matchConPalabra) {
+    const valor = parseFloat(matchConPalabra[1]);
+    if (valor > 999999 || valor < 0) return null;
+    return valor;
+  }
+
   const todosLosNumeros = [...textoLimpio.matchAll(/(?:^|\s)(\d+\.?\d*)(?:\s|$)/g)];
   if (todosLosNumeros.length > 0) {
-    return parseFloat(todosLosNumeros[todosLosNumeros.length - 1][1]);
+    const valor = parseFloat(todosLosNumeros[todosLosNumeros.length - 1][1]);
+    if (valor > 999999 || valor < 0) return null;
+    return valor;
   }
+
   return null;
 }
 
 function extraerDatosMaquina(texto) {
   const matchSerie = texto.match(/serie\s+([a-zA-Z0-9-]+)/i);
   const serie = matchSerie ? matchSerie[1].toUpperCase() : 'SIN-SERIE';
+
   let limpio = texto.replace(/horometro\s+\d+\.?\d*/i, '');
+
   if (!/horometro/i.test(texto)) {
     limpio = limpio.replace(/\s+\d+\.?\d*\s*$/, ' ');
   }
+
   const maquina = limpio
     .replace(/inicio/i, '')
     .replace(/fin/i, '')
     .replace(/serie\s+[a-zA-Z0-9-]+/i, '')
+    .replace(/[^\w\s-]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
     .toUpperCase();
+
   return {
     maquina: maquina || 'SIN-MAQUINA',
     serie: serie
@@ -36,6 +50,12 @@ function tieneTurnoAbierto(turnos, from) {
 
 function obtenerTurnoAbierto(turnos, from) {
   return turnos.find(t => t.from === from && t.estado === 'ABIERTO');
+}
+
+function existeTurnoAbiertoEquipo(turnos, maquina) {
+  return turnos.some(t =>
+    t.maquina === maquina && t.estado === 'ABIERTO'
+  );
 }
 
 function esTurnoZombie(turno) {
@@ -57,6 +77,7 @@ function calcularAcumuladoHoy(turnos, from) {
 
 function esRangoRazonable(inicial, final) {
   const diff = final - inicial;
+  if (diff < 0) return false;
   return diff <= 24;
 }
 
@@ -65,6 +86,7 @@ module.exports = {
   extraerDatosMaquina,
   tieneTurnoAbierto,
   obtenerTurnoAbierto,
+  existeTurnoAbiertoEquipo,
   esTurnoZombie,
   calcularAcumuladoHoy,
   esRangoRazonable
