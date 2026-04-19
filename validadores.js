@@ -1,19 +1,26 @@
 function extraerHorometro(texto) {
   console.log('🔍 extraerHorometro recibió:', JSON.stringify(texto));
-  const matchConPalabra = texto.match(/horometro\s+(\d+\.?\d*)/);
+  const textoLimpio = texto.replace(/,/g, '');
+  const matchConPalabra = textoLimpio.match(/horometro\s+(\d+\.?\d*)/i);
   if (matchConPalabra) return parseFloat(matchConPalabra[1]);
-  const matchDirecto = texto.match(/(\d+\.?\d*)/);
-  console.log('🔍 matchDirecto:', matchDirecto);
-  return matchDirecto ? parseFloat(matchDirecto[1]) : null;
+  const todosLosNumeros = [...textoLimpio.matchAll(/(?:^|\s)(\d+\.?\d*)(?:\s|$)/g)];
+  if (todosLosNumeros.length > 0) {
+    return parseFloat(todosLosNumeros[todosLosNumeros.length - 1][1]);
+  }
+  return null;
 }
 
 function extraerDatosMaquina(texto) {
   const matchSerie = texto.match(/serie\s+([a-zA-Z0-9-]+)/i);
   const serie = matchSerie ? matchSerie[1].toUpperCase() : 'SIN-SERIE';
-  const maquina = texto
+  let limpio = texto.replace(/horometro\s+\d+\.?\d*/i, '');
+  if (!/horometro/i.test(texto)) {
+    limpio = limpio.replace(/\s+\d+\.?\d*\s*$/, ' ');
+  }
+  const maquina = limpio
     .replace(/inicio/i, '')
+    .replace(/fin/i, '')
     .replace(/serie\s+[a-zA-Z0-9-]+/i, '')
-    .replace(/horometro\s+\d+\.?\d*/i, '')
     .replace(/\s+/g, ' ')
     .trim()
     .toUpperCase();
@@ -50,7 +57,6 @@ function calcularAcumuladoHoy(turnos, from) {
 
 function esRangoRazonable(inicial, final) {
   const diff = final - inicial;
-  // FIX C2: umbral de 24 horas (antes era 20, inconsistente)
   return diff <= 24;
 }
 
