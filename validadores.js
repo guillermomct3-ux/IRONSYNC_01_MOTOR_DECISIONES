@@ -23,7 +23,9 @@ function extraerDatosMaquina(texto) {
   const matchSerie = texto.match(/serie\s+([a-zA-Z0-9-]+)/i);
   const serie = matchSerie ? matchSerie[1].toUpperCase() : 'SIN-SERIE';
 
-  let limpio = texto.replace(/horometro\s+\d+\.?\d*/i, '');
+  let limpio = texto.replace(/[^\w\s-]/g, '');
+
+  limpio = limpio.replace(/horometro\s+\d+\.?\d*/i, '');
 
   if (!/horometro/i.test(texto)) {
     limpio = limpio.replace(/\s+\d+\.?\d*\s*$/, ' ');
@@ -33,7 +35,6 @@ function extraerDatosMaquina(texto) {
     .replace(/inicio/i, '')
     .replace(/fin/i, '')
     .replace(/serie\s+[a-zA-Z0-9-]+/i, '')
-    .replace(/[^\w\s-]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
     .toUpperCase();
