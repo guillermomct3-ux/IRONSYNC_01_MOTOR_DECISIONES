@@ -27,6 +27,11 @@ async function procesarInicioTurno(from, texto) {
   console.log(`🚀 procesarInicioTurno iniciado para ${from} | texto: "${texto}"`);
   console.log('📁 Ruta archivo:', ARCHIVO_TURNOS);
   try {
+    // FIX A6: validar que no hay múltiples comandos en una línea
+    if (!validadores.validarEstructuraComando(texto)) {
+      return 'Un mensaje, un comando.\nManda INICIO y FIN por separado.';
+    }
+
     const turnos = cargarTurnos();
     console.log('📋 Turnos actuales:', turnos.length);
 
@@ -78,6 +83,11 @@ async function procesarInicioTurno(from, texto) {
 }
 
 async function procesarFinTurno(from, texto) {
+  // FIX A6: validar que no hay múltiples comandos en una línea
+  if (!validadores.validarEstructuraComando(texto)) {
+    return 'Un mensaje, un comando.\nManda INICIO y FIN por separado.';
+  }
+
   const turnos = cargarTurnos();
 
   if (!validadores.tieneTurnoAbierto(turnos, from)) {
