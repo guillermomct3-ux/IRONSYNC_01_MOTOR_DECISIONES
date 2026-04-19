@@ -1,6 +1,6 @@
 const RESPUESTAS = {
   INICIO_OK: (maquina, serie, horometro) =>
-    `✅ Turno ABIERTO\n🚜 ${maquina} — ${serie}\n⏱ Horómetro inicial: ${horometro}\n\nEnvía "fin horometro XXXX" al terminar.`,
+    `✅ Turno ABIERTO\n🚜 ${maquina} — ${serie}\n⏱ Horómetro inicial: ${horometro}\n\n📷 Manda foto del horómetro para mayor precisión.\nEnvía "fin horometro XXXX" al terminar.`,
 
   DOBLE_INICIO: (maquina, horometro) =>
     `⚠️ Ya tienes un turno ABIERTO.\n🚜 ${maquina} — Horómetro: ${horometro}\n\nEnvía "fin horometro XXXX" para cerrarlo primero.`,
@@ -8,8 +8,6 @@ const RESPUESTAS = {
   FIN_OK: (horas, acumulado) =>
     `✅ Turno CERRADO\n⏱ Horas turno: ${horas}\n📊 Acumulado hoy: ${acumulado} hrs`,
 
-  // FIX C2: respuesta especial para rango mayor a 24 hrs
-  // R-VERDAD: registramos el dato del operador, pero avisamos
   FIN_RANGO_INUSUAL: (horas, acumulado, inicial, final) =>
     `✅ Turno CERRADO\n⏱ Horas turno: ${horas}\n📊 Acumulado hoy: ${acumulado} hrs\n\n⚠️ Ulises fue notificado: diferencia de ${horas} hrs es mayor a 24. Horómetro ${inicial} → ${final}.`,
 
