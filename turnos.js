@@ -3,7 +3,6 @@ const path = require('path');
 const validadores = require('./validadores');
 const RESPUESTAS = require('./respuestas');
 
-// FIX CRÍTICO: declarar ANTES de cualquier función
 const ARCHIVO_TURNOS = path.join(__dirname, 'turnos_activos.json');
 
 function cargarTurnos() {
@@ -33,6 +32,11 @@ async function procesarInicioTurno(from, texto) {
 
     const horometro = validadores.extraerHorometro(texto);
     const { maquina, serie } = validadores.extraerDatosMaquina(texto);
+
+    // FIX A10: verificar que la máquina no tenga turno abierto
+    if (validadores.existeTurnoAbiertoEquipo(turnos, maquina)) {
+      return `⚠️ ${maquina} ya tiene turno abierto.\nHabla con Ulises.`;
+    }
 
     if (validadores.tieneTurnoAbierto(turnos, from)) {
       const turnoActivo = validadores.obtenerTurnoAbierto(turnos, from);
@@ -91,14 +95,16 @@ async function procesarFinTurno(from, texto) {
     return RESPUESTAS.HOROMETRO_MENOR(horometroFinal, turno.horometro_inicial);
   }
 
+  // FIX A7: horómetro final igual al inicial
+  if (horometroFinal === turno.horometro_inicial) {
+    return `El horómetro final (${horometroFinal}) es igual al inicial (${turno.horometro_inicial}).\n¿Es correcto? Responde SÍ o NO.`;
+  }
+
   const unidades = horometroFinal - turno.horometro_inicial;
   const horasTurno = Math.max(0, unidades);
 
   if (!validadores.esRangoRazonable(turno.horometro_inicial, horometroFinal)) {
     console.log('⚠️ Rango inusual detectado:', turno.horometro_inicial, '->', horometroFinal);
-    // FIX C2: diferencia > 24 hrs — registrar pero avisar en la respuesta
-    // R-VERDAD: el operador es la fuente de verdad, NO rechazamos
-    // Solo alertamos a Ulises con la respuesta
     turno.estado = 'CERRADO';
     turno.horometro_final = horometroFinal;
     turno.unidades_horometro = unidades;
@@ -121,7 +127,6 @@ async function procesarFinTurno(from, texto) {
 
   guardarTurnos(turnos);
 
-  // FIX C3: recargar desde disco para incluir el turno recién cerrado en el acumulado
   const turnosActualizados = cargarTurnos();
   const acumulado = validadores.calcularAcumuladoHoy(turnosActualizados, from);
   return RESPUESTAS.FIN_OK(horasTurno, acumulado);
