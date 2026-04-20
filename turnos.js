@@ -5,6 +5,10 @@ const RESPUESTAS = require('./respuestas');
 
 const ARCHIVO_TURNOS = path.join(__dirname, 'turnos_activos.json');
 
+const SUPERVISORES = {
+  '523338155867': 'Ulises'
+};
+
 function cargarTurnos() {
   if (!fs.existsSync(ARCHIVO_TURNOS)) return [];
   try {
@@ -23,11 +27,79 @@ function guardarTurnos(turnos) {
   console.log('📁 turnos_activos.json actualizado. Total turnos:', turnos.length);
 }
 
+function generarFolio(maquina, fecha, turnos) {
+  const [yyyy, mm, dd] = fecha.split('-');
+  const consecutivo = turnos.filter(t =>
+    t.maquina === maquina && t.fecha === fecha
+  ).length + 1;
+  return `IS-${yyyy}-${mm}-${dd}-${maquina}-${String(consecutivo).padStart(3, '0')}`;
+}
+
+function calcularAnomalias(turno) {
+  const anomalias = [];
+
+  if (turno.horometro_final && turno.horometro_inicial) {
+    const horasHorometro = Math.round(
+      (turno.horometro_final - turno.horometro_inicial) * 10) / 10;
+    const horasTiempo = turno.horas_turno || 0;
+    const diff = Math.abs(horasHorometro - horasTiempo);
+    if (diff > 1) {
+      anomalias.push(
+        `⚠️ Discrepancia: horómetro ${horasHorometro} hrs vs tiempo ${horasTiempo} hrs`
+      );
+    }
+  }
+
+  if (turno.sin_foto_inicio) {
+    anomalias.push('🔴 Sin foto de horómetro de inicio');
+  }
+  if (turno.sin_foto_fin) {
+    anomalias.push('🔴 Sin foto de horómetro de cierre');
+  }
+  if (turno.horas_turno > 12) {
+    anomalias.push(`⚠️ Turno de ${turno.horas_turno} hrs — requiere revisión`);
+  }
+  if (turno.reportado_por) {
+    anomalias.push(
+      `⚠️ Registrado por ${turno.reportado_por} — operador: ${turno.operador_nombre || 'no declarado'}`
+    );
+  }
+
+  turno.tiene_anomalia = anomalias.length > 0;
+  return anomalias;
+}
+
+function procesarFoto(from, imageUrl) {
+  const turnos = cargarTurnos();
+  const turno = turnos.find(t =>
+    t.from === from &&
+    (t.estado_foto === 'esperando_foto_inicio' ||
+     t.estado_foto === 'esperando_foto_fin')
+  );
+
+  if (!turno) return 'No hay turno esperando foto. Manda INICIO primero.';
+
+  if (turno.estado_foto === 'esperando_foto_inicio') {
+    turno.foto_inicio_url = imageUrl;
+    turno.sin_foto_inicio = false;
+    turno.estado_foto = null;
+    guardarTurnos(turnos);
+    return `📷 Foto de inicio vinculada a ${turno.maquina}.\nPara cerrar manda FIN ${turno.maquina} [horómetro]`;
+  }
+
+  if (turno.estado_foto === 'esperando_foto_fin') {
+    turno.foto_fin_url = imageUrl;
+    turno.sin_foto_fin = false;
+    turno.estado_foto = null;
+    guardarTurnos(turnos);
+    return `📷 Foto de cierre vinculada a ${turno.maquina}.\n✅ Turno completo con evidencia.`;
+  }
+}
+
 async function procesarInicioTurno(from, texto) {
   console.log(`🚀 procesarInicioTurno iniciado para ${from} | texto: "${texto}"`);
   console.log('📁 Ruta archivo:', ARCHIVO_TURNOS);
   try {
-    // FIX A6: validar que no hay múltiples comandos en una línea
     if (!validadores.validarEstructuraComando(texto)) {
       return 'Un mensaje, un comando.\nManda INICIO y FIN por separado.';
     }
@@ -38,7 +110,6 @@ async function procesarInicioTurno(from, texto) {
     const horometro = validadores.extraerHorometro(texto);
     const { maquina, serie } = validadores.extraerDatosMaquina(texto);
 
-    // FIX A10: verificar que la máquina no tenga turno abierto
     if (validadores.existeTurnoAbiertoEquipo(turnos, maquina)) {
       return `⚠️ ${maquina} ya tiene turno abierto.\nHabla con Ulises.`;
     }
@@ -53,11 +124,14 @@ async function procesarInicioTurno(from, texto) {
     }
 
     const hoy = new Date().toISOString().split('T')[0];
+    const folio = generarFolio(maquina, hoy, turnos);
+    const esSupervisor = !!SUPERVISORES[from.replace('whatsapp:+', '')];
 
     const nuevoTurno = {
       from,
       estado: 'ABIERTO',
       fecha: hoy,
+      folio,
       maquina,
       serie,
       horometro_inicial: horometro,
@@ -66,14 +140,26 @@ async function procesarInicioTurno(from, texto) {
       horas_turno: null,
       validado_por_diferencia: false,
       timestamp_inicio: new Date().toISOString(),
-      timestamp_fin: null
+      timestamp_fin: null,
+      foto_inicio_url: null,
+      foto_fin_url: null,
+      sin_foto_inicio: true,
+      sin_foto_fin: true,
+      estado_foto: 'esperando_foto_inicio',
+      reportado_por: esSupervisor ? SUPERVISORES[from.replace('whatsapp:+', '')] : null,
+      operador_nombre: null,
+      tiene_anomalia: false
     };
 
     turnos.push(nuevoTurno);
     guardarTurnos(turnos);
     console.log('✅ Turno creado:', JSON.stringify(nuevoTurno, null, 2));
 
-    return RESPUESTAS.INICIO_OK(maquina, serie, horometro);
+    if (esSupervisor) {
+      return `✅ Turno ABIERTO · ${maquina}\n📋 Folio: ${folio}\n¿Quién operó este equipo?\nResponde con el nombre del operador.`;
+    }
+
+    return RESPUESTAS.INICIO_OK(maquina, serie, horometro, folio);
 
   } catch (error) {
     console.error('❌ Error dentro de procesarInicioTurno:', error.message);
@@ -83,7 +169,6 @@ async function procesarInicioTurno(from, texto) {
 }
 
 async function procesarFinTurno(from, texto) {
-  // FIX A6: validar que no hay múltiples comandos en una línea
   if (!validadores.validarEstructuraComando(texto)) {
     return 'Un mensaje, un comando.\nManda INICIO y FIN por separado.';
   }
@@ -105,7 +190,6 @@ async function procesarFinTurno(from, texto) {
     return RESPUESTAS.HOROMETRO_MENOR(horometroFinal, turno.horometro_inicial);
   }
 
-  // FIX A7: horómetro final igual al inicial
   if (horometroFinal === turno.horometro_inicial) {
     return `El horómetro final (${horometroFinal}) es igual al inicial (${turno.horometro_inicial}).\n¿Es correcto? Responde SÍ o NO.`;
   }
@@ -122,6 +206,8 @@ async function procesarFinTurno(from, texto) {
     turno.validado_por_diferencia = true;
     turno.timestamp_fin = new Date().toISOString();
     turno.alerta_rango = true;
+    turno.estado_foto = 'esperando_foto_fin';
+    calcularAnomalias(turno);
     guardarTurnos(turnos);
     const turnosActualizados = cargarTurnos();
     const acumulado = validadores.calcularAcumuladoHoy(turnosActualizados, from);
@@ -134,12 +220,14 @@ async function procesarFinTurno(from, texto) {
   turno.horas_turno = horasTurno;
   turno.validado_por_diferencia = true;
   turno.timestamp_fin = new Date().toISOString();
+  turno.estado_foto = 'esperando_foto_fin';
+  calcularAnomalias(turno);
 
   guardarTurnos(turnos);
 
   const turnosActualizados = cargarTurnos();
   const acumulado = validadores.calcularAcumuladoHoy(turnosActualizados, from);
-  return RESPUESTAS.FIN_OK(horasTurno, acumulado);
+  return RESPUESTAS.FIN_OK(horasTurno, acumulado, turno.folio);
 }
 
 async function procesarReporteHoras(from) {
@@ -181,5 +269,7 @@ module.exports = {
   procesarInicioTurno,
   procesarFinTurno,
   procesarReporteHoras,
+  procesarFoto,
+  calcularAnomalias,
   verificarZombies
 };
