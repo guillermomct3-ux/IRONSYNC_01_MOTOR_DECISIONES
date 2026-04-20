@@ -40,11 +40,36 @@ app.use('/api/v1/pdf', pdfRoutes);
 
 app.post('/webhook', async (req, res) => {
   const from = req.body.From;
-  const body = (req.body.Body || '').split('\n')[0].split('\r')[0].trim();
+
+  let body = (req.body.Body || '').split('\n')[0].split('\r')[0].trim();
+
+  // ✅ 1. Normalizar sinónimos (sin "listo" — colisiona con "✅ Listo Guillermo")
+  if (/^(ya\s+lleg[ée]|arrancam|ya\s+llegam|empecem|aqui\s+estoy)/i.test(body)) {
+    body = body.replace(/^(ya\s+lleg[ée]|arrancam|ya\s+llegam|empecem|aqui\s+estoy)\s*/i, 'inicio ');
+  }
+  if (/^(ya\s+termin[ée]|ya\s+acab[ée]|la\s+chamba|hasta\s+aqui|ya\s+salgo|terminamos)/i.test(body)) {
+    body = body.replace(/^(ya\s+termin[ée]|ya\s+acab[ée]|la\s+chamba|hasta\s+aqui|ya\s+salgo|terminamos)\s*/i, 'fin ');
+  }
+
+  // ✅ 2. FIX BUG 2 — Separar equipo pegado al número
+  // "inicio CAT3365810" → "inicio CAT336 5810"
+  body = body.replace(/(inicio|fin)\s+([A-Z]+)(\d{4,})/gi, '$1 $2 $3');
+
+  // ✅ 3. FIX BUG 1 — Reordenar tokens si trigger está al final
+  // "5678 CAT336 inicio" → "inicio CAT336 5678"
+  const tokensBug1 = body.split(/\s+/);
+  const triggerToken = tokensBug1.find(t => /^(inicio|fin)$/i.test(t));
+  const numeroToken = tokensBug1.find(t => /^\d+([.,]\d+)?$/.test(t));
+  const equipoToken = tokensBug1.find(t => /^[A-Za-z]+\d+$/i.test(t) && !/^(inicio|fin)$/i.test(t));
+  if (triggerToken && equipoToken && numeroToken) {
+    body = `${triggerToken} ${equipoToken} ${numeroToken}`;
+  }
+
+  // ✅ 4. Normalizar texto
   const texto = body.replace(/\n/g, ' ').replace(/\r/g, '').trim();
   const textoNorm = texto.toLowerCase();
 
-  // NUEVO: detectar foto de Twilio
+  // Detectar foto de Twilio
   const mediaUrl = req.body.MediaUrl0 || req.body.MediaUrl;
   const tieneMedia = !!mediaUrl;
   const bodyVacio = !body || body.trim() === '';
@@ -101,10 +126,10 @@ app.post('/webhook', async (req, res) => {
     }
 
     // 4. Autenticado — procesar comando
-    if (textoNorm.includes('inicio') || textoNorm.includes('entro') || 
+    if (textoNorm.includes('inicio') || textoNorm.includes('entro') ||
         textoNorm.includes('llegue') || textoNorm.includes('llegué')) {
       respuesta = await procesarInicioTurno(from, textoNorm);
-    } else if (textoNorm.includes('fin') || textoNorm.includes('salgo') || 
+    } else if (textoNorm.includes('fin') || textoNorm.includes('salgo') ||
                textoNorm.includes('termine') || textoNorm.includes('terminé')) {
       respuesta = await procesarFinTurno(from, textoNorm);
     } else if (textoNorm.includes('horas')) {
@@ -112,8 +137,8 @@ app.post('/webhook', async (req, res) => {
     } else {
       const operador = await getOperador(from);
       respuesta = operador
-        ? `Hola ${operador.nombre}. Comandos: INICIO [horómetro], FIN [horómetro], HORAS.`
-        : 'Comandos: INICIO [horómetro], FIN [horómetro], HORAS.';
+        ? `Hola ${operador.nombre}. Comandos: INICIO [número del contador], FIN [número del contador], HORAS.`
+        : 'Comandos: INICIO [número del contador], FIN [número del contador], HORAS.';
     }
 
   } catch (err) {
