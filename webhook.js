@@ -51,7 +51,7 @@ app.post('/webhook', async (req, res) => {
     body = body.replace(/^(ya\s+termin[ée]|ya\s+acab[ée]|la\s+chamba|hasta\s+aqui|ya\s+salgo|terminamos)\s*/i, 'fin ');
   }
 
-  // ✅ 2. FIX BUG 2 — Separar equipo pegado al número
+  // ✅ 2. FIX BUG 2 — Separar equipo pegado al número (fallback pre-QR)
   // "inicio CAT3365810" → "inicio CAT336 5810"
   body = body.replace(/(inicio|fin)\s+([A-Z]+)(\d{4,})/gi, '$1 $2 $3');
 
@@ -61,7 +61,6 @@ app.post('/webhook', async (req, res) => {
   const triggerToken = tokensBug1.find(t => /^(inicio|fin)$/i.test(t));
   const numeroToken = tokensBug1.find(t => /^\d+([.,]\d+)?$/.test(t));
   const equipoToken = tokensBug1.find(t => /^[A-Za-z]+\d+$/i.test(t) && !/^(inicio|fin)$/i.test(t));
-  console.log('🔧 BUG1 DEBUG:', { triggerToken, equipoToken, numeroToken, body });
   if (triggerToken && equipoToken && numeroToken) {
     body = `${triggerToken} ${equipoToken} ${numeroToken}`;
   }
