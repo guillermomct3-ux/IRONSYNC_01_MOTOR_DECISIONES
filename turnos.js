@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const validadores = require('./validadores');
 const RESPUESTAS = require('./respuestas');
+const supabase = require('./lib/supabaseClient');
 
 const ARCHIVO_TURNOS = path.join(__dirname, 'turnos_activos.json');
 
@@ -84,7 +85,7 @@ function procesarFoto(from, imageUrl) {
     turno.sin_foto_inicio = false;
     turno.estado_foto = null;
     guardarTurnos(turnos);
-    return `📷 Foto de inicio vinculada a ${turno.maquina}.\nPara cerrar manda FIN ${turno.maquina} [horómetro]`;
+    return `📷 Foto de inicio vinculada a ${turno.maquina}.\nPara cerrar manda FIN ${turno.maquina} [número del contador]`;
   }
 
   if (turno.estado_foto === 'esperando_foto_fin') {
@@ -93,6 +94,30 @@ function procesarFoto(from, imageUrl) {
     turno.estado_foto = null;
     guardarTurnos(turnos);
     return `📷 Foto de cierre vinculada a ${turno.maquina}.\n✅ Turno completo con evidencia.`;
+  }
+}
+
+// ✅ FIX Bug 2: buscar numero_serie en Supabase por nombre de equipo
+async function buscarSerie(maquina) {
+  try {
+    // Buscar coincidencia flexible: "CAT336" encuentra "Excavadora Cat 336"
+    const terminosBusqueda = maquina.toLowerCase().replace(/\s+/g, '%');
+    const { data, error } = await supabase
+      .from('equipos')
+      .select('nombre, numero_serie')
+      .ilike('nombre', `%${terminosBusqueda}%`)
+      .single();
+
+    if (error || !data) {
+      console.log(`⚠️ Equipo no encontrado en Supabase: ${maquina}`);
+      return 'SIN-SERIE';
+    }
+
+    console.log(`✅ Equipo encontrado: ${data.nombre} — Serie: ${data.numero_serie}`);
+    return data.numero_serie || 'SIN-SERIE';
+  } catch (err) {
+    console.error('❌ Error buscando serie en Supabase:', err.message);
+    return 'SIN-SERIE';
   }
 }
 
@@ -108,7 +133,7 @@ async function procesarInicioTurno(from, texto) {
     console.log('📋 Turnos actuales:', turnos.length);
 
     const horometro = validadores.extraerHorometro(texto);
-    const { maquina, serie } = validadores.extraerDatosMaquina(texto);
+    const { maquina } = validadores.extraerDatosMaquina(texto);
 
     if (validadores.existeTurnoAbiertoEquipo(turnos, maquina)) {
       return `⚠️ ${maquina} ya tiene turno abierto.\nHabla con Ulises.`;
@@ -122,6 +147,9 @@ async function procesarInicioTurno(from, texto) {
     if (!horometro) {
       return RESPUESTAS.HOROMETRO_FALTANTE();
     }
+
+    // ✅ Buscar serie real en Supabase
+    const serie = await buscarSerie(maquina);
 
     const hoy = new Date().toISOString().split('T')[0];
     const folio = generarFolio(maquina, hoy, turnos);
@@ -191,7 +219,7 @@ async function procesarFinTurno(from, texto) {
   }
 
   if (horometroFinal === turno.horometro_inicial) {
-    return `El horómetro final (${horometroFinal}) es igual al inicial (${turno.horometro_inicial}).\n¿Es correcto? Responde SÍ o NO.`;
+    return `El número del contador final (${horometroFinal}) es igual al inicial (${turno.horometro_inicial}).\n¿Es correcto? Responde SÍ o NO.`;
   }
 
   const unidades = horometroFinal - turno.horometro_inicial;
