@@ -98,23 +98,37 @@ function procesarFoto(from, imageUrl) {
 }
 
 // ✅ FIX Bug 2: buscar numero_serie en Supabase por nombre de equipo
+// Estrategia: separar tokens y buscar cada uno individualmente
+// "CAT336" → tokens ['cat', '336'] → busca nombres que contengan ambos
 async function buscarSerie(maquina) {
   try {
-    // Buscar coincidencia flexible: "CAT336" encuentra "Excavadora Cat 336"
-    const terminosBusqueda = maquina.toLowerCase().replace(/\s+/g, '%');
-    const { data, error } = await supabase
-      .from('equipos')
-      .select('nombre, numero_serie')
-      .ilike('nombre', `%${terminosBusqueda}%`)
-      .single();
+    // Separar la máquina en tokens alfanuméricos
+    // "CAT336" → ['cat', '336'] | "CAT 336" → ['cat', '336']
+    const tokens = maquina.toLowerCase().match(/[a-z]+|\d+/g) || [];
+    console.log(`🔍 Buscando equipo: "${maquina}" | tokens: ${tokens.join(', ')}`);
 
-    if (error || !data) {
+    const { data: todos, error } = await supabase
+      .from('equipos')
+      .select('nombre, numero_serie');
+
+    if (error || !todos || todos.length === 0) {
+      console.log(`⚠️ Error o tabla vacía: ${error?.message}`);
+      return 'SIN-SERIE';
+    }
+
+    // Buscar el equipo cuyo nombre contenga todos los tokens
+    const encontrado = todos.find(equipo => {
+      const nombreLower = equipo.nombre.toLowerCase();
+      return tokens.every(token => nombreLower.includes(token));
+    });
+
+    if (!encontrado) {
       console.log(`⚠️ Equipo no encontrado en Supabase: ${maquina}`);
       return 'SIN-SERIE';
     }
 
-    console.log(`✅ Equipo encontrado: ${data.nombre} — Serie: ${data.numero_serie}`);
-    return data.numero_serie || 'SIN-SERIE';
+    console.log(`✅ Equipo encontrado: ${encontrado.nombre} — Serie: ${encontrado.numero_serie}`);
+    return encontrado.numero_serie || 'SIN-SERIE';
   } catch (err) {
     console.error('❌ Error buscando serie en Supabase:', err.message);
     return 'SIN-SERIE';
