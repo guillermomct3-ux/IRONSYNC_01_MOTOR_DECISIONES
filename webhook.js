@@ -20,7 +20,7 @@ process.on('unhandledRejection', (reason) => {
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.7' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.8' }));
 app.use('/api/v1/signatures', signaturesRouter);
 
 app.use((req, res, next) => {
@@ -42,13 +42,14 @@ let EQUIPO_ALIASES = [];
 
 async function cargarEquipos() {
   try {
-    const { data, error } = await supabase.from('equipos').select('nombre');
+    const { data, error } = await supabase.from('equipos').select('alias');
     if (error) {
       console.error('Error cargando equipos:', error.message);
       return;
     }
     EQUIPO_ALIASES = data
-      .map(e => e.nombre.replace(/\s+/g, '').toUpperCase())
+      .filter(e => e.alias)
+      .map(e => e.alias.toUpperCase())
       .sort((a, b) => b.length - a.length);
     console.log(EQUIPO_ALIASES.length + ' equipos cargados:', EQUIPO_ALIASES);
   } catch (err) {
@@ -79,18 +80,15 @@ app.post('/webhook', async (req, res) => {
   const from = req.body.From;
   let body = (req.body.Body || '').split('\n')[0].split('\r')[0].trim();
 
-  // 1. Normalizar sinonimos
-  if (/^(ya\s+lleg[ée]|arrancam|ya\s+llegam|empecem|aqui\s+estoy)/i.test(body)) {
-    body = body.replace(/^(ya\s+lleg[ée]|arrancam|ya\s+llegam|empecem|aqui\s+estoy)\s*/i, 'inicio ');
+  if (/^(ya\s+lleg[ee]|arrancam|ya\s+llegam|empecem|aqui\s+estoy)/i.test(body)) {
+    body = body.replace(/^(ya\s+lleg[ee]|arrancam|ya\s+llegam|empecem|aqui\s+estoy)\s*/i, 'inicio ');
   }
-  if (/^(ya\s+termin[ée]|ya\s+acab[ée]|la\s+chamba|hasta\s+aqui|ya\s+salgo|terminamos)/i.test(body)) {
-    body = body.replace(/^(ya\s+termin[ée]|ya\s+acab[ée]|la\s+chamba|hasta\s+aqui|ya\s+salgo|terminamos)\s*/i, 'fin ');
+  if (/^(ya\s+termin[ee]|ya\s+acab[ee]|la\s+chamba|hasta\s+aqui|ya\s+salgo|terminamos)/i.test(body)) {
+    body = body.replace(/^(ya\s+termin[ee]|ya\s+acab[ee]|la\s+chamba|hasta\s+aqui|ya\s+salgo|terminamos)\s*/i, 'fin ');
   }
 
-  // 2. BUG 2 - Separar equipo pegado
   body = separarEquipoPegado(body);
 
-  // 3. BUG 1 - Reordenar tokens
   const tokensBug1 = body.split(/\s+/);
   const triggerToken = tokensBug1.find(t => /^(inicio|fin)$/i.test(t));
   const numeroToken = tokensBug1.find(t => /^\d+([.,]\d+)?$/.test(t));
@@ -99,7 +97,6 @@ app.post('/webhook', async (req, res) => {
     body = triggerToken + ' ' + equipoToken + ' ' + numeroToken;
   }
 
-  // 4. Normalizar texto
   const texto = body.replace(/\n/g, ' ').replace(/\r/g, '').trim();
   const textoNorm = texto.toLowerCase();
 
@@ -113,14 +110,12 @@ app.post('/webhook', async (req, res) => {
   let respuesta = '';
 
   try {
-    // 0. Foto
     if (tieneMedia && bodyVacio) {
       respuesta = procesarFoto(from, mediaUrl);
       twiml.message(respuesta);
       return res.type('text/xml').send(twiml.toString());
     }
 
-    // 1. Firma residente
     const esFirmaResidente = await supabase
       .from('signature_requests')
       .select('id')
@@ -134,7 +129,6 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
-    // 2. PIN
     if (/^\d{4}$/.test(texto)) {
       const result = await login(from, texto);
       respuesta = result.success
@@ -144,7 +138,6 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
-    // 3. Auth
     const auth = await requiresAuth(from);
     if (auth.requiere) {
       if (auth.bloqueado) {
@@ -158,7 +151,6 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
-    // 4. Flujo menu PARO activo
     if (estaEnFlujoMenu(null, from)) {
       if (/^[1-5]$/.test(texto.trim())) {
         respuesta = procesarSeleccionMenu(null, from, texto.trim());
@@ -175,7 +167,6 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
-    // 5. Comandos
     if (textoNorm === 'paro') {
       respuesta = procesarParo(null, from);
     } else if (textoNorm === 'falla') {
@@ -183,10 +174,10 @@ app.post('/webhook', async (req, res) => {
     } else if (textoNorm === 'reanuda') {
       respuesta = procesarReanuda(null, from);
     } else if (textoNorm.includes('inicio') || textoNorm.includes('entro') ||
-               textoNorm.includes('llegue') || textoNorm.includes('llegue')) {
+               textoNorm.includes('llegue')) {
       respuesta = await procesarInicioTurno(from, textoNorm);
     } else if (textoNorm.includes('fin') || textoNorm.includes('salgo') ||
-               textoNorm.includes('termine') || textoNorm.includes('termine')) {
+               textoNorm.includes('termine')) {
       respuesta = await procesarFinTurno(from, textoNorm);
     } else if (textoNorm.includes('horas')) {
       respuesta = await procesarReporteHoras(from, textoNorm);
