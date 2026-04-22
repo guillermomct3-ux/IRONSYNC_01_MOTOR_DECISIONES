@@ -1,8 +1,14 @@
-require('dotenv').config();
+equire('dotenv').config();
 const express = require('express');
 const twilio = require('twilio');
 const supabase = require('./lib/supabaseClient');
-const { procesarInicioTurno, procesarFinTurno, procesarReporteHoras, procesarFoto, verificarZombies } = require('./turnos');
+const {
+  procesarInicioTurno, procesarFinTurno, procesarReporteHoras,
+  procesarFoto, verificarZombies,
+  procesarParo, procesarFalla, procesarReanuda,
+  procesarSeleccionMenu, procesarTextoLibreParo,
+  estaEnFlujoMenu
+} = require('./turnos');
 const { requiresAuth, login, getOperador } = require('./services/authService');
 const { procesarMensajeFirma } = require('./webhooks/whatsapp');
 const signaturesRouter = require('./api/v1/signatures');
@@ -20,7 +26,7 @@ process.on('unhandledRejection', (reason) => {
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.5' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.8' }));
 app.use('/api/v1/signatures', signaturesRouter);
 
 app.use((req, res, next) => {
@@ -38,12 +44,53 @@ setInterval(() => {
 const pdfRoutes = require('./routes/pdf');
 app.use('/api/v1/pdf', pdfRoutes);
 
+// ✅ Cargar alias de equipos desde Supabase al arrancar
+let EQUIPO_ALIASES = [];
+
+async function cargarEquipos() {
+  try {
+    const { data, error } = await supabase.from('equipos').select('nombre');
+    if (error) {
+      console.error('❌ Error cargando equipos:', error.message);
+      return;
+    }
+    EQUIPO_ALIASES = data
+      .map(e => e.nombre.replace(/\s+/g, '').toUpperCase())
+      .sort((a, b) => b.length - a.length);
+    console.log(`✅ ${EQUIPO_ALIASES.length} equipos cargados:`, EQUIPO_ALIASES);
+  } catch (err) {
+    console.error('❌ Error cargando equipos:', err.message);
+  }
+}
+
+// ✅ FIX BUG 2 v2 — Buscar alias conocido como prefijo
+function separarEquipoPegado(body) {
+  const match = body.match(/^(inicio|fin)\s+(\S+)/i);
+  if (!match) return body;
+
+  const trigger = match[1];
+  const pegado = match[2].toUpperCase();
+  const resto = body.slice(match[0].length);
+
+  for (const alias of EQUIPO_ALIASES) {
+    if (pegado.startsWith(alias) && pegado.length > alias.length) {
+      const contador = pegado.slice(alias.length);
+      if (/^\d+$/.test(contador)) {
+        return `${trigger} ${alias} ${contador}${resto}`;
+      }
+    }
+  }
+  return body;
+}
+
+cargarEquipos();
+
 app.post('/webhook', async (req, res) => {
   const from = req.body.From;
 
   let body = (req.body.Body || '').split('\n')[0].split('\r')[0].trim();
 
-  // ✅ 1. Normalizar sinónimos (sin "listo" — colisiona con "✅ Listo Guillermo")
+  // ✅ 1. Normalizar sinónimos (sin "listo")
   if (/^(ya\s+lleg[ée]|arrancam|ya\s+llegam|empecem|aqui\s+estoy)/i.test(body)) {
     body = body.replace(/^(ya\s+lleg[ée]|arrancam|ya\s+llegam|empecem|aqui\s+estoy)\s*/i, 'inicio ');
   }
@@ -51,12 +98,10 @@ app.post('/webhook', async (req, res) => {
     body = body.replace(/^(ya\s+termin[ée]|ya\s+acab[ée]|la\s+chamba|hasta\s+aqui|ya\s+salgo|terminamos)\s*/i, 'fin ');
   }
 
-  // ✅ 2. FIX BUG 2 — Separar equipo pegado al número (fallback pre-QR)
-  // "inicio CAT3365810" → "inicio CAT336 5810"
-  body = body.replace(/(inicio|fin)\s+([A-Z]+)(\d{4,})/gi, '$1 $2 $3');
+  // ✅ 2. FIX BUG 2 v2 — Separar equipo+contador pegados usando alias de Supabase
+  body = separarEquipoPegado(body);
 
   // ✅ 3. FIX BUG 1 — Reordenar tokens si trigger está al final
-  // "5678 CAT336 inicio" → "inicio CAT336 5678"
   const tokensBug1 = body.split(/\s+/);
   const triggerToken = tokensBug1.find(t => /^(inicio|fin)$/i.test(t));
   const numeroToken = tokensBug1.find(t => /^\d+([.,]\d+)?$/.test(t));
@@ -80,7 +125,7 @@ app.post('/webhook', async (req, res) => {
   let respuesta = '';
 
   try {
-    // 0. ¿Es foto del horómetro?
+    // 0. ¿Es foto?
     if (tieneMedia && bodyVacio) {
       respuesta = procesarFoto(from, mediaUrl);
       twiml.message(respuesta);
@@ -101,7 +146,7 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
-    // 2. ¿Es intento de PIN del operador?
+    // 2. ¿Es PIN?
     if (/^\d{4}$/.test(texto)) {
       const result = await login(from, texto);
       respuesta = result.success
@@ -125,9 +170,34 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
-    // 4. Autenticado — procesar comando
-    if (textoNorm.includes('inicio') || textoNorm.includes('entro') ||
-        textoNorm.includes('llegue') || textoNorm.includes('llegué')) {
+    // ✅ 4. ¿Está en flujo de menú PARO?
+    if (estaEnFlujoMenu(null, from)) {
+      if (/^[1-5]$/.test(texto.trim())) {
+        respuesta = procesarSeleccionMenu(null, from, texto.trim());
+        twiml.message(respuesta);
+        return res.type('text/xml').send(twiml.toString());
+      }
+
+      const respuestaTexto = procesarTextoLibreParo(null, from, texto);
+      if (respuestaTexto) {
+        twiml.message(respuestaTexto);
+        return res.type('text/xml').send(twiml.toString());
+      }
+
+      respuesta = 'Opción no válida. Responde con el número de la opción.';
+      twiml.message(respuesta);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    // ✅ 5. Procesar comandos
+    if (textoNorm === 'paro') {
+      respuesta = procesarParo(null, from);
+    } else if (textoNorm === 'falla') {
+      respuesta = procesarFalla(null, from);
+    } else if (textoNorm === 'reanuda') {
+      respuesta = procesarReanuda(null, from);
+    } else if (textoNorm.includes('inicio') || textoNorm.includes('entro') ||
+               textoNorm.includes('llegue') || textoNorm.includes('llegué')) {
       respuesta = await procesarInicioTurno(from, textoNorm);
     } else if (textoNorm.includes('fin') || textoNorm.includes('salgo') ||
                textoNorm.includes('termine') || textoNorm.includes('terminé')) {
@@ -137,8 +207,8 @@ app.post('/webhook', async (req, res) => {
     } else {
       const operador = await getOperador(from);
       respuesta = operador
-        ? `Hola ${operador.nombre}. Comandos: INICIO [número del contador], FIN [número del contador], HORAS.`
-        : 'Comandos: INICIO [número del contador], FIN [número del contador], HORAS.';
+        ? `Hola ${operador.nombre}. Comandos: INICIO, FIN, PARO, FALLA, REANUDA, HORAS.`
+        : 'Comandos: INICIO, FIN, PARO, FALLA, REANUDA, HORAS.';
     }
 
   } catch (err) {

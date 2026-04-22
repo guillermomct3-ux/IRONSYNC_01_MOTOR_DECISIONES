@@ -39,4 +39,55 @@ const RESPUESTAS = {
     `📷 Envía foto del contador final de ${maquina} para cerrar con evidencia.`,
 };
 
-module.exports = RESPUESTAS;
+// ═══════════════════════════════════════════════════
+// COMANDOS PARO / FALLA / REANUDA
+// ═══════════════════════════════════════════════════
+
+const PARO_MENU_TIPO = `¿Qué pasó?
+1 Programado
+2 Faltó algo del cliente
+3 Falla del equipo
+4 Clima
+5 Otro`;
+
+const PARO_MENU_SUBTIPO_CLI = `¿Qué faltó?
+1 Diesel
+2 Material
+3 Me instruyeron parar
+4 Otro`;
+
+const PARO_REGISTRADO = (motivo) =>
+  `✅ Paro registrado — ${motivo}.\n📷 Foto recomendada como evidencia.\nManda REANUDA cuando retomes.`;
+
+const FALLA_SOLICITA_DESC = '¿Qué falló? Descríbelo brevemente.';
+
+const FALLA_REGISTRADA = (motivo) =>
+  `✅ Falla registrada — ${motivo}.\n📷 Foto obligatoria como evidencia.\nNotificando a Ulises.\nManda REANUDA cuando retomes.`;
+
+const REANUDA_OK = (horas, minutos) =>
+  `✅ Reanudado. Paro duró ${horas}h ${minutos}min.`;
+
+const PARO_DOBLE = 'Tienes un paro abierto. Manda REANUDA primero.';
+const REANUDA_SIN_PARO = 'No tienes paro abierto. ¿Quieres reportar uno?';
+const PARO_SIN_TURNO = 'No tienes turno abierto. Manda INICIO primero.';
+const FALLA_SIN_TURNO = 'No tienes turno abierto. Manda INICIO primero.';
+const REANUDA_SIN_TURNO = 'No tienes turno abierto.';
+const MENU_TIMEOUT = '⏰ Se canceló el registro del paro por inactividad. Si necesitas reportar uno, manda PARO o FALLA.';
+const SELECCION_INVALIDA = 'Opción no válida. Responde con un número del 1 al 5.';
+
+module.exports = {
+  ...RESPUESTAS,
+  PARO_MENU_TIPO,
+  PARO_MENU_SUBTIPO_CLI,
+  PARO_REGISTRADO,
+  FALLA_SOLICITA_DESC,
+  FALLA_REGISTRADA,
+  REANUDA_OK,
+  PARO_DOBLE,
+  REANUDA_SIN_PARO,
+  PARO_SIN_TURNO,
+  FALLA_SIN_TURNO,
+  REANUDA_SIN_TURNO,
+  MENU_TIMEOUT,
+  SELECCION_INVALIDA
+};
