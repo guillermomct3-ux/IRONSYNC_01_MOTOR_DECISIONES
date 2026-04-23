@@ -20,7 +20,7 @@ process.on('unhandledRejection', (reason) => {
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.9' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.10' }));
 app.use('/api/v1/signatures', signaturesRouter);
 
 app.use((req, res, next) => {
@@ -135,17 +135,7 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
-    // 2. PIN
-    if (/^\d{4}$/.test(texto)) {
-      const result = await login(from, texto);
-      respuesta = result.success
-        ? 'Listo ' + result.operador.nombre + ', ya puedes registrar tu turno.'
-        : result.mensaje;
-      twiml.message(respuesta);
-      return res.type('text/xml').send(twiml.toString());
-    }
-
-    // 3. Auth
+    // 2. Auth
     const auth = await requiresAuth(from);
     if (auth.requiere) {
       if (auth.bloqueado) {
@@ -159,7 +149,7 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
-    // 4. CONFIRMACION HOROMETRO (SI/NO)
+    // 3. CONFIRMACION HOROMETRO (SI/NO) - ANTES del PIN
     if (estaEsperandoConfirmacion(from)) {
       const r = procesarConfirmacionHorometro(from, texto);
       if (r) {
@@ -168,13 +158,23 @@ app.post('/webhook', async (req, res) => {
       }
     }
 
-    // 5. HOROMETRO CORREGIDO
+    // 4. HOROMETRO CORREGIDO - ANTES del PIN
     if (estaEsperandoHorometroCorregido(from)) {
       const r = procesarHorometroCorregido(from, texto);
       if (r) {
         twiml.message(r);
         return res.type('text/xml').send(twiml.toString());
       }
+    }
+
+    // 5. PIN - DESPUES de horometro checks
+    if (/^\d{4}$/.test(texto)) {
+      const result = await login(from, texto);
+      respuesta = result.success
+        ? 'Listo ' + result.operador.nombre + ', ya puedes registrar tu turno.'
+        : result.mensaje;
+      twiml.message(respuesta);
+      return res.type('text/xml').send(twiml.toString());
     }
 
     // 6. MENU PARO ACTIVO
