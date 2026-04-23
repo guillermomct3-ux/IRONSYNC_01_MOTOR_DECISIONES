@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const twilio = require('twilio');
 const supabase = require('./lib/supabaseClient');
-const { procesarInicioTurno, procesarFinTurno, procesarReporteHoras, procesarFoto, verificarZombies, procesarParo, procesarFalla, procesarReanuda, procesarSeleccionMenu, procesarTextoLibreParo, estaEnFlujoMenu } = require('./turnos');
+const { procesarInicioTurno, procesarFinTurno, procesarReporteHoras, procesarFoto, verificarZombies, procesarParo, procesarFalla, procesarReanuda, procesarSeleccionMenu, procesarTextoLibreParo, estaEnFlujoMenu, estaEsperandoConfirmacion, estaEsperandoHorometroCorregido, procesarConfirmacionHorometro, procesarHorometroCorregido } = require('./turnos');
 const { requiresAuth, login, getOperador } = require('./services/authService');
 const { procesarMensajeFirma } = require('./webhooks/whatsapp');
 const signaturesRouter = require('./api/v1/signatures');
@@ -20,7 +20,7 @@ process.on('unhandledRejection', (reason) => {
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.8' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.9' }));
 app.use('/api/v1/signatures', signaturesRouter);
 
 app.use((req, res, next) => {
@@ -80,6 +80,7 @@ app.post('/webhook', async (req, res) => {
   const from = req.body.From;
   let body = (req.body.Body || '').split('\n')[0].split('\r')[0].trim();
 
+  // 1. Normalizar sinonimos
   if (/^(ya\s+lleg[ee]|arrancam|ya\s+llegam|empecem|aqui\s+estoy)/i.test(body)) {
     body = body.replace(/^(ya\s+lleg[ee]|arrancam|ya\s+llegam|empecem|aqui\s+estoy)\s*/i, 'inicio ');
   }
@@ -87,8 +88,10 @@ app.post('/webhook', async (req, res) => {
     body = body.replace(/^(ya\s+termin[ee]|ya\s+acab[ee]|la\s+chamba|hasta\s+aqui|ya\s+salgo|terminamos)\s*/i, 'fin ');
   }
 
+  // 2. BUG 2 - Separar equipo pegado
   body = separarEquipoPegado(body);
 
+  // 3. BUG 1 - Reordenar tokens
   const tokensBug1 = body.split(/\s+/);
   const triggerToken = tokensBug1.find(t => /^(inicio|fin)$/i.test(t));
   const numeroToken = tokensBug1.find(t => /^\d+([.,]\d+)?$/.test(t));
@@ -97,6 +100,7 @@ app.post('/webhook', async (req, res) => {
     body = triggerToken + ' ' + equipoToken + ' ' + numeroToken;
   }
 
+  // 4. Normalizar texto
   const texto = body.replace(/\n/g, ' ').replace(/\r/g, '').trim();
   const textoNorm = texto.toLowerCase();
 
@@ -110,12 +114,14 @@ app.post('/webhook', async (req, res) => {
   let respuesta = '';
 
   try {
+    // 0. Foto
     if (tieneMedia && bodyVacio) {
       respuesta = procesarFoto(from, mediaUrl);
       twiml.message(respuesta);
       return res.type('text/xml').send(twiml.toString());
     }
 
+    // 1. Firma residente
     const esFirmaResidente = await supabase
       .from('signature_requests')
       .select('id')
@@ -129,6 +135,7 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
+    // 2. PIN
     if (/^\d{4}$/.test(texto)) {
       const result = await login(from, texto);
       respuesta = result.success
@@ -138,6 +145,7 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
+    // 3. Auth
     const auth = await requiresAuth(from);
     if (auth.requiere) {
       if (auth.bloqueado) {
@@ -151,6 +159,25 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
+    // 4. CONFIRMACION HOROMETRO (SI/NO)
+    if (estaEsperandoConfirmacion(from)) {
+      const r = procesarConfirmacionHorometro(from, texto);
+      if (r) {
+        twiml.message(r);
+        return res.type('text/xml').send(twiml.toString());
+      }
+    }
+
+    // 5. HOROMETRO CORREGIDO
+    if (estaEsperandoHorometroCorregido(from)) {
+      const r = procesarHorometroCorregido(from, texto);
+      if (r) {
+        twiml.message(r);
+        return res.type('text/xml').send(twiml.toString());
+      }
+    }
+
+    // 6. MENU PARO ACTIVO
     if (estaEnFlujoMenu(null, from)) {
       if (/^[1-5]$/.test(texto.trim())) {
         respuesta = procesarSeleccionMenu(null, from, texto.trim());
@@ -167,6 +194,7 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
+    // 7. Comandos
     if (textoNorm === 'paro') {
       respuesta = procesarParo(null, from);
     } else if (textoNorm === 'falla') {
