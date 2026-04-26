@@ -22,7 +22,7 @@ const NEGRO_BARRA = rgb(0.1, 0.1, 0.1);
 // UTILIDADES
 
 function formatearFecha(fechaISO) {
-  if (!fechaISO) return '—';
+  if (!fechaISO) return '\u2014';
   const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
                  'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   const d = new Date(fechaISO);
@@ -30,29 +30,26 @@ function formatearFecha(fechaISO) {
 }
 
 function formatearHora(fechaISO) {
-  if (!fechaISO) return '—';
+  if (!fechaISO) return '\u2014';
   const d = new Date(fechaISO);
   return String(d.getHours()).padStart(2, '0') + ':' +
          String(d.getMinutes()).padStart(2, '0');
 }
 
 function formatearTimestamp(fechaISO) {
-  if (!fechaISO) return '—';
+  if (!fechaISO) return '\u2014';
   const d = new Date(fechaISO);
-  return d.toLocaleDateString('es-MX') + ' · ' +
+  return d.toLocaleDateString('es-MX') + ' \u00b7 ' +
          String(d.getHours()).padStart(2, '0') + ':' +
          String(d.getMinutes()).padStart(2, '0') + ':' +
          String(d.getSeconds()).padStart(2, '0');
 }
 
-function calcularDuracion(timestampInicio, timestampFin) {
-  if (!timestampInicio || !timestampFin) return '';
-  const inicio = new Date(timestampInicio);
-  const fin = new Date(timestampFin);
-  const minutos = Math.round((fin - inicio) / 60000);
-  if (minutos < 60) return minutos + ' min';
-  const horas = Math.floor(minutos / 60);
-  const mins = minutos % 60;
+function formatearDuracion(duracionMin) {
+  if (!duracionMin) return '';
+  if (duracionMin < 60) return duracionMin + ' min';
+  const horas = Math.floor(duracionMin / 60);
+  const mins = duracionMin % 60;
   return horas + 'h ' + mins + 'm';
 }
 
@@ -84,7 +81,15 @@ function tipoEventoLegible(tipoEvento) {
   if (tipo === 'PARO_ZG') return 'PARO CLIMA';
   if (tipo === 'PARO_OTRO') return 'PARO';
   if (tipo === 'PARO_INDEFINIDO') return 'PARO';
+  if (tipo === 'FALLA') return 'FALLA';
   return tipo;
+}
+
+function limpiarTelefono(telefono) {
+  if (!telefono) return '\u2014';
+  return telefono
+    .replace('whatsapp:', '')
+    .replace('+52', '+52 ');
 }
 
 // GENERADOR PDF
@@ -111,13 +116,20 @@ async function generarPDFReporteDiario(folio) {
   // 3. Calcular datos
   const horometroInicio = turno.horometro_inicio || 0;
   const horometroFin = turno.horometro_fin || 0;
-  const horasHorometro = turno.horas_horometro || Math.round((horometroFin - horometroInicio) * 10) / 10;
+  const horasHorometro = turno.horas_horometro ||
+    Math.round((horometroFin - horometroInicio) * 10) / 10;
 
   const paros = (eventos || []).filter(e =>
-    e.tipo_evento && e.tipo_evento.startsWith('PARO_')
+    e.tipo_evento && (
+      e.tipo_evento.startsWith('PARO_') ||
+      e.tipo_evento === 'FALLA'
+    )
   );
   const totalParosMin = paros.reduce((sum, p) => sum + (p.duracion_min || 0), 0);
   const totalParosHrs = Math.round((totalParosMin / 60) * 10) / 10;
+
+  const nombreOperador = turno.operador_nombre ||
+    limpiarTelefono(turno.operador_telefono) || 'No registrado';
 
   // 4. Crear PDF
   const pdfDoc = await PDFDocument.create();
@@ -172,7 +184,8 @@ async function generarPDFReporteDiario(folio) {
 
   // Logo IS
   drawRect(MARGIN_LEFT, y - 45, 36, 30, ROJO_DPM);
-  drawText('IS', MARGIN_LEFT + 8, y - 35, { bold: true, size: 18, color: BLANCO });
+  drawText('IS', MARGIN_LEFT + 8, y - 35,
+    { bold: true, size: 18, color: BLANCO });
 
   // Título
   drawText('REPORTE DIARIO DE MAQUINARIA', MARGIN_LEFT + 48, y - 22,
@@ -211,10 +224,12 @@ async function generarPDFReporteDiario(folio) {
   const gridData = [
     ['Fecha', formatearFecha(turno.inicio || turno.fecha_turno)],
     ['Turno', formatearHora(turno.inicio) + ' \u2014 ' + formatearHora(turno.fin)],
+    ['Lugar', turno.observaciones || 'Registrado en campo'],
     ['Compania', 'Mota-Engil Mexico'],
     ['Contrato', turno.contrato_id || 'DPM-ME-2026-047'],
-    ['Maquina', turno.maquina || '—'],
+    ['Maquina', turno.maquina || '\u2014'],
     ['Serie', turno.serie || 'SIN-SERIE'],
+    ['QR Equipo', 'Escaneado \u00b7 ' + formatearHora(turno.inicio)],
   ];
 
   const cols = 3;
@@ -231,8 +246,10 @@ async function generarPDFReporteDiario(folio) {
       drawLine(MARGIN_LEFT, cy + cellH, MARGIN_RIGHT, cy + cellH, GRIS_BORDE);
     }
 
-    drawText(gridData[i][0], cx + 5, cy + 2, { bold: true, size: 7, color: GRIS_MUTED });
-    drawText(gridData[i][1], cx + 5, cy - 10, { size: 9, color: GRIS_TEXTO });
+    drawText(gridData[i][0], cx + 5, cy + 2,
+      { bold: true, size: 7, color: GRIS_MUTED });
+    drawText(gridData[i][1], cx + 5, cy - 10,
+      { size: 9, color: GRIS_TEXTO });
 
     if (col < cols - 1) {
       drawLine(cx + colWidth, cy + cellH, cx + colWidth, cy - cellH + 8, GRIS_BORDE);
@@ -250,13 +267,15 @@ async function generarPDFReporteDiario(folio) {
     { bold: true, size: 8, color: GRIS_MUTED });
   y -= 15;
 
-  drawText('Nombre', MARGIN_LEFT + 5, y + 2, { bold: true, size: 7, color: GRIS_MUTED });
-  drawText(turno.operador_nombre || 'Guillermo', MARGIN_LEFT + 5, y - 10,
+  drawText('Nombre', MARGIN_LEFT + 5, y + 2,
+    { bold: true, size: 7, color: GRIS_MUTED });
+  drawText(turno.operador_nombre || 'No registrado', MARGIN_LEFT + 5, y - 10,
     { size: 10, color: GRIS_TEXTO });
 
   drawText('Telefono', MARGIN_LEFT + colWidth + 5, y + 2,
     { bold: true, size: 7, color: GRIS_MUTED });
-  drawText(turno.operador_telefono || '—', MARGIN_LEFT + colWidth + 5, y - 10,
+  drawText(limpiarTelefono(turno.operador_telefono),
+    MARGIN_LEFT + colWidth + 5, y - 10,
     { size: 10, color: GRIS_TEXTO });
 
   y -= 25;
@@ -268,8 +287,9 @@ async function generarPDFReporteDiario(folio) {
     { bold: true, size: 8, color: GRIS_MUTED });
   y -= 15;
 
-  // Inicial
   const halfWidth = CONTENT_WIDTH / 2;
+
+  // Inicial
   drawRect(MARGIN_LEFT, y - 40, halfWidth - 5, 40, GRIS_SUPERFICIE);
   drawText('Horometro Inicial', MARGIN_LEFT + 10, y - 12,
     { bold: true, size: 8, color: GRIS_MUTED });
@@ -289,9 +309,15 @@ async function generarPDFReporteDiario(folio) {
     { size: 8, color: GRIS_MUTED });
 
   // Foto labels
-  drawText(turno.foto_inicio_url ? 'Foto registrada en sistema' : 'Evidencia fotografica: no adjuntada',
+  drawText(
+    turno.foto_inicio_url
+      ? 'Foto registrada en sistema'
+      : 'Evidencia fotografica: no adjuntada',
     MARGIN_LEFT + 10, y - 52, { size: 7, color: GRIS_MUTED });
-  drawText(turno.foto_fin_url ? 'Foto registrada en sistema' : 'Evidencia fotografica: no adjuntada',
+  drawText(
+    turno.foto_fin_url
+      ? 'Foto registrada en sistema'
+      : 'Evidencia fotografica: no adjuntada',
     finalX + 10, y - 52, { size: 7, color: GRIS_MUTED });
 
   y -= 65;
@@ -304,16 +330,14 @@ async function generarPDFReporteDiario(folio) {
   y -= 15;
 
   // Evento INICIO
-  const timelineX = MARGIN_LEFT + 30;
-
-  // Punto inicio
   drawRect(MARGIN_LEFT + 5, y - 5, 16, 16, VERDE);
-  drawText('I', MARGIN_LEFT + 10, y - 1, { bold: true, size: 10, color: BLANCO });
+  drawText('I', MARGIN_LEFT + 10, y - 1,
+    { bold: true, size: 10, color: BLANCO });
   drawText(formatearHora(turno.inicio), MARGIN_LEFT + 28, y,
     { bold: true, size: 10, color: GRIS_TEXTO });
   drawText('INICIO', MARGIN_LEFT + 75, y,
     { bold: true, size: 9, color: VERDE });
-  drawText('Horometro: ' + horometroInicio + ' \u00b7 Operador: ' + (turno.operador_nombre || '—'),
+  drawText('Horometro: ' + horometroInicio + ' \u00b7 Operador: ' + nombreOperador,
     MARGIN_LEFT + 28, y - 14, { size: 8, color: GRIS_MUTED });
 
   y -= 30;
@@ -327,11 +351,12 @@ async function generarPDFReporteDiario(folio) {
     const col = colorEvento(evento.tipo_evento);
     const icon = iconoEvento(evento.tipo_evento);
     const tipo = tipoEventoLegible(evento.tipo_evento);
-    const duracion = calcularDuracion(evento.timestamp_inicio, evento.timestamp_fin);
+    const duracionFmt = formatearDuracion(evento.duracion_min);
 
     // Punto
     drawRect(MARGIN_LEFT + 5, y - 5, 16, 16, NARANJA);
-    drawText(icon, MARGIN_LEFT + 10, y - 1, { bold: true, size: 10, color: BLANCO });
+    drawText(icon, MARGIN_LEFT + 10, y - 1,
+      { bold: true, size: 10, color: BLANCO });
 
     // Hora y tipo
     drawText(formatearHora(evento.timestamp_inicio), MARGIN_LEFT + 28, y,
@@ -342,7 +367,7 @@ async function generarPDFReporteDiario(folio) {
     // Detalle
     const motivo = evento.motivo || 'Sin motivo especificado';
     drawText('Motivo reportado por operador: ' + motivo +
-      (duracion ? ' \u00b7 ' + duracion : ''),
+      (duracionFmt ? ' \u00b7 ' + duracionFmt : ''),
       MARGIN_LEFT + 28, y - 14, { size: 8, color: GRIS_MUTED });
 
     // Evidencia
@@ -358,7 +383,8 @@ async function generarPDFReporteDiario(folio) {
   // Evento FIN
   if (turno.fin) {
     drawRect(MARGIN_LEFT + 5, y - 5, 16, 16, ROJO_EVENTO);
-    drawText('F', MARGIN_LEFT + 10, y - 1, { bold: true, size: 10, color: BLANCO });
+    drawText('F', MARGIN_LEFT + 10, y - 1,
+      { bold: true, size: 10, color: BLANCO });
     drawText(formatearHora(turno.fin), MARGIN_LEFT + 28, y,
       { bold: true, size: 10, color: GRIS_TEXTO });
     drawText('FIN', MARGIN_LEFT + 75, y,
@@ -391,7 +417,10 @@ async function generarPDFReporteDiario(folio) {
   drawRect(finalX, y - 35, halfWidth - 5, 35, GRIS_SUPERFICIE);
   drawText('Paros registrados', finalX + 10, y - 10,
     { bold: true, size: 8, color: GRIS_MUTED });
-  drawText(totalParosHrs + ' hrs', finalX + 10, y - 28,
+  const parosDisplay = totalParosMin < 60
+    ? totalParosMin + ' min'
+    : totalParosHrs + ' hrs';
+  drawText(parosDisplay, finalX + 10, y - 28,
     { bold: true, size: 16, color: NARANJA });
 
   y -= 45;
@@ -403,14 +432,19 @@ async function generarPDFReporteDiario(folio) {
   drawText(horasHorometro + ' hrs', MARGIN_RIGHT - 100, y - 12,
     { bold: true, size: 18, color: BLANCO });
 
-  const horasOperando = Math.round((horasHorometro - totalParosHrs) * 10) / 10;
-  drawText(horasOperando + ' hrs operando \u00b7 ' + totalParosHrs + ' hrs paro (incluidas en horometro)',
+  const horasOperando = Math.round(
+    (horasHorometro - totalParosHrs) * 10) / 10;
+  drawText(
+    horasOperando + ' hrs operando \u00b7 ' +
+    totalParosHrs + ' hrs paro (incluidas en horometro)',
     MARGIN_LEFT + 10, y - 28, { size: 8, color: BLANCO });
 
   y -= 45;
 
   // Nota neutralidad
-  drawText('Paros registrados tal como fueron reportados. Clasificacion y negociacion entre las partes.',
+  drawText(
+    'Paros registrados tal como fueron reportados. ' +
+    'Clasificacion y negociacion entre las partes.',
     MARGIN_LEFT, y, { size: 7, color: GRIS_MUTED });
 
   y -= 15;
@@ -427,16 +461,20 @@ async function generarPDFReporteDiario(folio) {
   drawRect(MARGIN_LEFT, y - 70, firmaW, 70, GRIS_SUPERFICIE);
   drawText('OPERADOR', MARGIN_LEFT + 10, y - 12,
     { bold: true, size: 8, color: GRIS_MUTED });
-  drawText(turno.operador_nombre || 'Guillermo', MARGIN_LEFT + 10, y - 26,
+  drawText(turno.operador_nombre || 'No registrado',
+    MARGIN_LEFT + 10, y - 26,
     { bold: true, size: 11, color: GRIS_TEXTO });
   drawText('PIN validado', MARGIN_LEFT + 10, y - 38,
     { size: 9, color: VERDE });
-  drawText(formatearTimestamp(turno.inicio), MARGIN_LEFT + 10, y - 50,
+  drawText(formatearTimestamp(turno.inicio),
+    MARGIN_LEFT + 10, y - 50,
     { size: 8, color: GRIS_MUTED });
-  drawText('Confirmo que estos hechos ocurrieron', MARGIN_LEFT + 10, y - 62,
-    { size: 7, color: GRIS_MUTED, italic: true });
-  drawText('tal como los reporte', MARGIN_LEFT + 10, y - 70,
-    { size: 7, color: GRIS_MUTED, italic: true });
+  drawText('Confirmo que estos hechos ocurrieron',
+    MARGIN_LEFT + 10, y - 62,
+    { size: 7, color: GRIS_MUTED });
+  drawText('tal como los reporte',
+    MARGIN_LEFT + 10, y - 70,
+    { size: 7, color: GRIS_MUTED });
 
   // Residente
   const firma2X = MARGIN_LEFT + firmaW + 10;
@@ -449,16 +487,20 @@ async function generarPDFReporteDiario(folio) {
     { size: 9, color: GRIS_MUTED });
   drawText('\u2014', firma2X + 10, y - 50,
     { size: 8, color: GRIS_MUTED });
-  drawText('Confirmo que estos hechos ocurrieron', firma2X + 10, y - 62,
-    { size: 7, color: GRIS_MUTED, italic: true });
-  drawText('tal como los presencie', firma2X + 10, y - 70,
-    { size: 7, color: GRIS_MUTED, italic: true });
+  drawText('Confirmo que estos hechos ocurrieron',
+    firma2X + 10, y - 62,
+    { size: 7, color: GRIS_MUTED });
+  drawText('tal como los presencie',
+    firma2X + 10, y - 70,
+    { size: 7, color: GRIS_MUTED });
 
   y -= 80;
 
   // Leyenda neutralidad
   drawRect(MARGIN_LEFT, y - 18, CONTENT_WIDTH, 18, GRIS_SUPERFICIE);
-  drawText('La firma valida los hechos registrados. No implica acuerdo sobre conceptos facturables.',
+  drawText(
+    'La firma valida los hechos registrados. ' +
+    'No implica acuerdo sobre conceptos facturables.',
     MARGIN_LEFT + 10, y - 12, { size: 8, color: GRIS_MUTED });
 
   y -= 30;
@@ -468,21 +510,28 @@ async function generarPDFReporteDiario(folio) {
 
   drawText(folioText, MARGIN_LEFT, y - 5,
     { size: 8, color: GRIS_MUTED });
-  drawText('Generado: ' + formatearTimestamp(new Date().toISOString()) + ' \u00b7 IronSync',
+  drawText(
+    'Generado: ' + formatearTimestamp(new Date().toISOString()) +
+    ' \u00b7 IronSync',
     MARGIN_LEFT, y - 16, { size: 7, color: GRIS_MUTED });
 
-  drawText('IRONSYNC', MARGIN_RIGHT - 60, y - 5,
+  drawText('IRONSYNC', MARGIN_RIGHT - 70, y - 5,
     { bold: true, size: 10, color: GRIS_MUTED });
 
   y -= 30;
 
   // Nota neutralidad
-  drawText('Este documento registra hechos operativos tal como fueron reportados y presenciados.',
+  drawText(
+    'Este documento registra hechos operativos tal como ' +
+    'fueron reportados y presenciados.',
     MARGIN_LEFT, y, { size: 7, color: GRIS_MUTED });
-  drawText('IronSync no determina responsabilidades, no clasifica eventos para fines de cobro',
+  drawText(
+    'IronSync no determina responsabilidades, no clasifica ' +
+    'eventos para fines de cobro',
     MARGIN_LEFT, y - 10, { size: 7, color: GRIS_MUTED });
   y -= 10;
-  drawText('y no emite juicios sobre la operacion.',
+  drawText(
+    'y no emite juicios sobre la operacion.',
     MARGIN_LEFT, y - 10, { size: 7, color: GRIS_MUTED });
 
   // 5. Serializar y retornar
