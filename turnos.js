@@ -91,6 +91,18 @@ function procesarFoto(from, imageUrl) {
     turno.sin_foto_inicio = false;
     turno.estado_foto = null;
     guardarTurnos(turnos);
+
+    // Supabase: actualizar foto inicio
+    if (turno.supabase_id) {
+      supabase.from('turnos').update({
+        foto_inicio_url: imageUrl,
+        sin_foto_inicio: false,
+        estado_foto: null
+      }).eq('id', turno.supabase_id).then(({ error }) => {
+        if (error) console.error('Error Supabase foto inicio:', error.message);
+      });
+    }
+
     return 'Foto de inicio vinculada a ' + turno.maquina + '.\nPara cerrar manda FIN ' + turno.maquina + ' [numero del contador]';
   }
 
@@ -99,6 +111,18 @@ function procesarFoto(from, imageUrl) {
     turno.sin_foto_fin = false;
     turno.estado_foto = null;
     guardarTurnos(turnos);
+
+    // Supabase: actualizar foto fin
+    if (turno.supabase_id) {
+      supabase.from('turnos').update({
+        foto_fin_url: imageUrl,
+        sin_foto_fin: false,
+        estado_foto: null
+      }).eq('id', turno.supabase_id).then(({ error }) => {
+        if (error) console.error('Error Supabase foto fin:', error.message);
+      });
+    }
+
     return 'Foto de cierre vinculada a ' + turno.maquina + '.\nTurno completo con evidencia.';
   }
 }
@@ -180,10 +204,47 @@ async function procesarInicioTurno(from, texto) {
       paro_activo: null,
       esperando_confirmacion_horometro: false,
       esperando_horometro_corregido: false,
-      horometro_pendiente: null
+      horometro_pendiente: null,
+      supabase_id: null
     };
 
     turnos.push(nuevoTurno);
+
+    // Guardar en Supabase
+    try {
+      const { data: turnoSupabase, error: errorInsert } = await supabase
+        .from('turnos')
+        .insert({
+          operador_id: from,
+          maquina: maquina,
+          serie: serie,
+          horometro_inicio: horometro,
+          estado: 'ABIERTO',
+          inicio: new Date().toISOString(),
+          fecha_turno: hoy,
+          folio: folio,
+          operador_nombre: esSupervisor ? SUPERVISORES[from.replace('whatsapp:+', '')] : null,
+          operador_telefono: from,
+          sin_foto_inicio: true,
+          sin_foto_fin: true,
+          estado_foto: 'esperando_foto_inicio',
+          reportado_por: esSupervisor ? SUPERVISORES[from.replace('whatsapp:+', '')] : null,
+          tiene_anomalia: false,
+          origen_datos: 'whatsapp'
+        })
+        .select('id')
+        .single();
+
+      if (errorInsert) {
+        console.error('Error guardando turno en Supabase:', errorInsert.message);
+      } else {
+        nuevoTurno.supabase_id = turnoSupabase.id;
+        console.log('Turno guardado en Supabase:', turnoSupabase.id);
+      }
+    } catch (err) {
+      console.error('Error Supabase inicio:', err.message);
+    }
+
     guardarTurnos(turnos);
     console.log('Turno creado:', JSON.stringify(nuevoTurno, null, 2));
 
@@ -241,6 +302,23 @@ async function procesarFinTurno(from, texto) {
     turno.estado_foto = 'esperando_foto_fin';
     calcularAnomalias(turno);
     guardarTurnos(turnos);
+
+    // Supabase: cerrar turno rango inusual
+    if (turno.supabase_id) {
+      supabase.from('turnos').update({
+        horometro_fin: horometroFinal,
+        horas_horometro: horasTurno,
+        horas_turno: horasTurno,
+        estado: 'CERRADO',
+        fin: new Date().toISOString(),
+        tiene_anomalia: true,
+        estado_foto: 'esperando_foto_fin'
+      }).eq('id', turno.supabase_id).then(({ error }) => {
+        if (error) console.error('Error Supabase fin inusual:', error.message);
+        else console.log('Turno cerrado en Supabase (rango inusual):', turno.supabase_id);
+      });
+    }
+
     const turnosActualizados = cargarTurnos();
     const acumulado = validadores.calcularAcumuladoHoy(turnosActualizados, from);
     return FIN_RANGO_INUSUAL(horasTurno, acumulado, turno.horometro_inicial, horometroFinal);
@@ -256,6 +334,22 @@ async function procesarFinTurno(from, texto) {
   calcularAnomalias(turno);
 
   guardarTurnos(turnos);
+
+  // Supabase: cerrar turno normal
+  if (turno.supabase_id) {
+    supabase.from('turnos').update({
+      horometro_fin: horometroFinal,
+      horas_horometro: horasTurno,
+      horas_turno: horasTurno,
+      estado: 'CERRADO',
+      fin: new Date().toISOString(),
+      tiene_anomalia: turno.tiene_anomalia,
+      estado_foto: 'esperando_foto_fin'
+    }).eq('id', turno.supabase_id).then(({ error }) => {
+      if (error) console.error('Error Supabase fin:', error.message);
+      else console.log('Turno cerrado en Supabase:', turno.supabase_id);
+    });
+  }
 
   const turnosActualizados = cargarTurnos();
   const acumulado = validadores.calcularAcumuladoHoy(turnosActualizados, from);
@@ -317,6 +411,22 @@ function procesarConfirmacionHorometro(from, texto) {
     calcularAnomalias(turno);
     guardarTurnos(turnos);
 
+    // Supabase: cerrar turno (horometro igual confirmado)
+    if (turno.supabase_id) {
+      supabase.from('turnos').update({
+        horometro_fin: horometroFinal,
+        horas_horometro: 0,
+        horas_turno: 0,
+        estado: 'CERRADO',
+        fin: new Date().toISOString(),
+        tiene_anomalia: turno.tiene_anomalia,
+        estado_foto: 'esperando_foto_fin'
+      }).eq('id', turno.supabase_id).then(({ error }) => {
+        if (error) console.error('Error Supabase confirmacion:', error.message);
+        else console.log('Turno cerrado en Supabase (confirmacion):', turno.supabase_id);
+      });
+    }
+
     const turnosActualizados = cargarTurnos();
     const acumulado = validadores.calcularAcumuladoHoy(turnosActualizados, from);
     return FIN_OK(horasTurno, acumulado, turno.folio);
@@ -364,6 +474,22 @@ function procesarHorometroCorregido(from, texto) {
   turno.esperando_horometro_corregido = false;
   calcularAnomalias(turno);
   guardarTurnos(turnos);
+
+  // Supabase: cerrar turno (horometro corregido)
+  if (turno.supabase_id) {
+    supabase.from('turnos').update({
+      horometro_fin: horometro,
+      horas_horometro: horasTurno,
+      horas_turno: horasTurno,
+      estado: 'CERRADO',
+      fin: new Date().toISOString(),
+      tiene_anomalia: turno.tiene_anomalia,
+      estado_foto: 'esperando_foto_fin'
+    }).eq('id', turno.supabase_id).then(({ error }) => {
+      if (error) console.error('Error Supabase horometro corregido:', error.message);
+      else console.log('Turno cerrado en Supabase (corregido):', turno.supabase_id);
+    });
+  }
 
   const turnosActualizados = cargarTurnos();
   const acumulado = validadores.calcularAcumuladoHoy(turnosActualizados, from);
@@ -572,6 +698,26 @@ function procesarReanuda(_, from) {
 
   turno.paro_activo = null;
   guardarTurnos(turnos);
+
+  // Supabase: guardar evento de paro en turno_eventos
+  if (turno.supabase_id) {
+    const esCobrable = paro.tipo === 'CLI';
+
+    supabase.from('turno_eventos').insert({
+      turno_id: turno.supabase_id,
+      tipo_evento: 'PARO_' + (paro.tipo || 'UNKNOWN'),
+      motivo: paro.motivo,
+      timestamp_inicio: paro.timestamp_inicio,
+      timestamp_fin: fin.toISOString(),
+      duracion_min: duracionMinutos,
+      es_cobrable: esCobrable,
+      clasificado_por: 'operador'
+    }).then(({ error }) => {
+      if (error) console.error('Error Supabase evento paro:', error.message);
+      else console.log('Evento paro guardado en Supabase:', paro.tipo, paro.motivo);
+    });
+  }
+
   return REANUDA_OK(horas, minutos);
 }
 
