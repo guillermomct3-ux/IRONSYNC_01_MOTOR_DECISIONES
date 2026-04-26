@@ -92,7 +92,6 @@ function procesarFoto(from, imageUrl) {
     turno.estado_foto = null;
     guardarTurnos(turnos);
 
-    // Supabase: actualizar foto inicio
     if (turno.supabase_id) {
       supabase.from('turnos').update({
         foto_inicio_url: imageUrl,
@@ -112,7 +111,6 @@ function procesarFoto(from, imageUrl) {
     turno.estado_foto = null;
     guardarTurnos(turnos);
 
-    // Supabase: actualizar foto fin
     if (turno.supabase_id) {
       supabase.from('turnos').update({
         foto_fin_url: imageUrl,
@@ -151,6 +149,20 @@ async function buscarSerie(maquina) {
   }
 }
 
+async function buscarNombreOperador(from) {
+  try {
+    const { data: op } = await supabase
+      .from('operadores')
+      .select('nombre')
+      .eq('telefono', from)
+      .single();
+    if (op && op.nombre) return op.nombre;
+  } catch (e) {
+    console.error('Error buscando operador:', e.message);
+  }
+  return null;
+}
+
 async function procesarInicioTurno(from, texto) {
   console.log('procesarInicioTurno iniciado para ' + from + ' | texto: "' + texto + '"');
   try {
@@ -178,6 +190,12 @@ async function procesarInicioTurno(from, texto) {
     const folio = generarFolio(maquina, hoy, turnos);
     const esSupervisor = !!SUPERVISORES[from.replace('whatsapp:+', '')];
 
+    // Buscar nombre del operador en Supabase
+    let nombreOperador = esSupervisor ? SUPERVISORES[from.replace('whatsapp:+', '')] : null;
+    if (!nombreOperador) {
+      nombreOperador = await buscarNombreOperador(from);
+    }
+
     const nuevoTurno = {
       from,
       estado: 'ABIERTO',
@@ -197,8 +215,8 @@ async function procesarInicioTurno(from, texto) {
       sin_foto_inicio: true,
       sin_foto_fin: true,
       estado_foto: 'esperando_foto_inicio',
-      reportado_por: esSupervisor ? SUPERVISORES[from.replace('whatsapp:+', '')] : null,
-      operador_nombre: null,
+      reportado_por: nombreOperador || null,
+      operador_nombre: nombreOperador || null,
       tiene_anomalia: false,
       paros: [],
       paro_activo: null,
@@ -223,12 +241,12 @@ async function procesarInicioTurno(from, texto) {
           inicio: new Date().toISOString(),
           fecha_turno: hoy,
           folio: folio,
-          operador_nombre: esSupervisor ? SUPERVISORES[from.replace('whatsapp:+', '')] : null,
+          operador_nombre: nombreOperador || null,
           operador_telefono: from,
           sin_foto_inicio: true,
           sin_foto_fin: true,
           estado_foto: 'esperando_foto_inicio',
-          reportado_por: esSupervisor ? SUPERVISORES[from.replace('whatsapp:+', '')] : null,
+          reportado_por: nombreOperador || null,
           tiene_anomalia: false,
           origen_datos: 'whatsapp'
         })
@@ -303,7 +321,6 @@ async function procesarFinTurno(from, texto) {
     calcularAnomalias(turno);
     guardarTurnos(turnos);
 
-    // Supabase: cerrar turno rango inusual
     if (turno.supabase_id) {
       supabase.from('turnos').update({
         horometro_fin: horometroFinal,
@@ -335,7 +352,6 @@ async function procesarFinTurno(from, texto) {
 
   guardarTurnos(turnos);
 
-  // Supabase: cerrar turno normal
   if (turno.supabase_id) {
     supabase.from('turnos').update({
       horometro_fin: horometroFinal,
@@ -411,7 +427,6 @@ function procesarConfirmacionHorometro(from, texto) {
     calcularAnomalias(turno);
     guardarTurnos(turnos);
 
-    // Supabase: cerrar turno (horometro igual confirmado)
     if (turno.supabase_id) {
       supabase.from('turnos').update({
         horometro_fin: horometroFinal,
@@ -475,7 +490,6 @@ function procesarHorometroCorregido(from, texto) {
   calcularAnomalias(turno);
   guardarTurnos(turnos);
 
-  // Supabase: cerrar turno (horometro corregido)
   if (turno.supabase_id) {
     supabase.from('turnos').update({
       horometro_fin: horometro,
@@ -755,6 +769,8 @@ function verificarZombies(twilioClient, numeroOrigen) {
           body: mensaje,
           from: numeroOrigen,
           to: turno.from
+        }).catch(err => {
+          console.error('Error enviando alerta zombie:', err.message);
         });
       }
     }
