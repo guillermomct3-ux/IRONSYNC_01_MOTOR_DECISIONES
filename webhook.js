@@ -20,7 +20,7 @@ process.on('unhandledRejection', (reason) => {
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.11' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.12' }));
 app.use('/api/v1/signatures', signaturesRouter);
 
 app.use((req, res, next) => {
@@ -31,8 +31,13 @@ app.use((req, res, next) => {
 const cliente = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const NUMERO_TWILIO = process.env.TWILIO_PHONE_NUMBER;
 
+// Zombie checker protegido
 setInterval(() => {
-  verificarZombies(cliente, NUMERO_TWILIO);
+  try {
+    verificarZombies(cliente, NUMERO_TWILIO);
+  } catch (err) {
+    console.error('Error en zombie checker:', err.message);
+  }
 }, 60 * 60 * 1000);
 
 const pdfRoutes = require('./routes/pdf');

@@ -198,7 +198,7 @@ router.get('/reporte-diario/:folio', async (req, res) => {
         return res.send(pdfBuffer);
 
     } catch (error) {
-        console.error('Error generando Reporte Diario:', error.message);
+        console.error('Error generando Reporte Diario:', error);
         return res.status(500).json({
             error: 'Error generando Reporte Diario',
             detalle: error.message
