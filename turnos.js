@@ -168,17 +168,26 @@ async function buscarSerie(maquina) {
 
 async function buscarNombreOperador(from) {
   try {
-    const { data: op } = await supabase
+    const telefonoLimpio = from.replace('whatsapp:', '');
+    console.log('DEBUG buscarNombreOperador - from:', from);
+    console.log('DEBUG buscarNombreOperador - telefonoLimpio:', telefonoLimpio);
+    const { data: op, error } = await supabase
       .from('operadores')
-      .select('nombre')
-      .eq('telefono', from)
+      .select('nombre, telefono')
+      .eq('telefono', telefonoLimpio)
       .single();
+    console.log('DEBUG buscarNombreOperador - resultado:', op);
+    console.log('DEBUG buscarNombreOperador - error:', error);
     if (op && op.nombre) return op.nombre;
   } catch (e) {
     console.error('Error buscando operador:', e.message);
   }
   return null;
 }
+
+  return null;
+}
+
 
 async function procesarInicioTurno(from, texto) {
   console.log('procesarInicioTurno iniciado para ' + from + ' | texto: "' + texto + '"');
