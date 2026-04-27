@@ -9,12 +9,13 @@ function extraerHorometro(texto) {
     return valor;
   }
 
-  const todosLosNumeros = [...textoLimpio.matchAll(/(?:^|\s)(\d+\.?\d*)(?:\s|$)/g)];
-  if (todosLosNumeros.length > 0) {
-    const valor = parseFloat(todosLosNumeros[todosLosNumeros.length - 1][1]);
+    const todosLosNumeros = textoLimpio.match(/\d+\.?\d*/g);
+  if (todosLosNumeros && todosLosNumeros.length > 0) {
+    const valor = parseFloat(todosLosNumeros[todosLosNumeros.length - 1]);
     if (valor > 999999 || valor < 0) return null;
     return valor;
   }
+
 
   return null;
 }
