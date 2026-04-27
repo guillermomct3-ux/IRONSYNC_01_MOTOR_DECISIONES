@@ -30,13 +30,16 @@ function extraerDatosMaquina(texto) {
     limpio = limpio.replace(/\s+\d+\.?\d*\s*$/, ' ');
   }
 
-  const maquina = limpio
+    const maquina = limpio
     .replace(/inicio/i, '')
     .replace(/fin/i, '')
     .replace(/serie\s+[a-zA-Z0-9-]+/i, '')
+    .replace(/([A-Za-z])\s+([A-Za-z0-9])/g, '$1$2')
+    .replace(/([0-9])\s+([A-Za-z0-9])/g, '$1$2')
     .replace(/\s+/g, ' ')
     .trim()
     .toUpperCase();
+
 
   return {
     maquina: maquina || 'SIN-MAQUINA',
