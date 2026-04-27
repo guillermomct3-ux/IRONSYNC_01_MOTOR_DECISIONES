@@ -95,7 +95,6 @@ function limpiarTelefono(telefono) {
 // GENERADOR PDF
 
 async function generarPDFReporteDiario(folio) {
-  // FIX: .single() → .limit(1) para evitar error con folios duplicados
   const { data: turnos, error: turnoError } = await supabase
     .from('turnos')
     .select('*')
@@ -109,14 +108,12 @@ async function generarPDFReporteDiario(folio) {
     throw new Error('Turno no encontrado con folio: ' + folio);
   }
 
-  // 2. Buscar eventos del turno
   const { data: eventos } = await supabase
     .from('turno_eventos')
     .select('*')
     .eq('turno_id', turno.id)
     .order('created_at', { ascending: true });
 
-  // 3. Calcular datos
   const horometroInicio = turno.horometro_inicio || 0;
   const horometroFin = turno.horometro_fin || 0;
   const horasHorometro = turno.horas_horometro ||
@@ -134,20 +131,22 @@ async function generarPDFReporteDiario(folio) {
   const nombreOperador = turno.operador_nombre ||
     limpiarTelefono(turno.operador_telefono) || 'No registrado';
 
-  // 4. Crear PDF
+  // FIX 14: Variables de alerta visual para operador no registrado
+  const operadorRegistrado = !!turno.operador_nombre;
+  const opNombreDisplay = operadorRegistrado ? turno.operador_nombre : 'OPERADOR NO REGISTRADO';
+  const opColorNombre = operadorRegistrado ? GRIS_TEXTO : ROJO_DPM;
+
   const pdfDoc = await PDFDocument.create();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  const page = pdfDoc.addPage([595.28, 841.89]); // A4
+  const page = pdfDoc.addPage([595.28, 841.89]);
   const { width, height } = page.getSize();
 
   const MARGIN_LEFT = 40;
   const MARGIN_RIGHT = width - 40;
   const CONTENT_WIDTH = MARGIN_RIGHT - MARGIN_LEFT;
   let y = height - 40;
-
-  // FUNCIONES DE DIBUJO
 
   function drawText(text, x, yPos, options = {}) {
     const f = options.bold ? fontBold : font;
@@ -181,7 +180,7 @@ async function generarPDFReporteDiario(folio) {
     });
   }
 
-  // ═══ SECCIÓN 1: HEADER ═══
+  // SECCION 1: HEADER
   const HEADER_H = 60;
   drawRect(0, y - HEADER_H, width, HEADER_H, NEGRO);
 
@@ -203,7 +202,7 @@ async function generarPDFReporteDiario(folio) {
 
   y -= HEADER_H + 10;
 
-  // ═══ SECCIÓN 2: BARRA DE VALIDACIÓN ═══
+  // SECCION 2: BARRA DE VALIDACION
   const BARRA_H = 24;
   drawRect(MARGIN_LEFT, y - BARRA_H, CONTENT_WIDTH, BARRA_H, GRIS_SUPERFICIE);
   drawText('Estado de Validacion', MARGIN_LEFT + 10, y - 16,
@@ -216,7 +215,7 @@ async function generarPDFReporteDiario(folio) {
 
   y -= BARRA_H + 10;
 
-  // ═══ SECCIÓN 3: DATOS GENERALES ═══
+  // SECCION 3: DATOS GENERALES
   drawText('DATOS GENERALES', MARGIN_LEFT, y,
     { bold: true, size: 8, color: GRIS_MUTED });
   y -= 15;
@@ -262,16 +261,16 @@ async function generarPDFReporteDiario(folio) {
   drawLine(MARGIN_LEFT, y + 5, MARGIN_RIGHT, y + 5, GRIS_BORDE);
   y -= 5;
 
-  // ═══ SECCIÓN 4: OPERADOR ═══
+  // SECCION 4: OPERADOR — FIX 14: color rojo si no registrado
   drawText('OPERADOR', MARGIN_LEFT, y,
     { bold: true, size: 8, color: GRIS_MUTED });
   y -= 15;
 
   drawText('Nombre', MARGIN_LEFT + 5, y + 2,
     { bold: true, size: 7, color: GRIS_MUTED });
-  drawText(turno.operador_nombre || 'No registrado',
+  drawText(opNombreDisplay,
     MARGIN_LEFT + 5, y - 10,
-    { size: 10, color: GRIS_TEXTO });
+    { size: 10, color: opColorNombre });
 
   drawText('Telefono', MARGIN_LEFT + colWidth + 5, y + 2,
     { bold: true, size: 7, color: GRIS_MUTED });
@@ -283,7 +282,7 @@ async function generarPDFReporteDiario(folio) {
   drawLine(MARGIN_LEFT, y + 5, MARGIN_RIGHT, y + 5, GRIS_BORDE);
   y -= 5;
 
-  // ═══ SECCIÓN 5: HORÓMETRO + EVIDENCIA ═══
+  // SECCION 5: HOROMETRO + EVIDENCIA
   drawText('HOROMETRO Y EVIDENCIA', MARGIN_LEFT, y,
     { bold: true, size: 8, color: GRIS_MUTED });
   y -= 15;
@@ -322,7 +321,7 @@ async function generarPDFReporteDiario(folio) {
   drawLine(MARGIN_LEFT, y + 5, MARGIN_RIGHT, y + 5, GRIS_BORDE);
   y -= 5;
 
-  // ═══ SECCIÓN 6: TIMELINE DE EVENTOS ═══
+  // SECCION 6: TIMELINE DE EVENTOS
   drawText('TIMELINE DE EVENTOS', MARGIN_LEFT, y,
     { bold: true, size: 8, color: GRIS_MUTED });
   y -= 15;
@@ -390,7 +389,7 @@ async function generarPDFReporteDiario(folio) {
   drawLine(MARGIN_LEFT, y + 5, MARGIN_RIGHT, y + 5, GRIS_BORDE);
   y -= 5;
 
-  // ═══ SECCIÓN 7: RESUMEN DE HORAS ═══
+  // SECCION 7: RESUMEN DE HORAS
   drawText('RESUMEN DE HORAS', MARGIN_LEFT, y,
     { bold: true, size: 8, color: GRIS_MUTED });
   y -= 15;
@@ -412,7 +411,6 @@ async function generarPDFReporteDiario(folio) {
 
   y -= 45;
 
-  // Total barra negra — formato consistente
   drawRect(MARGIN_LEFT, y - 35, CONTENT_WIDTH, 35, NEGRO_BARRA);
   drawText('Total Registrado', MARGIN_LEFT + 10, y - 12,
     { bold: true, size: 8, color: BLANCO });
@@ -440,7 +438,7 @@ async function generarPDFReporteDiario(folio) {
   drawLine(MARGIN_LEFT, y + 5, MARGIN_RIGHT, y + 5, GRIS_BORDE);
   y -= 5;
 
-  // ═══ SECCIÓN 8: VALIDACIÓN / FIRMAS ═══
+  // SECCION 8: VALIDACION / FIRMAS — FIX 14: color rojo si no registrado
   drawText('VALIDACION', MARGIN_LEFT, y,
     { bold: true, size: 8, color: GRIS_MUTED });
   y -= 15;
@@ -449,9 +447,9 @@ async function generarPDFReporteDiario(folio) {
   drawRect(MARGIN_LEFT, y - 70, firmaW, 70, GRIS_SUPERFICIE);
   drawText('OPERADOR', MARGIN_LEFT + 10, y - 12,
     { bold: true, size: 8, color: GRIS_MUTED });
-  drawText(turno.operador_nombre || 'No registrado',
+  drawText(opNombreDisplay,
     MARGIN_LEFT + 10, y - 26,
-    { bold: true, size: 11, color: GRIS_TEXTO });
+    { bold: true, size: 11, color: opColorNombre });
   drawText('PIN validado', MARGIN_LEFT + 10, y - 38,
     { size: 9, color: VERDE });
   drawText(formatearTimestamp(turno.inicio),
@@ -491,7 +489,7 @@ async function generarPDFReporteDiario(folio) {
 
   y -= 30;
 
-  // ═══ SECCIÓN 9: PIE DE PÁGINA ═══
+  // SECCION 9: PIE DE PAGINA
   drawLine(MARGIN_LEFT, y + 5, MARGIN_RIGHT, y + 5, GRIS_BORDE);
 
   drawText(folioText, MARGIN_LEFT, y - 5,
@@ -506,7 +504,6 @@ async function generarPDFReporteDiario(folio) {
 
   y -= 30;
 
-  // Nota neutralidad completa
   drawText(
     'Este documento registra hechos operativos tal como ' +
     'fueron reportados y presenciados.',
@@ -520,7 +517,6 @@ async function generarPDFReporteDiario(folio) {
     'comerciales o legales, contacte a las partes involucradas.',
     MARGIN_LEFT, y - 20, { size: 7, color: GRIS_MUTED });
 
-  // Serializar y retornar
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);
 }
