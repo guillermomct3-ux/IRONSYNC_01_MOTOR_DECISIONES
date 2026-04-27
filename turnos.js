@@ -44,7 +44,6 @@ function obtenerTurnoActivo(turnos, from) {
   return turnos.find(t => t.from === from && t.estado === 'ABIERTO');
 }
 
-// FIX DEFINITIVO: Folio unico contra Supabase
 async function generarFolioSupabase(maquina, fecha) {
   const [yyyy, mm, dd] = fecha.split('-');
   const patron = 'IS-' + yyyy + '-' + mm + '-' + dd + '-' + maquina + '-';
@@ -57,7 +56,6 @@ async function generarFolioSupabase(maquina, fecha) {
 
     if (error) {
       console.error('Error consultando folios:', error.message);
-      // Fallback: usar timestamp para evitar colision
       return patron + String(Date.now()).slice(-3);
     }
 
@@ -185,10 +183,6 @@ async function buscarNombreOperador(from) {
   return null;
 }
 
-  return null;
-}
-
-
 async function procesarInicioTurno(from, texto) {
   console.log('procesarInicioTurno iniciado para ' + from + ' | texto: "' + texto + '"');
   try {
@@ -214,12 +208,10 @@ async function procesarInicioTurno(from, texto) {
     const serie = await buscarSerie(maquina);
     const hoy = new Date().toISOString().split('T')[0];
 
-    // FIX: Folio unico contra Supabase
     const folio = await generarFolioSupabase(maquina, hoy);
 
     const esSupervisor = !!SUPERVISORES[from.replace('whatsapp:+', '')];
 
-    // Buscar nombre del operador en Supabase
     let nombreOperador = esSupervisor ? SUPERVISORES[from.replace('whatsapp:+', '')] : null;
     if (!nombreOperador) {
       nombreOperador = await buscarNombreOperador(from);
@@ -257,7 +249,6 @@ async function procesarInicioTurno(from, texto) {
 
     turnos.push(nuevoTurno);
 
-    // Guardar en Supabase
     try {
       const { data: turnoSupabase, error: errorInsert } = await supabase
         .from('turnos')
@@ -416,7 +407,7 @@ async function procesarReporteHoras(from) {
   return REPORTE_TURNO_ABIERTO(minutos, turno.horometro_inicial);
 }
 
-// CONFIRMACION HOROMETRO (SI/NO despues de FIN igual)
+// CONFIRMACION HOROMETRO
 
 function estaEsperandoConfirmacion(from) {
   const turnos = cargarTurnos();
@@ -742,7 +733,6 @@ function procesarReanuda(_, from) {
   turno.paro_activo = null;
   guardarTurnos(turnos);
 
-  // Supabase: guardar evento de paro en turno_eventos
   if (turno.supabase_id) {
     const esCobrable = paro.tipo === 'CLI';
 
@@ -782,7 +772,7 @@ function estaEnFlujoMenu(_, from) {
          estado === 'esperando_motivo_otro';
 }
 
-// ZOMBIES — protegido con .catch
+// ZOMBIES
 
 function verificarZombies(twilioClient, numeroOrigen) {
   const turnos = cargarTurnos();
