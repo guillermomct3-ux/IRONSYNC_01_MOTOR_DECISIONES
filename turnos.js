@@ -334,8 +334,53 @@ async function procesarFinTurno(from, texto) {
 
   const turnos = cargarTurnos();
 
+  // FIX 18: Verificar turno abierto contra JSON local Y Supabase
   if (!validadores.tieneTurnoAbierto(turnos, from)) {
-    return FIN_SIN_INICIO();
+    // Buscar turno abierto en Supabase por si el JSON se perdió
+    const { data: turnoSupabase } = await supabase
+      .from('turnos')
+      .select('*')
+      .eq('operador_telefono', from)
+      .eq('estado', 'ABIERTO')
+      .single();
+
+    if (!turnoSupabase) {
+      return FIN_SIN_INICIO();
+    }
+
+    // Recuperar turno del JSON local si no existe
+    const turnoRecuperado = {
+      from: from,
+      estado: 'ABIERTO',
+      fecha: turnoSupabase.fecha_turno,
+      folio: turnoSupabase.folio,
+      maquina: turnoSupabase.maquina,
+      serie: turnoSupabase.serie || 'SIN-SERIE',
+      horometro_inicial: turnoSupabase.horometro_inicio,
+      horometro_final: null,
+      unidades_horometro: null,
+      horas_turno: null,
+      validado_por_diferencia: false,
+      timestamp_inicio: turnoSupabase.inicio,
+      timestamp_fin: null,
+      foto_inicio_url: turnoSupabase.foto_inicio_url || null,
+      foto_fin_url: null,
+      sin_foto_inicio: turnoSupabase.sin_foto_inicio !== false,
+      sin_foto_fin: true,
+      estado_foto: 'esperando_foto_fin',
+      reportado_por: turnoSupabase.reportado_por || null,
+      operador_nombre: turnoSupabase.operador_nombre || null,
+      tiene_anomalia: false,
+      paros: [],
+      paro_activo: null,
+      esperando_confirmacion_horometro: false,
+      esperando_horometro_corregido: false,
+      horometro_pendiente: null,
+      supabase_id: turnoSupabase.id
+    };
+    turnos.push(turnoRecuperado);
+    guardarTurnos(turnos);
+    console.log('Turno recuperado de Supabase:', turnoSupabase.folio);
   }
 
   const horometroFinal = validadores.extraerHorometro(texto);
