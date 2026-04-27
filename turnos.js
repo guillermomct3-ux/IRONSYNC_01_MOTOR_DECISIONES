@@ -358,6 +358,11 @@ async function procesarFinTurno(from, texto) {
   const unidades = horometroFinal - turno.horometro_inicial;
   const horasTurno = Math.round(Math.max(0, unidades) * 10) / 10;
 
+  // FIX 3: Rechazar turnos mayores a 24 hrs
+  if (horasTurno > 24) {
+    return 'El turno reporta ' + horasTurno + ' hrs. Eso es mas de un dia.\nRevisa el numero del contador e intenta de nuevo.';
+  }
+
   if (!validadores.esRangoRazonable(turno.horometro_inicial, horometroFinal)) {
     turno.estado = 'CERRADO';
     turno.horometro_final = horometroFinal;
