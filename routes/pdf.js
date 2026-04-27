@@ -23,13 +23,14 @@ async function asegurarBuckets() {
             console.log('Bucket pdfs_conciliacion creado');
         }
 
-        if (!nombres.includes('evidencia_fotos')) {
-            await supabase.storage.createBucket('evidencia_fotos', {
+            if (!nombres.includes('pdfs_reportes')) {
+            await supabase.storage.createBucket('pdfs_reportes', {
                 public: true,
-                fileSizeLimit: 52428800
+                fileSizeLimit: 10485760
             });
-            console.log('Bucket evidencia_fotos creado');
+            console.log('Bucket pdfs_reportes creado');
         }
+
     } catch (error) {
         console.error('Error asegurando buckets:', error);
     }
@@ -180,6 +181,7 @@ router.get('/descargar/:turno_id', async (req, res) => {
 });
 
 // REPORTE DIARIO — GET por folio
+// REPORTE DIARIO — GET por folio
 router.get('/reporte-diario/:folio', async (req, res) => {
     const { folio } = req.params;
 
@@ -191,10 +193,69 @@ router.get('/reporte-diario/:folio', async (req, res) => {
     }
 
     try {
+        // FIX 15: Verificar si ya existe snapshot inmutable
+        const { data: snapshotExistente } = await supabase
+            .from('pdf_hashes')
+            .select('sha256')
+            .eq('folio', folio)
+            .single();
+
+        if (snapshotExistente) {
+            // PDF ya fue generado antes. Devolver el mismo siempre.
+            const { data: archivo, error: downloadError } = await supabase
+                .storage
+                .from('pdfs_reportes')
+                .download(folio + '.pdf');
+
+            if (!downloadError && archivo) {
+                const buffer = Buffer.from(await archivo.arrayBuffer());
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', 'inline; filename="' + folio + '.pdf"');
+                res.setHeader('X-PDF-Hash', snapshotExistente.sha256);
+                return res.send(buffer);
+            }
+        }
+
+        // Primera vez: generar PDF
         const pdfBuffer = await generarPDFReporteDiario(folio);
+
+        // FIX 15: Calcular hash SHA-256 del PDF
+        const hash = crypto.createHash('sha256').update(pdfBuffer).digest('hex');
+
+        // FIX 15: Guardar PDF en Supabase Storage
+        const { error: uploadError } = await supabase
+            .storage
+            .from('pdfs_reportes')
+            .upload(folio + '.pdf', pdfBuffer, {
+                contentType: 'application/pdf',
+                upsert: false
+            });
+
+        if (uploadError) {
+            console.log('Upload PDF fallo:', uploadError.message);
+        }
+
+        // FIX 15: Insertar hash en tabla append-only
+        const { error: hashError } = await supabase
+            .from('pdf_hashes')
+            .insert({
+                folio: folio,
+                sha256: hash
+            });
+
+        if (hashError) {
+            console.log('Hash insert fallo (posible duplicado):', hashError.message);
+        }
+
+        console.log('PDF_SNAPSHOT', JSON.stringify({
+            folio,
+            sha256: hash,
+            timestamp: new Date().toISOString()
+        }));
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'inline; filename="' + folio + '.pdf"');
+        res.setHeader('X-PDF-Hash', hash);
         return res.send(pdfBuffer);
 
     } catch (error) {
@@ -203,6 +264,37 @@ router.get('/reporte-diario/:folio', async (req, res) => {
             error: 'Error generando Reporte Diario',
             detalle: error.message
         });
+    }
+});
+
+// FIX 15: Endpoint de verificación pública
+router.get('/verificar/:folio', async (req, res) => {
+    const { folio } = req.params;
+
+    try {
+        const { data: snapshot } = await supabase
+            .from('pdf_hashes')
+            .select('sha256, creado_at')
+            .eq('folio', folio)
+            .single();
+
+        if (!snapshot) {
+            return res.status(404).json({
+                verificado: false,
+                mensaje: 'No se encontro registro para este folio'
+            });
+        }
+
+        return res.json({
+            verificado: true,
+            folio: folio,
+            sha256: snapshot.sha256,
+            generado: snapshot.creado_at,
+            verificar_manual: 'Descarga el PDF, calcula SHA-256 y compara con este hash'
+        });
+
+    } catch (error) {
+        return res.status(500).json({ error: 'Error verificando', detalle: error.message });
     }
 });
 
