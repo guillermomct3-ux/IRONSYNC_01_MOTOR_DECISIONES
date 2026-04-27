@@ -95,11 +95,12 @@ function procesarFoto(from, imageUrl) {
   const turnos = cargarTurnos();
   const turno = turnos.find(t =>
     t.from === from &&
+    t.estado === 'ABIERTO' &&
     (t.estado_foto === 'esperando_foto_inicio' ||
      t.estado_foto === 'esperando_foto_fin')
   );
 
-  if (!turno) return 'No hay turno esperando foto. Manda INICIO primero.';
+  if (!turno) return 'No hay turno abierto esperando foto. Manda INICIO primero.';
 
   if (turno.estado_foto === 'esperando_foto_inicio') {
     turno.foto_inicio_url = imageUrl;
@@ -194,16 +195,38 @@ async function procesarInicioTurno(from, texto) {
     const horometro = validadores.extraerHorometro(texto);
     const { maquina } = validadores.extraerDatosMaquina(texto);
 
-    if (validadores.existeTurnoAbiertoEquipo(turnos, maquina)) {
-      return maquina + ' ya tiene turno abierto.\nHabla con Ulises.';
-    }
-
     if (validadores.tieneTurnoAbierto(turnos, from)) {
       const turnoActivo = validadores.obtenerTurnoAbierto(turnos, from);
       return DOBLE_INICIO(turnoActivo.maquina, turnoActivo.horometro_inicial);
     }
 
     if (!horometro) return HOROMETRO_FALTANTE();
+
+    // FIX 7: Validar que la maquina existe en tabla equipos
+    const { data: equipo, error: equipoError } = await supabase
+      .from('equipos')
+      .select('alias')
+      .eq('alias', maquina)
+      .single();
+
+    if (!equipo || equipoError) {
+      return 'Equipo "' + maquina + '" no reconocido.\nHabla con Ulises.';
+    }
+
+    // FIX 16: Verificar turno abierto contra Supabase (no JSON local)
+    const { data: turnoExistente } = await supabase
+      .from('turnos')
+      .select('folio, operador_telefono')
+      .eq('maquina', maquina)
+      .eq('estado', 'ABIERTO')
+      .single();
+
+    if (turnoExistente) {
+      const esPropio = turnoExistente.operador_telefono === from;
+      return esPropio
+        ? 'Ya tienes turno abierto en ' + maquina + '.\nFolio: ' + turnoExistente.folio
+        : maquina + ' tiene turno abierto por otro operador.\nHabla con Ulises.';
+    }
 
     const serie = await buscarSerie(maquina);
     const hoy = new Date().toISOString().split('T')[0];
@@ -249,6 +272,7 @@ async function procesarInicioTurno(from, texto) {
 
     turnos.push(nuevoTurno);
 
+    // FIX 16: Insertar con error handler para unique constraint
     try {
       const { data: turnoSupabase, error: errorInsert } = await supabase
         .from('turnos')
@@ -274,7 +298,12 @@ async function procesarInicioTurno(from, texto) {
         .single();
 
       if (errorInsert) {
+        // FIX 16: Capturar unique violation (codigo 23505)
+        if (errorInsert.code === '23505') {
+          return 'Ya hay un turno abierto en ' + maquina + '.\nCierra el turno actual antes de abrir otro.';
+        }
         console.error('Error guardando turno en Supabase:', errorInsert.message);
+        return 'Error al crear turno. Intenta de nuevo o habla con Ulises.';
       } else {
         nuevoTurno.supabase_id = turnoSupabase.id;
         console.log('Turno guardado en Supabase:', turnoSupabase.id);
