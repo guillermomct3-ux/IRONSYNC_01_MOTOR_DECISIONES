@@ -44,12 +44,29 @@ function obtenerTurnoActivo(turnos, from) {
   return turnos.find(t => t.from === from && t.estado === 'ABIERTO');
 }
 
-function generarFolio(maquina, fecha, turnos) {
+// FIX DEFINITIVO: Folio unico contra Supabase
+async function generarFolioSupabase(maquina, fecha) {
   const [yyyy, mm, dd] = fecha.split('-');
-  const consecutivo = turnos.filter(t =>
-    t.maquina === maquina && t.fecha === fecha
-  ).length + 1;
-  return 'IS-' + yyyy + '-' + mm + '-' + dd + '-' + maquina + '-' + String(consecutivo).padStart(3, '0');
+  const patron = 'IS-' + yyyy + '-' + mm + '-' + dd + '-' + maquina + '-';
+
+  try {
+    const { data: existentes, error } = await supabase
+      .from('turnos')
+      .select('folio')
+      .like('folio', patron + '%');
+
+    if (error) {
+      console.error('Error consultando folios:', error.message);
+      // Fallback: usar timestamp para evitar colision
+      return patron + String(Date.now()).slice(-3);
+    }
+
+    const consecutivo = (existentes ? existentes.length : 0) + 1;
+    return patron + String(consecutivo).padStart(3, '0');
+  } catch (err) {
+    console.error('Error generando folio:', err.message);
+    return patron + String(Date.now()).slice(-3);
+  }
 }
 
 function calcularAnomalias(turno) {
@@ -187,7 +204,10 @@ async function procesarInicioTurno(from, texto) {
 
     const serie = await buscarSerie(maquina);
     const hoy = new Date().toISOString().split('T')[0];
-    const folio = generarFolio(maquina, hoy, turnos);
+
+    // FIX: Folio unico contra Supabase
+    const folio = await generarFolioSupabase(maquina, hoy);
+
     const esSupervisor = !!SUPERVISORES[from.replace('whatsapp:+', '')];
 
     // Buscar nombre del operador en Supabase
@@ -410,7 +430,7 @@ function procesarConfirmacionHorometro(from, texto) {
 
   if (!turno || !turno.esperando_confirmacion_horometro) return null;
 
-  if (textoNorm === 'si' || textoNorm === 's\u00ed') {
+  if (textoNorm === 'si' || textoNorm === 'sí') {
     const horometroFinal = turno.horometro_pendiente;
     const unidades = horometroFinal - turno.horometro_inicial;
     const horasTurno = 0;
@@ -753,7 +773,7 @@ function estaEnFlujoMenu(_, from) {
          estado === 'esperando_motivo_otro';
 }
 
-// ZOMBIES
+// ZOMBIES — protegido con .catch
 
 function verificarZombies(twilioClient, numeroOrigen) {
   const turnos = cargarTurnos();
