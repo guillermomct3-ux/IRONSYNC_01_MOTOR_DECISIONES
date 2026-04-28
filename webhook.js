@@ -2,7 +2,7 @@
 const express = require('express');
 const twilio = require('twilio');
 const supabase = require('./lib/supabaseClient');
-const { procesarInicioTurno, procesarFinTurno, procesarReporteHoras, procesarFoto, verificarZombies, procesarParo, procesarFalla, procesarReanuda, procesarSeleccionMenu, procesarTextoLibreParo, estaEnFlujoMenu, estaEsperandoConfirmacion, estaEsperandoHorometroCorregido, procesarConfirmacionHorometro, procesarHorometroCorregido } = require('./turnos');
+const { procesarInicioTurno, procesarFinTurno, procesarReporteHoras, procesarFoto, verificarZombies, procesarParo, procesarFalla, procesarReanuda, procesarSeleccionMenu, procesarTextoLibreParo, estaEnFlujoMenu, estaEsperandoConfirmacion, estaEsperandoHorometroCorregido, procesarConfirmacionHorometro, procesarHorometroCorregido, estaEsperandoNombreOperador, procesarNombreOperador } = require('./turnos');
 const { requiresAuth, login, getOperador } = require('./services/authService');
 const { procesarMensajeFirma } = require('./webhooks/whatsapp');
 const signaturesRouter = require('./api/v1/signatures');
@@ -20,7 +20,7 @@ process.on('unhandledRejection', (reason) => {
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.13' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.14' }));
 app.use('/api/v1/signatures', signaturesRouter);
 
 app.use((req, res, next) => {
@@ -197,6 +197,15 @@ app.post('/webhook', async (req, res) => {
       respuesta = 'Opcion no valida. Responde con el numero de la opcion.';
       twiml.message(respuesta);
       return res.type('text/xml').send(twiml.toString());
+    }
+
+    // 6.5 FIX 11: Supervisor captura nombre de operador
+    if (estaEsperandoNombreOperador(from)) {
+      const r = procesarNombreOperador(from, texto);
+      if (r) {
+        twiml.message(r);
+        return res.type('text/xml').send(twiml.toString());
+      }
     }
 
     // 7. Comandos

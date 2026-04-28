@@ -47,18 +47,13 @@ function obtenerTurnoActivo(turnos, from) {
 async function generarFolioSupabase(maquina, fecha) {
   const [yyyy, mm, dd] = fecha.split('-');
   const patron = 'IS-' + yyyy + '-' + mm + '-' + dd + '-' + maquina + '-';
-
   try {
     const { data: existentes, error } = await supabase
-      .from('turnos')
-      .select('folio')
-      .like('folio', patron + '%');
-
+      .from('turnos').select('folio').like('folio', patron + '%');
     if (error) {
       console.error('Error consultando folios:', error.message);
       return patron + String(Date.now()).slice(-3);
     }
-
     const consecutivo = (existentes ? existentes.length : 0) + 1;
     return patron + String(consecutivo).padStart(3, '0');
   } catch (err) {
@@ -69,24 +64,18 @@ async function generarFolioSupabase(maquina, fecha) {
 
 function calcularAnomalias(turno) {
   const anomalias = [];
-
   if (turno.horometro_final && turno.horometro_inicial) {
-    const horasHorometro = Math.round(
-      (turno.horometro_final - turno.horometro_inicial) * 10) / 10;
+    const horasHorometro = Math.round((turno.horometro_final - turno.horometro_inicial) * 10) / 10;
     const horasTiempo = turno.horas_turno || 0;
     const diff = Math.abs(horasHorometro - horasTiempo);
     if (diff > 1) {
-      anomalias.push(
-        'Discrepancia: contador ' + horasHorometro + ' hrs vs tiempo ' + horasTiempo + ' hrs'
-      );
+      anomalias.push('Discrepancia: contador ' + horasHorometro + ' hrs vs tiempo ' + horasTiempo + ' hrs');
     }
   }
-
   if (turno.sin_foto_inicio) anomalias.push('Sin foto de contador de inicio');
   if (turno.sin_foto_fin) anomalias.push('Sin foto de contador de cierre');
   if (turno.horas_turno > 12) anomalias.push('Turno de ' + turno.horas_turno + ' hrs - requiere revision');
   if (turno.reportado_por) anomalias.push('Registrado por ' + turno.reportado_por + ' - operador: ' + (turno.operador_nombre || 'no declarado'));
-
   turno.tiene_anomalia = anomalias.length > 0;
   return anomalias;
 }
@@ -94,49 +83,32 @@ function calcularAnomalias(turno) {
 function procesarFoto(from, imageUrl) {
   const turnos = cargarTurnos();
   const turno = turnos.find(t =>
-    t.from === from &&
-    t.estado === 'ABIERTO' &&
-    (t.estado_foto === 'esperando_foto_inicio' ||
-     t.estado_foto === 'esperando_foto_fin')
+    t.from === from && t.estado === 'ABIERTO' &&
+    (t.estado_foto === 'esperando_foto_inicio' || t.estado_foto === 'esperando_foto_fin')
   );
-
   if (!turno) return 'No hay turno abierto esperando foto. Manda INICIO primero.';
-
   if (turno.estado_foto === 'esperando_foto_inicio') {
     turno.foto_inicio_url = imageUrl;
     turno.sin_foto_inicio = false;
     turno.estado_foto = null;
     guardarTurnos(turnos);
-
     if (turno.supabase_id) {
-      supabase.from('turnos').update({
-        foto_inicio_url: imageUrl,
-        sin_foto_inicio: false,
-        estado_foto: null
-      }).eq('id', turno.supabase_id).then(({ error }) => {
+      supabase.from('turnos').update({ foto_inicio_url: imageUrl, sin_foto_inicio: false, estado_foto: null }).eq('id', turno.supabase_id).then(({ error }) => {
         if (error) console.error('Error Supabase foto inicio:', error.message);
       });
     }
-
     return 'Foto de inicio vinculada a ' + turno.maquina + '.\nPara cerrar manda FIN ' + turno.maquina + ' [numero del contador]';
   }
-
   if (turno.estado_foto === 'esperando_foto_fin') {
     turno.foto_fin_url = imageUrl;
     turno.sin_foto_fin = false;
     turno.estado_foto = null;
     guardarTurnos(turnos);
-
     if (turno.supabase_id) {
-      supabase.from('turnos').update({
-        foto_fin_url: imageUrl,
-        sin_foto_fin: false,
-        estado_foto: null
-      }).eq('id', turno.supabase_id).then(({ error }) => {
+      supabase.from('turnos').update({ foto_fin_url: imageUrl, sin_foto_fin: false, estado_foto: null }).eq('id', turno.supabase_id).then(({ error }) => {
         if (error) console.error('Error Supabase foto fin:', error.message);
       });
     }
-
     return 'Foto de cierre vinculada a ' + turno.maquina + '.\nTurno completo con evidencia.';
   }
 }
@@ -146,17 +118,12 @@ function procesarFoto(from, imageUrl) {
 async function buscarSerie(maquina) {
   try {
     const tokens = maquina.toLowerCase().match(/[a-z]+|\d+/g) || [];
-    const { data: todos, error } = await supabase
-      .from('equipos')
-      .select('nombre, numero_serie');
-
+    const { data: todos, error } = await supabase.from('equipos').select('nombre, numero_serie');
     if (error || !todos || todos.length === 0) return 'SIN-SERIE';
-
     const encontrado = todos.find(equipo => {
       const nombreLower = equipo.nombre.toLowerCase();
       return tokens.every(token => nombreLower.includes(token));
     });
-
     if (!encontrado) return 'SIN-SERIE';
     return encontrado.numero_serie || 'SIN-SERIE';
   } catch (err) {
@@ -168,15 +135,8 @@ async function buscarSerie(maquina) {
 async function buscarNombreOperador(from) {
   try {
     const telefonoLimpio = from.replace('whatsapp:', '');
-    console.log('DEBUG buscarNombreOperador - from:', from);
-    console.log('DEBUG buscarNombreOperador - telefonoLimpio:', telefonoLimpio);
     const { data: op, error } = await supabase
-      .from('operadores')
-      .select('nombre, telefono')
-      .eq('telefono', telefonoLimpio)
-      .single();
-    console.log('DEBUG buscarNombreOperador - resultado:', op);
-    console.log('DEBUG buscarNombreOperador - error:', error);
+      .from('operadores').select('nombre, telefono').eq('telefono', telefonoLimpio).single();
     if (op && op.nombre) return op.nombre;
   } catch (e) {
     console.error('Error buscando operador:', e.message);
@@ -204,22 +164,16 @@ async function procesarInicioTurno(from, texto) {
 
     // FIX 7: Validar que la maquina existe en tabla equipos
     const { data: equipo, error: equipoError } = await supabase
-      .from('equipos')
-      .select('alias')
-      .eq('alias', maquina)
-      .single();
+      .from('equipos').select('alias').eq('alias', maquina).single();
 
     if (!equipo || equipoError) {
       return 'Equipo "' + maquina + '" no reconocido.\nHabla con Ulises.';
     }
 
-    // FIX 16: Verificar turno abierto contra Supabase (no JSON local)
+    // FIX 16: Verificar turno abierto contra Supabase
     const { data: turnoExistente } = await supabase
-      .from('turnos')
-      .select('folio, operador_telefono')
-      .eq('maquina', maquina)
-      .eq('estado', 'ABIERTO')
-      .single();
+      .from('turnos').select('folio, operador_telefono')
+      .eq('maquina', maquina).eq('estado', 'ABIERTO').single();
 
     if (turnoExistente) {
       const esPropio = turnoExistente.operador_telefono === from;
@@ -230,7 +184,6 @@ async function procesarInicioTurno(from, texto) {
 
     const serie = await buscarSerie(maquina);
     const hoy = new Date().toISOString().split('T')[0];
-
     const folio = await generarFolioSupabase(maquina, hoy);
 
     const esSupervisor = !!SUPERVISORES[from.replace('whatsapp:+', '')];
@@ -267,12 +220,13 @@ async function procesarInicioTurno(from, texto) {
       esperando_confirmacion_horometro: false,
       esperando_horometro_corregido: false,
       horometro_pendiente: null,
+      esperando_nombre_operador: false,
       supabase_id: null
     };
 
     turnos.push(nuevoTurno);
 
-    // FIX 16: Insertar con error handler para unique constraint
+    let turnoSupabaseData = null;
     try {
       const { data: turnoSupabase, error: errorInsert } = await supabase
         .from('turnos')
@@ -298,7 +252,6 @@ async function procesarInicioTurno(from, texto) {
         .single();
 
       if (errorInsert) {
-        // FIX 16: Capturar unique violation (codigo 23505)
         if (errorInsert.code === '23505') {
           return 'Ya hay un turno abierto en ' + maquina + '.\nCierra el turno actual antes de abrir otro.';
         }
@@ -306,18 +259,25 @@ async function procesarInicioTurno(from, texto) {
         return 'Error al crear turno. Intenta de nuevo o habla con Ulises.';
       } else {
         nuevoTurno.supabase_id = turnoSupabase.id;
+        turnoSupabaseData = turnoSupabase;
         console.log('Turno guardado en Supabase:', turnoSupabase.id);
       }
     } catch (err) {
       console.error('Error Supabase inicio:', err.message);
     }
 
-    guardarTurnos(turnos);
-    console.log('Turno creado:', JSON.stringify(nuevoTurno, null, 2));
-
+    // FIX 11: Supervisor abre turno — preguntar operador
     if (esSupervisor) {
+      nuevoTurno.esperando_nombre_operador = true;
+      guardarTurnos(turnos);
+      if (nuevoTurno.supabase_id) {
+        supabase.from('turnos').update({ esperando_nombre_operador: true }).eq('id', nuevoTurno.supabase_id).then(() => {});
+      }
       return 'Turno ABIERTO - ' + maquina + '\nFolio: ' + folio + '\nQuien opero este equipo?\nResponde con el nombre del operador.';
     }
+
+    guardarTurnos(turnos);
+    console.log('Turno creado:', JSON.stringify(nuevoTurno, null, 2));
 
     return INICIO_OK(maquina, serie, horometro, folio);
 
@@ -336,19 +296,14 @@ async function procesarFinTurno(from, texto) {
 
   // FIX 18: Verificar turno abierto contra JSON local Y Supabase
   if (!validadores.tieneTurnoAbierto(turnos, from)) {
-    // Buscar turno abierto en Supabase por si el JSON se perdió
     const { data: turnoSupabase } = await supabase
-      .from('turnos')
-      .select('*')
-      .eq('operador_telefono', from)
-      .eq('estado', 'ABIERTO')
-      .single();
+      .from('turnos').select('*')
+      .eq('operador_telefono', from).eq('estado', 'ABIERTO').single();
 
     if (!turnoSupabase) {
       return FIN_SIN_INICIO();
     }
 
-    // Recuperar turno del JSON local si no existe
     const turnoRecuperado = {
       from: from,
       estado: 'ABIERTO',
@@ -376,6 +331,7 @@ async function procesarFinTurno(from, texto) {
       esperando_confirmacion_horometro: false,
       esperando_horometro_corregido: false,
       horometro_pendiente: null,
+      esperando_nombre_operador: false,
       supabase_id: turnoSupabase.id
     };
     turnos.push(turnoRecuperado);
@@ -422,13 +378,8 @@ async function procesarFinTurno(from, texto) {
 
     if (turno.supabase_id) {
       supabase.from('turnos').update({
-        horometro_fin: horometroFinal,
-        horas_horometro: horasTurno,
-        horas_turno: horasTurno,
-        estado: 'CERRADO',
-        fin: new Date().toISOString(),
-        tiene_anomalia: true,
-        estado_foto: 'esperando_foto_fin'
+        horometro_fin: horometroFinal, horas_horometro: horasTurno, horas_turno: horasTurno,
+        estado: 'CERRADO', fin: new Date().toISOString(), tiene_anomalia: true, estado_foto: 'esperando_foto_fin'
       }).eq('id', turno.supabase_id).then(({ error }) => {
         if (error) console.error('Error Supabase fin inusual:', error.message);
         else console.log('Turno cerrado en Supabase (rango inusual):', turno.supabase_id);
@@ -448,18 +399,12 @@ async function procesarFinTurno(from, texto) {
   turno.timestamp_fin = new Date().toISOString();
   turno.estado_foto = 'esperando_foto_fin';
   calcularAnomalias(turno);
-
   guardarTurnos(turnos);
 
   if (turno.supabase_id) {
     supabase.from('turnos').update({
-      horometro_fin: horometroFinal,
-      horas_horometro: horasTurno,
-      horas_turno: horasTurno,
-      estado: 'CERRADO',
-      fin: new Date().toISOString(),
-      tiene_anomalia: turno.tiene_anomalia,
-      estado_foto: 'esperando_foto_fin'
+      horometro_fin: horometroFinal, horas_horometro: horasTurno, horas_turno: horasTurno,
+      estado: 'CERRADO', fin: new Date().toISOString(), tiene_anomalia: turno.tiene_anomalia, estado_foto: 'esperando_foto_fin'
     }).eq('id', turno.supabase_id).then(({ error }) => {
       if (error) console.error('Error Supabase fin:', error.message);
       else console.log('Turno cerrado en Supabase:', turno.supabase_id);
@@ -473,16 +418,13 @@ async function procesarFinTurno(from, texto) {
 
 async function procesarReporteHoras(from) {
   const turnos = cargarTurnos();
-
   if (!validadores.tieneTurnoAbierto(turnos, from)) {
     return REPORTE_SIN_TURNO();
   }
-
   const turno = validadores.obtenerTurnoAbierto(turnos, from);
   const ahora = new Date();
   const inicio = new Date(turno.timestamp_inicio);
   const minutos = Math.round((ahora - inicio) / 60000);
-
   return REPORTE_TURNO_ABIERTO(minutos, turno.horometro_inicial);
 }
 
@@ -506,7 +448,6 @@ function procesarConfirmacionHorometro(from, texto) {
   const textoNorm = texto.toLowerCase().trim();
   const turnos = cargarTurnos();
   const turno = obtenerTurnoActivo(turnos, from);
-
   if (!turno || !turno.esperando_confirmacion_horometro) return null;
 
   if (textoNorm === 'si' || textoNorm === 'sí') {
@@ -528,13 +469,8 @@ function procesarConfirmacionHorometro(from, texto) {
 
     if (turno.supabase_id) {
       supabase.from('turnos').update({
-        horometro_fin: horometroFinal,
-        horas_horometro: 0,
-        horas_turno: 0,
-        estado: 'CERRADO',
-        fin: new Date().toISOString(),
-        tiene_anomalia: turno.tiene_anomalia,
-        estado_foto: 'esperando_foto_fin'
+        horometro_fin: horometroFinal, horas_horometro: 0, horas_turno: 0,
+        estado: 'CERRADO', fin: new Date().toISOString(), tiene_anomalia: turno.tiene_anomalia, estado_foto: 'esperando_foto_fin'
       }).eq('id', turno.supabase_id).then(({ error }) => {
         if (error) console.error('Error Supabase confirmacion:', error.message);
         else console.log('Turno cerrado en Supabase (confirmacion):', turno.supabase_id);
@@ -559,18 +495,15 @@ function procesarConfirmacionHorometro(from, texto) {
 function procesarHorometroCorregido(from, texto) {
   const turnos = cargarTurnos();
   const turno = obtenerTurnoActivo(turnos, from);
-
   if (!turno || !turno.esperando_horometro_corregido) return null;
 
   const horometro = validadores.extraerHorometro(texto);
   if (horometro === null || isNaN(horometro)) {
     return 'Numero no valido. Envia solo el numero del contador:';
   }
-
   if (horometro < turno.horometro_inicial) {
     return HOROMETRO_MENOR(horometro, turno.horometro_inicial) + '\nEnvia el numero correcto:';
   }
-
   if (horometro === turno.horometro_inicial) {
     return 'El numero sigue siendo igual al inicial (' + turno.horometro_inicial + '). Envia un numero mayor:';
   }
@@ -591,13 +524,8 @@ function procesarHorometroCorregido(from, texto) {
 
   if (turno.supabase_id) {
     supabase.from('turnos').update({
-      horometro_fin: horometro,
-      horas_horometro: horasTurno,
-      horas_turno: horasTurno,
-      estado: 'CERRADO',
-      fin: new Date().toISOString(),
-      tiene_anomalia: turno.tiene_anomalia,
-      estado_foto: 'esperando_foto_fin'
+      horometro_fin: horometro, horas_horometro: horasTurno, horas_turno: horasTurno,
+      estado: 'CERRADO', fin: new Date().toISOString(), tiene_anomalia: turno.tiene_anomalia, estado_foto: 'esperando_foto_fin'
     }).eq('id', turno.supabase_id).then(({ error }) => {
       if (error) console.error('Error Supabase horometro corregido:', error.message);
       else console.log('Turno cerrado en Supabase (corregido):', turno.supabase_id);
@@ -609,28 +537,47 @@ function procesarHorometroCorregido(from, texto) {
   return FIN_OK(horasTurno, acumulado, turno.folio);
 }
 
+// FIX 11: Capturar nombre de operador desde supervisor
+
+function estaEsperandoNombreOperador(from) {
+  const turnos = cargarTurnos();
+  const turno = turnos.find(t => t.from === from && t.estado === 'ABIERTO' && t.esperando_nombre_operador === true);
+  return !!turno;
+}
+
+function procesarNombreOperador(from, nombre) {
+  const turnos = cargarTurnos();
+  const turno = turnos.find(t => t.from === from && t.estado === 'ABIERTO' && t.esperando_nombre_operador === true);
+  if (!turno) return null;
+
+  turno.operador_nombre = nombre.trim();
+  turno.esperando_nombre_operador = false;
+  guardarTurnos(turnos);
+
+  if (turno.supabase_id) {
+    supabase.from('turnos').update({
+      operador_nombre: nombre.trim(),
+      esperando_nombre_operador: false
+    }).eq('id', turno.supabase_id).then(() => {});
+  }
+
+  return 'Operador registrado: ' + nombre.trim() + '\nTurno ' + turno.maquina + ' asignado correctamente.';
+}
+
 // PARO / FALLA / REANUDA
 
 function procesarParo(_, from) {
   const turnos = cargarTurnos();
   const turno = obtenerTurnoActivo(turnos, from);
-
   if (!turno) return PARO_SIN_TURNO;
   if (!turno.paros) turno.paros = [];
-
   if (turno.paro_activo && turno.paro_activo.estado !== null) {
     return PARO_DOBLE;
   }
-
   turno.paro_activo = {
-    estado: 'esperando_tipo',
-    tipo: null,
-    subtipo: null,
-    motivo: null,
-    timestamp_inicio: new Date().toISOString(),
-    timestamp_estado: new Date().toISOString()
+    estado: 'esperando_tipo', tipo: null, subtipo: null, motivo: null,
+    timestamp_inicio: new Date().toISOString(), timestamp_estado: new Date().toISOString()
   };
-
   guardarTurnos(turnos);
   return PARO_MENU_TIPO;
 }
@@ -638,23 +585,15 @@ function procesarParo(_, from) {
 function procesarFalla(_, from) {
   const turnos = cargarTurnos();
   const turno = obtenerTurnoActivo(turnos, from);
-
   if (!turno) return FALLA_SIN_TURNO;
   if (!turno.paros) turno.paros = [];
-
   if (turno.paro_activo && turno.paro_activo.estado !== null) {
     return PARO_DOBLE;
   }
-
   turno.paro_activo = {
-    estado: 'esperando_descripcion_falla',
-    tipo: 'ARR',
-    subtipo: null,
-    motivo: null,
-    timestamp_inicio: new Date().toISOString(),
-    timestamp_estado: new Date().toISOString()
+    estado: 'esperando_descripcion_falla', tipo: 'ARR', subtipo: null, motivo: null,
+    timestamp_inicio: new Date().toISOString(), timestamp_estado: new Date().toISOString()
   };
-
   guardarTurnos(turnos);
   return FALLA_SOLICITA_DESC;
 }
@@ -662,11 +601,8 @@ function procesarFalla(_, from) {
 function procesarSeleccionMenu(_, from, seleccion) {
   const turnos = cargarTurnos();
   const turno = obtenerTurnoActivo(turnos, from);
-
   if (!turno || !turno.paro_activo) return SELECCION_INVALIDA;
-
   const paro = turno.paro_activo;
-
   const ahora = new Date();
   const ultimoEstado = new Date(paro.timestamp_estado);
   const minutosTranscurridos = (ahora - ultimoEstado) / (1000 * 60);
@@ -684,10 +620,8 @@ function procesarSeleccionMenu(_, from, seleccion) {
       '4': { codigo: 'ZG', nombre: 'Clima' },
       '5': { codigo: 'OTRO', nombre: 'Otro' }
     };
-
     const tipoSeleccionado = tipos[seleccion];
     if (!tipoSeleccionado) return SELECCION_INVALIDA;
-
     if (tipoSeleccionado.falla) {
       paro.estado = 'esperando_descripcion_falla';
       paro.tipo = 'ARR';
@@ -695,7 +629,6 @@ function procesarSeleccionMenu(_, from, seleccion) {
       guardarTurnos(turnos);
       return FALLA_SOLICITA_DESC;
     }
-
     if (tipoSeleccionado.sub) {
       paro.estado = 'esperando_subtipo';
       paro.tipo = tipoSeleccionado.codigo;
@@ -703,7 +636,6 @@ function procesarSeleccionMenu(_, from, seleccion) {
       guardarTurnos(turnos);
       return PARO_MENU_SUBTIPO_CLI;
     }
-
     paro.estado = 'activo';
     paro.tipo = tipoSeleccionado.codigo;
     paro.motivo = tipoSeleccionado.nombre;
@@ -714,22 +646,16 @@ function procesarSeleccionMenu(_, from, seleccion) {
 
   if (paro.estado === 'esperando_subtipo') {
     const subtipos = {
-      '1': 'Falto diesel',
-      '2': 'Falto material',
-      '3': 'Me instruyeron parar',
-      '4': null
+      '1': 'Falto diesel', '2': 'Falto material', '3': 'Me instruyeron parar', '4': null
     };
-
     if (seleccion === '4') {
       paro.estado = 'esperando_motivo_otro';
       paro.timestamp_estado = new Date().toISOString();
       guardarTurnos(turnos);
       return 'Describe brevemente que paso:';
     }
-
     const motivo = subtipos[seleccion];
     if (!motivo) return SELECCION_INVALIDA;
-
     paro.estado = 'activo';
     paro.motivo = motivo;
     paro.timestamp_estado = new Date().toISOString();
@@ -743,11 +669,8 @@ function procesarSeleccionMenu(_, from, seleccion) {
 function procesarTextoLibreParo(_, from, texto) {
   const turnos = cargarTurnos();
   const turno = obtenerTurnoActivo(turnos, from);
-
   if (!turno || !turno.paro_activo) return null;
-
   const paro = turno.paro_activo;
-
   const ahora = new Date();
   const ultimoEstado = new Date(paro.timestamp_estado);
   const minutosTranscurridos = (ahora - ultimoEstado) / (1000 * 60);
@@ -756,7 +679,6 @@ function procesarTextoLibreParo(_, from, texto) {
     guardarTurnos(turnos);
     return MENU_TIMEOUT;
   }
-
   if (paro.estado === 'esperando_descripcion_falla') {
     paro.estado = 'activo';
     paro.motivo = texto.trim();
@@ -764,7 +686,6 @@ function procesarTextoLibreParo(_, from, texto) {
     guardarTurnos(turnos);
     return FALLA_REGISTRADA(texto.trim());
   }
-
   if (paro.estado === 'esperando_motivo_otro') {
     paro.estado = 'activo';
     paro.motivo = texto.trim();
@@ -772,26 +693,20 @@ function procesarTextoLibreParo(_, from, texto) {
     guardarTurnos(turnos);
     return PARO_REGISTRADO(texto.trim());
   }
-
   return null;
 }
 
 function procesarReanuda(_, from) {
   const turnos = cargarTurnos();
   const turno = obtenerTurnoActivo(turnos, from);
-
   if (!turno) return REANUDA_SIN_TURNO;
-
   if (!turno.paro_activo || turno.paro_activo.estado === null) {
     return REANUDA_SIN_PARO;
   }
-
   const paro = turno.paro_activo;
-
   if (paro.estado !== 'activo') {
     return 'Tienes un paro pendiente de completar. Responde primero a la pregunta anterior.';
   }
-
   const inicio = new Date(paro.timestamp_inicio);
   const fin = new Date();
   const duracionMs = fin - inicio;
@@ -801,29 +716,19 @@ function procesarReanuda(_, from) {
 
   if (!turno.paros) turno.paros = [];
   turno.paros.push({
-    tipo: paro.tipo,
-    motivo: paro.motivo,
-    timestamp_inicio: paro.timestamp_inicio,
-    timestamp_fin: fin.toISOString(),
-    duracion_minutos: duracionMinutos,
-    duracion_horas: Math.round((duracionMinutos / 60) * 10) / 10
+    tipo: paro.tipo, motivo: paro.motivo,
+    timestamp_inicio: paro.timestamp_inicio, timestamp_fin: fin.toISOString(),
+    duracion_minutos: duracionMinutos, duracion_horas: Math.round((duracionMinutos / 60) * 10) / 10
   });
-
   turno.paro_activo = null;
   guardarTurnos(turnos);
 
   if (turno.supabase_id) {
     const esCobrable = paro.tipo === 'CLI';
-
     supabase.from('turno_eventos').insert({
-      turno_id: turno.supabase_id,
-      tipo_evento: 'PARO_' + (paro.tipo || 'UNKNOWN'),
-      motivo: paro.motivo,
-      timestamp_inicio: paro.timestamp_inicio,
-      timestamp_fin: fin.toISOString(),
-      duracion_min: duracionMinutos,
-      es_cobrable: esCobrable,
-      clasificado_por: 'operador'
+      turno_id: turno.supabase_id, tipo_evento: 'PARO_' + (paro.tipo || 'UNKNOWN'),
+      motivo: paro.motivo, timestamp_inicio: paro.timestamp_inicio, timestamp_fin: fin.toISOString(),
+      duracion_min: duracionMinutos, es_cobrable: esCobrable, clasificado_por: 'operador'
     }).then(({ error }) => {
       if (error) console.error('Error Supabase evento paro:', error.message);
       else console.log('Evento paro guardado en Supabase:', paro.tipo, paro.motivo);
@@ -845,10 +750,8 @@ function estaEnFlujoMenu(_, from) {
   const turno = obtenerTurnoActivo(turnos, from);
   if (!turno || !turno.paro_activo) return false;
   const estado = turno.paro_activo.estado;
-  return estado === 'esperando_tipo' ||
-         estado === 'esperando_subtipo' ||
-         estado === 'esperando_descripcion_falla' ||
-         estado === 'esperando_motivo_otro';
+  return estado === 'esperando_tipo' || estado === 'esperando_subtipo' ||
+         estado === 'esperando_descripcion_falla' || estado === 'esperando_motivo_otro';
 }
 
 // ZOMBIES
@@ -864,9 +767,7 @@ function verificarZombies(twilioClient, numeroOrigen) {
       console.log('TURNO ZOMBIE DETECTADO:', mensaje);
       if (twilioClient && numeroOrigen) {
         twilioClient.messages.create({
-          body: mensaje,
-          from: numeroOrigen,
-          to: turno.from
+          body: mensaje, from: numeroOrigen, to: turno.from
         }).catch(err => {
           console.error('Error enviando alerta zombie:', err.message);
         });
@@ -896,5 +797,7 @@ module.exports = {
   estaEsperandoConfirmacion,
   estaEsperandoHorometroCorregido,
   procesarConfirmacionHorometro,
-  procesarHorometroCorregido
+  procesarHorometroCorregido,
+  estaEsperandoNombreOperador,
+  procesarNombreOperador
 };
