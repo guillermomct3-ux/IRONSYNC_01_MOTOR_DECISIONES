@@ -20,7 +20,7 @@ process.on('unhandledRejection', (reason) => {
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.12' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.13' }));
 app.use('/api/v1/signatures', signaturesRouter);
 
 app.use((req, res, next) => {
@@ -99,7 +99,7 @@ app.post('/webhook', async (req, res) => {
   // 3. BUG 1 - Reordenar tokens
   const tokensBug1 = body.split(/\s+/);
   const triggerToken = tokensBug1.find(t => /^(inicio|fin)$/i.test(t));
-  const numeroToken = tokensBug1.find(t => /^\d+([.,]\d+)?$/.test(t));
+  const numeroToken = tokensBug1.find(t => /^\d+([.,]\d+)?$/i.test(t));
   const equipoToken = tokensBug1.find(t => /^[A-Za-z]+\d/.test(t) && !/^(inicio|fin)$/i.test(t));
   if (triggerToken && equipoToken && numeroToken) {
     body = triggerToken + ' ' + equipoToken + ' ' + numeroToken;
@@ -235,6 +235,11 @@ app.post('/webhook', async (req, res) => {
     });
   } catch (err) {
     console.error('[Error Log Evento]:', err);
+  }
+
+  // FIX 8: Truncar mensajes largos (limite WhatsApp ~1600 chars)
+  if (respuesta && respuesta.length > 1500) {
+    respuesta = respuesta.substring(0, 1497) + '...';
   }
 
   twiml.message(respuesta);
