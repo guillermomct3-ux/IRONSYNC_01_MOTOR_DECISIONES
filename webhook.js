@@ -31,16 +31,14 @@ app.use((req, res, next) => {
 const cliente = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const NUMERO_TWILIO = process.env.TWILIO_PHONE_NUMBER;
 
-// Zombie checker DESACTIVADO temporalmente
-// Credenciales Twilio invalidas causan crash del servidor
-// Reactivar cuando TWILIO_ACCOUNT_SID se actualice
-// setInterval(() => {
-//   try {
-//     verificarZombies(cliente, NUMERO_TWILIO);
-//   } catch (err) {
-//     console.error('Error en zombie checker:', err.message);
-//   }
-// }, 60 * 60 * 1000);
+// FIX 10: Zombie checker reactivado
+setInterval(() => {
+  try {
+    verificarZombies(cliente, NUMERO_TWILIO);
+  } catch (err) {
+    console.error('Error en zombie checker:', err.message);
+  }
+}, 60 * 60 * 1000);
 
 const pdfRoutes = require('./routes/pdf');
 app.use('/api/v1/pdf', pdfRoutes);
