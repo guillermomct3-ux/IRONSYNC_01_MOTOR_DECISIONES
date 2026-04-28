@@ -23,7 +23,7 @@ async function asegurarBuckets() {
             console.log('Bucket pdfs_conciliacion creado');
         }
 
-            if (!nombres.includes('pdfs_reportes')) {
+        if (!nombres.includes('pdfs_reportes')) {
             await supabase.storage.createBucket('pdfs_reportes', {
                 public: true,
                 fileSizeLimit: 10485760
@@ -181,7 +181,6 @@ router.get('/descargar/:turno_id', async (req, res) => {
 });
 
 // REPORTE DIARIO — GET por folio
-// REPORTE DIARIO — GET por folio
 router.get('/reporte-diario/:folio', async (req, res) => {
     const { folio } = req.params;
 
@@ -193,7 +192,6 @@ router.get('/reporte-diario/:folio', async (req, res) => {
     }
 
     try {
-        // FIX 15: Verificar si ya existe snapshot inmutable
         const { data: snapshotExistente } = await supabase
             .from('pdf_hashes')
             .select('sha256')
@@ -201,7 +199,6 @@ router.get('/reporte-diario/:folio', async (req, res) => {
             .single();
 
         if (snapshotExistente) {
-            // PDF ya fue generado antes. Devolver el mismo siempre.
             const { data: archivo, error: downloadError } = await supabase
                 .storage
                 .from('pdfs_reportes')
@@ -216,13 +213,8 @@ router.get('/reporte-diario/:folio', async (req, res) => {
             }
         }
 
-        // Primera vez: generar PDF
-        const pdfBuffer = await generarPDFReporteDiario(folio);
+        const { pdfBuffer, dataHash } = await generarPDFReporteDiario(folio);
 
-        // FIX 15: Calcular hash SHA-256 del PDF
-        const hash = crypto.createHash('sha256').update(pdfBuffer).digest('hex');
-
-        // FIX 15: Guardar PDF en Supabase Storage
         const { error: uploadError } = await supabase
             .storage
             .from('pdfs_reportes')
@@ -233,14 +225,17 @@ router.get('/reporte-diario/:folio', async (req, res) => {
 
         if (uploadError) {
             console.log('Upload PDF fallo:', uploadError.message);
+            return res.status(500).json({
+                error: 'Error guardando PDF',
+                detalle: uploadError.message
+            });
         }
 
-        // FIX 15: Insertar hash en tabla append-only
         const { error: hashError } = await supabase
             .from('pdf_hashes')
             .insert({
                 folio: folio,
-                sha256: hash
+                sha256: dataHash
             });
 
         if (hashError) {
@@ -249,13 +244,13 @@ router.get('/reporte-diario/:folio', async (req, res) => {
 
         console.log('PDF_SNAPSHOT', JSON.stringify({
             folio,
-            sha256: hash,
+            sha256: dataHash,
             timestamp: new Date().toISOString()
         }));
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'inline; filename="' + folio + '.pdf"');
-        res.setHeader('X-PDF-Hash', hash);
+        res.setHeader('X-PDF-Hash', dataHash);
         return res.send(pdfBuffer);
 
     } catch (error) {
@@ -267,7 +262,7 @@ router.get('/reporte-diario/:folio', async (req, res) => {
     }
 });
 
-// FIX 15: Endpoint de verificación pública
+// Endpoint de verificacion publica
 router.get('/verificar/:folio', async (req, res) => {
     const { folio } = req.params;
 
