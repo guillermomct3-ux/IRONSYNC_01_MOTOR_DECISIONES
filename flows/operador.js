@@ -453,7 +453,12 @@ async function abrirTurno(telefono, operador, asignacion, horometro, fotoUrl, si
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === "23505") {
+        return "Ya tienes un turno abierto. Cierraloo con FIN antes de abrir otro.";
+      }
+      throw error;
+    }
 
     await clearSession(telefono);
 
