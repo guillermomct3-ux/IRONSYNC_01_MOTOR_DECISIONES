@@ -485,6 +485,20 @@ async function cmdParo(telefono, operador) {
 }
 
 async function registrarParo(telefono, datos, tipoEvento, motivo) {
+  // FIX 6: Validar turno existe y pertenece al operador
+  const { data: turnoValido } = await supabase
+    .from("turnos")
+    .select("id, operador_id, estado")
+    .eq("id", datos.turno_id)
+    .eq("estado", "abierto")
+    .limit(1)
+    .single();
+
+  if (!turnoValido) {
+    await clearSession(telefono);
+    return "Turno no valido. Manda INICIO para empezar.";
+  }
+
   await supabase.from("turno_eventos").insert({
     turno_id: datos.turno_id,
     tipo_evento: tipoEvento,
