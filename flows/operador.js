@@ -137,6 +137,10 @@ async function generarFolio(codigo) {
 }
 
 async function activarCuenta(telefono, operador, msg) {
+  const puedeIntentar = await verificarRateLimit("pin_op_" + telefono, 5, 15);
+  if (!puedeIntentar) {
+    return "Demasiados intentos. Espera 15 minutos.";
+  }
   const pin = msg.replace(/\D/g, "");
 
   if (pin.length < 4 || pin.length > 6) {
