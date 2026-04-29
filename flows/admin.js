@@ -166,6 +166,10 @@ async function continuarFlujo(telefono, session, msg) {
           .select()
           .single();
 
+        if (!nuevaEmpresa) {
+          return "Error al crear empresa. Intenta de nuevo.";
+        }
+
         await supabase.from("usuarios").insert({
           empresa_id: nuevaEmpresa.id,
           nombre: datos.admin_nombre,
@@ -230,6 +234,10 @@ async function continuarFlujo(telefono, session, msg) {
         })
         .select()
         .single();
+
+      if (!nuevoEquipo) {
+        return "Error al guardar maquina. Intenta de nuevo.";
+      }
 
       await saveSession(telefono, "admin_onboarding", "esperando_siguiente_accion", {
         empresa_id: datos.empresa_id
@@ -308,6 +316,10 @@ async function continuarFlujo(telefono, session, msg) {
         })
         .select()
         .single();
+
+      if (!nuevoOperador) {
+        return "Error al crear operador. Intenta de nuevo.";
+      }
 
       await supabase
         .from("asignaciones")
