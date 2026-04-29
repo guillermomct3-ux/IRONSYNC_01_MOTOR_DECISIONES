@@ -238,7 +238,14 @@ async function cmdInicio(telefono, operador, upper) {
         return a.equipos && a.equipos.codigo === codigo;
       });
       if (asig) {
-        return await abrirTurno(telefono, operador, asig, horometro, null, false);
+        await saveSession(telefono, "operador", "esperando_foto_inicio", {
+          asignacion_id: asig.id,
+          equipo_id: asig.equipos.id,
+          equipo_alias: asig.equipos.alias,
+          equipo_codigo: asig.equipos.codigo,
+          horometro_inicio: horometro
+        });
+        return "Manda foto del contador.\nSi no puedes, escribe: SIN FOTO";
       }
     }
   }
