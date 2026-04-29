@@ -6,6 +6,9 @@ const { procesarInicioTurno, procesarFinTurno, procesarReporteHoras, procesarFot
 const { requiresAuth, login, getOperador } = require('./services/authService');
 const { procesarMensajeFirma } = require('./webhooks/whatsapp');
 const signaturesRouter = require('./api/v1/signatures');
+const { rutearMensaje } = require('./lib/router');
+const { deTwilioAtelefono } = require('./lib/telefono');
+const { iniciarCronJob } = require('./jobs/limpiarSesiones');
 
 process.on('uncaughtException', (err) => {
   console.error('UNCAUGHT EXCEPTION:', err);
@@ -39,6 +42,7 @@ setInterval(() => {
     console.error('Error en zombie checker:', err.message);
   }
 }, 60 * 60 * 1000);
+iniciarCronJob();
 
 const pdfRoutes = require('./routes/pdf');
 app.use('/api/v1/pdf', pdfRoutes);
@@ -117,6 +121,52 @@ app.post('/webhook', async (req, res) => {
 
   const twiml = new twilio.twiml.MessagingResponse();
   let respuesta = '';
+
+  // === NUEVO FLUJO ONBOARDING ===
+  try {
+    const telefonoNorm = deTwilioAtelefono(from);
+    const { getSession } = require('./lib/sesiones');
+    const sesionNueva = await getSession(telefonoNorm);
+
+    if (sesionNueva) {
+      const respuestaNueva = await rutearMensaje(telefonoNorm, body, mediaUrl);
+      twiml.message(respuestaNueva);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    const { data: nuevaEmpresa } = await supabase
+      .from('empresas')
+      .select('id')
+      .eq('admin_telefono', telefonoNorm)
+      .limit(1)
+      .single();
+
+    if (nuevaEmpresa) {
+      const respuestaNueva = await rutearMensaje(telefonoNorm, body, mediaUrl);
+      twiml.message(respuestaNueva);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    const tel10 = telefonoNorm ? telefonoNorm.slice(-10) : '';
+    const { data: nuevoOp } = await supabase
+      .from('usuarios')
+      .select('id')
+      .eq('rol', 'operador')
+      .eq('activo', true)
+      .ilike('telefono', '%' + tel10)
+      .limit(1)
+      .single();
+
+    if (nuevoOp) {
+      const respuestaNueva = await rutearMensaje(telefonoNorm, body, mediaUrl);
+      twiml.message(respuestaNueva);
+      return res.type('text/xml').send(twiml.toString());
+    }
+  } catch (errNewFlow) {
+    console.error('[New Flow Error]:', errNewFlow);
+  }
+  // === FIN NUEVO FLUJO ===
+
 
   try {
     // 0. Foto
