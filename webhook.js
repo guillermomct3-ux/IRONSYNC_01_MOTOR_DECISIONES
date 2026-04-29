@@ -1,4 +1,4 @@
-﻿require('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const twilio = require('twilio');
 const supabase = require('./lib/supabaseClient');
@@ -27,7 +27,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.14' }));
 app.use('/api/v1/signatures', signaturesRouter);
 
 app.use((req, res, next) => {
-  console.log('REQUEST RECIBIDO:', req.method, req.path, req.body);
+  const _safeBody = Object.assign({}, req.body); if (_safeBody.Body && /^\d{4,6}$/.test(_safeBody.Body.trim())) _safeBody.Body = '****'; if (_safeBody.Digits && /^\d{4,6}$/.test(_safeBody.Digits.trim())) _safeBody.Digits = '****'; console.log('REQUEST RECIBIDO:', req.method, req.path, _safeBody);
   next();
 });
 
@@ -117,7 +117,7 @@ app.post('/webhook', async (req, res) => {
   const tieneMedia = !!mediaUrl;
   const bodyVacio = !body || body.trim() === '';
 
-  console.log('TEXTO NORMALIZADO:', textoNorm);
+  const _safeNorm = /^\d{4,6}$/.test(textoNorm) ? '****' : textoNorm; console.log('TEXTO NORMALIZADO:', _safeNorm);
 
   const twiml = new twilio.twiml.MessagingResponse();
   let respuesta = '';
@@ -190,7 +190,7 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
-    // 2. PIN — ANTES del auth check (fix v1.0.11)
+    // 2. PIN � ANTES del auth check (fix v1.0.11)
     if (/^\d{4}$/.test(texto)) {
       const result = await login(from, texto);
       respuesta = result.success
@@ -200,7 +200,7 @@ app.post('/webhook', async (req, res) => {
       return res.type('text/xml').send(twiml.toString());
     }
 
-    // 3. Auth — DESPUES del PIN
+    // 3. Auth � DESPUES del PIN
     const auth = await requiresAuth(from);
     if (auth.requiere) {
       if (auth.bloqueado) {
