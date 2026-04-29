@@ -543,6 +543,26 @@ async function cerrarTurno(telefono, datos, fotoUrl, sinFoto) {
   const horas = Math.round((datos.horometro_fin - datos.horometro_inicio) * 10) / 10;
 
   try {
+    // FIX 5: Cerrar paro abierto antes de cerrar turno
+    const { data: paroAbierto } = await supabase
+      .from("turno_eventos")
+      .select("id, timestamp_inicio")
+      .eq("turno_id", datos.turno_id)
+      .is("timestamp_fin", null)
+      .limit(1)
+      .single();
+
+    if (paroAbierto) {
+      const duracionMin = Math.round((Date.now() - new Date(paroAbierto.timestamp_inicio).getTime()) / 60000);
+      await supabase
+        .from("turno_eventos")
+        .update({
+          timestamp_fin: new Date().toISOString(),
+          duracion_min: duracionMin
+        })
+        .eq("id", paroAbierto.id);
+    }
+
     await supabase.from("turnos").update({
       fin: new Date().toISOString(),
       horometro_fin: datos.horometro_fin,
