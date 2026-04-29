@@ -1,4 +1,7 @@
-const { createClient } = require("@supabase/supabase-js");
+const fs = require("fs");
+let c = fs.readFileSync("lib/sesiones.js", "utf8");
+
+const newFile = `const { createClient } = require("@supabase/supabase-js");
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -88,3 +91,7 @@ async function clearSession(telefono) {
 }
 
 module.exports = { getSession, saveSession, clearSession };
+`;
+
+fs.writeFileSync("lib/sesiones.js", newFile);
+console.log("FIX 8 APLICADO: Cache local de sesiones");
