@@ -48,7 +48,6 @@ iniciarCronJob();
 
 const pdfRoutes = require('./routes/pdf');
 const verificarRoutes = require('./routes/verificar');
-const { handleResidenteMessage } = require('./flows/residente');
 app.use('/api/v1/pdf', pdfRoutes);
 app.use('/verificar', verificarRoutes);
 
@@ -160,22 +159,6 @@ app.post('/webhook', async (req, res) => {
       const respuestaNueva = await rutearMensaje(telefonoNorm, body, mediaUrl);
       if (incomingId) await marcarProcesado(incomingId, respuestaNueva);
       twiml.message(respuestaNueva);
-      return res.type('text/xml').send(twiml.toString());
-    }
-
-    // UPG-12: Detectar residente
-    const { data: residenteData } = await supabase
-      .from('residentes')
-      .select('id, nombre, telefono')
-      .eq('telefono', telefonoNorm)
-      .eq('activo', true)
-      .limit(1)
-      .single();
-
-    if (residenteData) {
-      const respuestaResidente = await handleResidenteMessage(telefonoNorm, body, mediaUrl);
-      if (incomingId) await marcarProcesado(incomingId, respuestaResidente);
-      twiml.message(respuestaResidente);
       return res.type('text/xml').send(twiml.toString());
     }
 
