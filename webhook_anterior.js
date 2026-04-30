@@ -1,0 +1,126 @@
+﻿require('dotenv').config();
+const express = require('express');
+const twilio = require('twilio');
+const supabase = require('./lib/supabaseClient');
+const { procesarInicioTurno, procesarFinTurno, procesarReporteHoras, verificarZombies } = require('./turnos');
+const { requiresAuth, login, getOperador } = require('./services/authService');
+const { procesarMensajeFirma } = require('./webhooks/whatsapp');
+const signaturesRouter = require('./api/v1/signatures');
+
+process.on('uncaughtException', (err) => {
+  console.error('­ƒÆÑ UNCAUGHT EXCEPTION:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('­ƒÆÑ UNHANDLED REJECTION:', reason);
+  process.exit(1);
+});
+
+const app = express();
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.4' }));
+app.use('/api/v1/signatures', signaturesRouter);
+
+app.use((req, res, next) => {
+  console.log('­ƒô¿ REQUEST RECIBIDO:', req.method, req.path, req.body);
+  next();
+});
+
+const cliente = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const NUMERO_TWILIO = process.env.TWILIO_PHONE_NUMBER;
+
+setInterval(() => {
+  verificarZombies(cliente, NUMERO_TWILIO);
+}, 60 * 60 * 1000);
+const pdfRoutes = require('./routes/pdf');
+app.use('/api/v1/pdf', pdfRoutes);
+app.post('/webhook', async (req, res) => {
+  const from = req.body.From;
+  const body = (req.body.Body || '').split('\n')[0].split('\r')[0].trim();
+  const texto = body.replace(/\n/g, ' ').replace(/\r/g, '').trim();
+  const textoNorm = texto.toLowerCase();
+
+  console.log("TEXTO NORMALIZADO:", textoNorm);
+
+  const twiml = new twilio.twiml.MessagingResponse();
+  let respuesta = '';
+
+  try {
+    // 0. ┬┐Es respuesta de firma del residente?
+    const esFirmaResidente = await supabase
+      .from('signature_requests')
+      .select('id')
+      .eq('firmante_telefono', from)
+      .in('estado', ['pendiente', 'enviada', 'vista'])
+      .single();
+
+    if (esFirmaResidente.data) {
+      // C2: pasar req para contexto de firma
+      const respuestaFirma = await procesarMensajeFirma(from, texto, 'text', req);
+      twiml.message(respuestaFirma);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    // 1. ┬┐Es intento de PIN del operador?
+    if (/^\d{4}$/.test(texto)) {
+      const result = await login(from, texto);
+      respuesta = result.success
+        ? `Ô£à Listo ${result.operador.nombre}, ya puedes registrar tu turno.`
+        : result.mensaje;
+      twiml.message(respuesta);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    // 2. ┬┐Requiere autenticaci├│n?
+    const auth = await requiresAuth(from);
+    if (auth.requiere) {
+      if (auth.bloqueado) {
+        respuesta = '­ƒöÆ Tu acceso est├í bloqueado temporalmente. Intenta m├ís tarde.';
+      } else if (!auth.existe) {
+        respuesta = 'ÔÜá´©Å Tu n├║mero no est├í registrado. Habla con tu supervisor.';
+      } else {
+        respuesta = '­ƒöæ Env├¡a tu PIN de 4 d├¡gitos para comenzar.';
+      }
+      twiml.message(respuesta);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    // 3. Autenticado ÔÇö procesar comando
+    if (textoNorm.includes('inicio') || textoNorm.includes('entro') || textoNorm.includes('llegue') || textoNorm.includes('llegu├®')) {
+      respuesta = await procesarInicioTurno(from, textoNorm);
+    } else if (textoNorm.includes('fin') || textoNorm.includes('salgo') || textoNorm.includes('termine') || textoNorm.includes('termin├®')) {
+      respuesta = await procesarFinTurno(from, textoNorm);
+    } else if (textoNorm.includes('horas')) {
+      respuesta = await procesarReporteHoras(from, textoNorm);
+    } else {
+      const operador = await getOperador(from);
+      respuesta = operador
+        ? `Hola ${operador.nombre}. Comandos: INICIO [hor├│metro], FIN [hor├│metro], HORAS.`
+        : 'Comandos: INICIO [hor├│metro], FIN [hor├│metro], HORAS.';
+    }
+
+  } catch (err) {
+    console.error('[Webhook Error]:', err);
+    respuesta = 'Error interno. Intenta de nuevo.';
+  }
+
+  try {
+  await supabase.from('eventos').insert({
+    tipo: 'mensaje_webhook',
+    operador_id: from,
+    payload: { mensaje: textoNorm },
+    creado_en: new Date().toISOString()
+  });
+} catch(err) {
+  console.error('[Error Log Evento]:', err);
+}
+
+  twiml.message(respuesta);
+  res.type('text/xml').send(twiml.toString());
+});
+
+app.listen(3000, () => {
+  console.log('IronSync Webhook corriendo en puerto 3000');
+});

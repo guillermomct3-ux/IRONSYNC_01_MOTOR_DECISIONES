@@ -1,0 +1,1824 @@
+﻿
+=== webhook.js ===
+require('dotenv').config();
+const express = require('express');
+const twilio = require('twilio');
+const supabase = require('./lib/supabaseClient');
+const { procesarInicioTurno, procesarFinTurno, procesarReporteHoras, procesarFoto, verificarZombies, procesarParo, procesarFalla, procesarReanuda, procesarSeleccionMenu, procesarTextoLibreParo, estaEnFlujoMenu, estaEsperandoConfirmacion, estaEsperandoHorometroCorregido, procesarConfirmacionHorometro, procesarHorometroCorregido, estaEsperandoNombreOperador, procesarNombreOperador } = require('./turnos');
+const { requiresAuth, login, getOperador } = require('./services/authService');
+const { procesarMensajeFirma } = require('./webhooks/whatsapp');
+const signaturesRouter = require('./api/v1/signatures');
+const { rutearMensaje } = require('./lib/router');
+const { deTwilioAtelefono } = require('./lib/telefono');
+const { iniciarCronJob } = require('./jobs/limpiarSesiones');
+
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('UNHANDLED REJECTION:', reason);
+  process.exit(1);
+});
+
+const app = express();
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+app.get('/health', (req, res) => res.json({ status: 'ok', version: '1.0.14' }));
+app.use('/api/v1/signatures', signaturesRouter);
+
+app.use((req, res, next) => {
+  console.log('REQUEST RECIBIDO:', req.method, req.path, req.body);
+  next();
+});
+
+const cliente = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const NUMERO_TWILIO = process.env.TWILIO_PHONE_NUMBER;
+
+// FIX 10: Zombie checker reactivado
+setInterval(() => {
+  try {
+    verificarZombies(cliente, NUMERO_TWILIO);
+  } catch (err) {
+    console.error('Error en zombie checker:', err.message);
+  }
+}, 60 * 60 * 1000);
+iniciarCronJob();
+
+const pdfRoutes = require('./routes/pdf');
+app.use('/api/v1/pdf', pdfRoutes);
+
+let EQUIPO_ALIASES = [];
+
+async function cargarEquipos() {
+  try {
+    const { data, error } = await supabase.from('equipos').select('alias');
+    if (error) {
+      console.error('Error cargando equipos:', error.message);
+      return;
+    }
+    EQUIPO_ALIASES = data
+      .filter(e => e.alias)
+      .map(e => e.alias.toUpperCase())
+      .sort((a, b) => b.length - a.length);
+    console.log(EQUIPO_ALIASES.length + ' equipos cargados:', EQUIPO_ALIASES);
+  } catch (err) {
+    console.error('Error cargando equipos:', err.message);
+  }
+}
+
+function separarEquipoPegado(body) {
+  const match = body.match(/^(inicio|fin)\s+(\S+)/i);
+  if (!match) return body;
+  const trigger = match[1];
+  const pegado = match[2].toUpperCase();
+  const resto = body.slice(match[0].length);
+  for (const alias of EQUIPO_ALIASES) {
+    if (pegado.startsWith(alias) && pegado.length > alias.length) {
+      const contador = pegado.slice(alias.length);
+      if (/^\d+$/.test(contador)) {
+        return trigger + ' ' + alias + ' ' + contador + resto;
+      }
+    }
+  }
+  return body;
+}
+
+cargarEquipos();
+
+app.post('/webhook', async (req, res) => {
+  const from = req.body.From;
+  let body = (req.body.Body || '').split('\n')[0].split('\r')[0].trim();
+
+  // 1. Normalizar sinonimos
+  if (/^(ya\s+lleg[ee]|arrancam|ya\s+llegam|empecem|aqui\s+estoy)/i.test(body)) {
+    body = body.replace(/^(ya\s+lleg[ee]|arrancam|ya\s+llegam|empecem|aqui\s+estoy)\s*/i, 'inicio ');
+  }
+  if (/^(ya\s+termin[ee]|ya\s+acab[ee]|la\s+chamba|hasta\s+aqui|ya\s+salgo|terminamos)/i.test(body)) {
+    body = body.replace(/^(ya\s+termin[ee]|ya\s+acab[ee]|la\s+chamba|hasta\s+aqui|ya\s+salgo|terminamos)\s*/i, 'fin ');
+  }
+
+  // 2. BUG 2 - Separar equipo pegado
+  body = separarEquipoPegado(body);
+
+  // 3. BUG 1 - Reordenar tokens
+  const tokensBug1 = body.split(/\s+/);
+  const triggerToken = tokensBug1.find(t => /^(inicio|fin)$/i.test(t));
+  const numeroToken = tokensBug1.find(t => /^\d+([.,]\d+)?$/i.test(t));
+  const equipoToken = tokensBug1.find(t => /^[A-Za-z]+\d/.test(t) && !/^(inicio|fin)$/i.test(t));
+  if (triggerToken && equipoToken && numeroToken) {
+    body = triggerToken + ' ' + equipoToken + ' ' + numeroToken;
+  }
+
+  // 4. Normalizar texto
+  const texto = body.replace(/\n/g, ' ').replace(/\r/g, '').trim();
+  const textoNorm = texto.toLowerCase();
+
+  const mediaUrl = req.body.MediaUrl0 || req.body.MediaUrl;
+  const tieneMedia = !!mediaUrl;
+  const bodyVacio = !body || body.trim() === '';
+
+  console.log('TEXTO NORMALIZADO:', textoNorm);
+
+  const twiml = new twilio.twiml.MessagingResponse();
+  let respuesta = '';
+
+  // === NUEVO FLUJO ONBOARDING ===
+  try {
+    const telefonoNorm = deTwilioAtelefono(from);
+    const { getSession } = require('./lib/sesiones');
+    const sesionNueva = await getSession(telefonoNorm);
+
+    if (sesionNueva) {
+      const respuestaNueva = await rutearMensaje(telefonoNorm, body, mediaUrl);
+      twiml.message(respuestaNueva);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    const { data: nuevaEmpresa } = await supabase
+      .from('empresas')
+      .select('id')
+      .eq('admin_telefono', telefonoNorm)
+      .limit(1)
+      .single();
+
+    if (nuevaEmpresa) {
+      const respuestaNueva = await rutearMensaje(telefonoNorm, body, mediaUrl);
+      twiml.message(respuestaNueva);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    const tel10 = telefonoNorm ? telefonoNorm.slice(-10) : '';
+    const { data: nuevoOp } = await supabase
+      .from('usuarios')
+      .select('id')
+      .eq('rol', 'operador')
+      .eq('activo', true)
+      .ilike('telefono', '%' + tel10)
+      .limit(1)
+      .single();
+
+    if (nuevoOp) {
+      const respuestaNueva = await rutearMensaje(telefonoNorm, body, mediaUrl);
+      twiml.message(respuestaNueva);
+      return res.type('text/xml').send(twiml.toString());
+    }
+  } catch (errNewFlow) {
+    console.error('[New Flow Error]:', errNewFlow);
+  }
+  // === FIN NUEVO FLUJO ===
+
+
+  try {
+    // 0. Foto
+    if (tieneMedia && bodyVacio) {
+      respuesta = procesarFoto(from, mediaUrl);
+      twiml.message(respuesta);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    // 1. Firma residente
+    const esFirmaResidente = await supabase
+      .from('signature_requests')
+      .select('id')
+      .eq('firmante_telefono', from)
+      .in('estado', ['pendiente', 'enviada', 'vista'])
+      .single();
+
+    if (esFirmaResidente.data) {
+      const respuestaFirma = await procesarMensajeFirma(from, texto, 'text', req);
+      twiml.message(respuestaFirma);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    // 2. PIN — ANTES del auth check (fix v1.0.11)
+    if (/^\d{4}$/.test(texto)) {
+      const result = await login(from, texto);
+      respuesta = result.success
+        ? 'Listo ' + result.operador.nombre + ', ya puedes registrar tu turno.'
+        : result.mensaje;
+      twiml.message(respuesta);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    // 3. Auth — DESPUES del PIN
+    const auth = await requiresAuth(from);
+    if (auth.requiere) {
+      if (auth.bloqueado) {
+        respuesta = 'Tu acceso esta bloqueado temporalmente. Intenta mas tarde.';
+      } else if (!auth.existe) {
+        respuesta = 'Tu numero no esta registrado. Habla con tu supervisor.';
+      } else {
+        respuesta = 'Envia tu PIN de 4 digitos para comenzar.';
+      }
+      twiml.message(respuesta);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    // 4. CONFIRMACION HOROMETRO (SI/NO)
+    if (estaEsperandoConfirmacion(from)) {
+      const r = procesarConfirmacionHorometro(from, texto);
+      if (r) {
+        twiml.message(r);
+        return res.type('text/xml').send(twiml.toString());
+      }
+    }
+
+    // 5. HOROMETRO CORREGIDO
+    if (estaEsperandoHorometroCorregido(from)) {
+      const r = procesarHorometroCorregido(from, texto);
+      if (r) {
+        twiml.message(r);
+        return res.type('text/xml').send(twiml.toString());
+      }
+    }
+
+    // 6. MENU PARO ACTIVO
+    if (estaEnFlujoMenu(null, from)) {
+      if (/^[1-5]$/.test(texto.trim())) {
+        respuesta = procesarSeleccionMenu(null, from, texto.trim());
+        twiml.message(respuesta);
+        return res.type('text/xml').send(twiml.toString());
+      }
+      const respuestaTexto = procesarTextoLibreParo(null, from, texto);
+      if (respuestaTexto) {
+        twiml.message(respuestaTexto);
+        return res.type('text/xml').send(twiml.toString());
+      }
+      respuesta = 'Opcion no valida. Responde con el numero de la opcion.';
+      twiml.message(respuesta);
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    // 6.5 FIX 11: Supervisor captura nombre de operador
+    if (estaEsperandoNombreOperador(from)) {
+      const r = procesarNombreOperador(from, texto);
+      if (r) {
+        twiml.message(r);
+        return res.type('text/xml').send(twiml.toString());
+      }
+    }
+
+    // 7. Comandos
+    if (textoNorm === 'paro') {
+      respuesta = procesarParo(null, from);
+    } else if (textoNorm === 'falla') {
+      respuesta = procesarFalla(null, from);
+    } else if (textoNorm === 'reanuda') {
+      respuesta = procesarReanuda(null, from);
+    } else if (textoNorm.includes('inicio') || textoNorm.includes('entro') ||
+               textoNorm.includes('llegue')) {
+      respuesta = await procesarInicioTurno(from, textoNorm);
+    } else if (textoNorm.includes('fin') || textoNorm.includes('salgo') ||
+               textoNorm.includes('termine')) {
+      respuesta = await procesarFinTurno(from, textoNorm);
+    } else if (textoNorm.includes('horas')) {
+      respuesta = await procesarReporteHoras(from, textoNorm);
+    } else {
+      const operador = await getOperador(from);
+      respuesta = operador
+        ? 'Hola ' + operador.nombre + '. Comandos: INICIO, FIN, PARO, FALLA, REANUDA, HORAS.'
+        : 'Comandos: INICIO, FIN, PARO, FALLA, REANUDA, HORAS.';
+    }
+
+  } catch (err) {
+    console.error('[Webhook Error]:', err);
+    respuesta = 'Error interno. Intenta de nuevo.';
+  }
+
+  try {
+    await supabase.from('eventos').insert({
+      tipo: 'mensaje_webhook',
+      operador_id: from,
+      payload: { mensaje: textoNorm },
+      creado_en: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('[Error Log Evento]:', err);
+  }
+
+  // FIX 8: Truncar mensajes largos (limite WhatsApp ~1600 chars)
+  if (respuesta && respuesta.length > 1500) {
+    respuesta = respuesta.substring(0, 1497) + '...';
+  }
+
+  twiml.message(respuesta);
+  res.type('text/xml').send(twiml.toString());
+});
+
+app.listen(3000, () => {
+  console.log('IronSync Webhook corriendo en puerto 3000');
+});
+
+
+=== flows\admin.js ===
+const { createClient } = require("@supabase/supabase-js");
+const { getSession, saveSession, clearSession } = require("../lib/sesiones");
+const { normalizarE164 } = require("../lib/telefono");
+const { hashearPin, verificarPinAdmin } = require("../lib/adminAuth");
+const { verificarRateLimit, registrarIntento } = require("../lib/rateLimit");
+const mensajes = require("../lib/mensajes");
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+const TIPOS_MAQUINA = {
+  "1": "Excavadora",
+  "2": "Bulldozer",
+  "3": "Cargador",
+  "4": "Camion",
+  "5": "Motoconformadora",
+  "6": "Otro"
+};
+
+async function handleAdminMessage(telefono, mensaje, mediaUrl) {
+  const msg = (mensaje || "").trim();
+  const upper = msg.toUpperCase();
+
+  if (mediaUrl && !msg) {
+    return "Foto no necesaria aqu\u00ed.\n\n1. Registrar m\u00e1quina\n2. Registrar operador\n3. Ver estado\n4. Ayuda";
+  }
+
+  if (upper === "CANCELAR" || upper === "CANCEL") {
+    await clearSession(telefono);
+    return "Cancelado.\n\n1. Registrar m\u00e1quina\n2. Registrar operador\n3. Ver estado\n4. Ayuda";
+  }
+
+  const session = await getSession(telefono);
+  const empresa = await getEmpresaByAdmin(telefono);
+
+  if (!session && !empresa) {
+    await saveSession(telefono, "admin_onboarding", "esperando_empresa_nombre", {});
+    return "Hola, soy IronSync \ud83d\udcaa\n\nVamos a configurar tu empresa.\n\u00bfC\u00f3mo se llama tu empresa?";
+  }
+
+  if (!session && empresa) {
+    return await handleAdminExistente(telefono, empresa, msg);
+  }
+
+  return await continuarFlujo(telefono, session, msg);
+}
+
+async function getEmpresaByAdmin(telefono) {
+  const { data } = await supabase
+    .from("empresas")
+    .select("*")
+    .eq("admin_telefono", telefono)
+    .limit(1)
+    .single();
+  return data;
+}
+
+async function getEquiposByEmpresa(empresaId) {
+  const { data } = await supabase
+    .from("equipos")
+    .select("*")
+    .eq("empresa_id", empresaId)
+    .eq("activo", true);
+  return data || [];
+}
+
+async function getOperadoresByEmpresa(empresaId) {
+  const { data } = await supabase
+    .from("usuarios")
+    .select("*")
+    .eq("empresa_id", empresaId)
+    .eq("rol", "operador")
+    .eq("activo", true);
+  return data || [];
+}
+
+async function handleAdminExistente(telefono, empresa, msg) {
+  const upper = msg.toUpperCase();
+
+  if (upper.includes("MAQUINA") || upper.includes("M\u00c1QUINA") || upper === "1") {
+    await saveSession(telefono, "admin_auth", "esperando_pin_admin", {
+      accion: "MAQUINA",
+      empresa_id: empresa.id
+    });
+    return "Manda tu PIN de administrador.";
+  }
+
+  if (upper.includes("OPERADOR") || upper === "2") {
+    await saveSession(telefono, "admin_auth", "esperando_pin_admin", {
+      accion: "OPERADOR",
+      empresa_id: empresa.id
+    });
+    return "Manda tu PIN de administrador.";
+  }
+
+  if (upper.includes("ESTADO") || upper.includes("VER") || upper === "3") {
+    return await mostrarEstado(empresa.id);
+  }
+
+  if (upper.includes("AYUDA") || upper === "4") {
+    return mostrarAyudaAdmin();
+  }
+
+  return "Hola " + empresa.admin_nombre + " \ud83d\udc4b\n\n\u00bfQu\u00e9 quieres hacer?\n\n1. Registrar m\u00e1quina\n2. Registrar operador\n3. Ver estado\n4. Ayuda";
+}
+
+async function continuarFlujo(telefono, session, msg) {
+  const paso = session.paso;
+  const datos = session.datos || {};
+
+  if (paso === "esperando_pin_admin") {
+    const limite = await verificarRateLimit(telefono, "pin_admin");
+    if (!limite.permitido) return limite.mensaje;
+
+    const valido = await verificarPinAdmin(telefono, msg);
+    await registrarIntento(telefono, "pin_admin", valido);
+
+    if (!valido) {
+      return "PIN incorrecto. Intenta de nuevo.";
+    }
+
+    const accion = datos.accion;
+    if (accion === "MAQUINA") {
+      await saveSession(telefono, "admin_onboarding", "esperando_maquina_alias", {
+        empresa_id: datos.empresa_id
+      });
+      return "\u00bfC\u00f3mo se llama la m\u00e1quina? (ej: CAT336)";
+    }
+    if (accion === "OPERADOR") {
+      await saveSession(telefono, "admin_onboarding", "esperando_operador_nombre", {
+        empresa_id: datos.empresa_id
+      });
+      return "\u00bfC\u00f3mo se llama el operador?";
+    }
+  }
+
+  switch (paso) {
+
+    case "esperando_empresa_nombre":
+      datos.empresa_nombre = msg;
+      await saveSession(telefono, "admin_onboarding", "esperando_admin_nombre", datos);
+      return "\u2705 " + msg + ".\n\u00bfCu\u00e1l es tu nombre?";
+
+    case "esperando_admin_nombre":
+      datos.admin_nombre = msg;
+      await saveSession(telefono, "admin_onboarding", "confirmar_admin", datos);
+      return "\u2705 " + msg + ".\n\u00bfConfirmas que eres el administrador?\n\n1. S\u00ed, confirmo\n2. Corregir nombre";
+
+    case "confirmar_admin":
+      if (msg === "1" || msg.toUpperCase() === "SI" || msg.toUpperCase() === "S\u00cd") {
+        const existente = await getEmpresaByAdmin(telefono);
+        if (existente) {
+          await clearSession(telefono);
+          return "Ya tienes una empresa: " + existente.nombre + "\nEscribe MAQUINA u OPERADOR.";
+        }
+
+        const { data: nuevaEmpresa } = await supabase
+          .from("empresas")
+          .insert({
+            nombre: datos.empresa_nombre,
+            admin_telefono: telefono,
+            admin_nombre: datos.admin_nombre
+          })
+          .select()
+          .single();
+
+        await supabase.from("usuarios").insert({
+          empresa_id: nuevaEmpresa.id,
+          nombre: datos.admin_nombre,
+          telefono: telefono,
+          rol: "admin"
+        });
+
+        await saveSession(telefono, "admin_onboarding", "esperando_admin_pin", {
+          empresa_id: nuevaEmpresa.id
+        });
+
+        return "\u2705 Empresa configurada.\n\nCrea un PIN de administrador (4 d\u00edgitos).\nLo necesitar\u00e1s para hacer cambios.";
+      }
+
+      await saveSession(telefono, "admin_onboarding", "esperando_admin_nombre", datos);
+      return "Ok, \u00bfCu\u00e1l es tu nombre?";
+
+    case "esperando_admin_pin":
+      const pinAdmin = msg.replace(/\D/g, "");
+      if (pinAdmin.length < 4 || pinAdmin.length > 6) {
+        return "El PIN debe tener 4 a 6 d\u00edgitos.";
+      }
+      const pinHash = await hashearPin(pinAdmin);
+      await supabase
+        .from("usuarios")
+        .update({ pin: pinHash })
+        .eq("telefono", telefono)
+        .eq("rol", "admin");
+
+      await saveSession(telefono, "admin_onboarding", "esperando_maquina_alias", {
+        empresa_id: datos.empresa_id
+      });
+      return "\u2705 PIN guardado.\n\nRegistremos tu primera m\u00e1quina.\n\u00bfC\u00f3mo se llama? (ej: CAT336)";
+
+    case "esperando_maquina_alias":
+      datos.maquina_alias = msg;
+      await saveSession(telefono, "admin_onboarding", "esperando_maquina_codigo", datos);
+      return "\u2705 " + msg + ".\n\u00bfCu\u00e1l es el c\u00f3digo? (ej: CAT336)";
+
+    case "esperando_maquina_codigo":
+      datos.maquina_codigo = msg.toUpperCase();
+      await saveSession(telefono, "admin_onboarding", "esperando_maquina_serie", datos);
+      return "\u2705 " + msg.toUpperCase() + ".\n\u00bfCu\u00e1l es la serie?";
+
+    case "esperando_maquina_serie":
+      datos.maquina_serie = msg;
+      await saveSession(telefono, "admin_onboarding", "esperando_maquina_tipo", datos);
+      return "\u2705 " + msg + ".\n\u00bfQu\u00e9 tipo de m\u00e1quina es?\n\n1. Excavadora\n2. Bulldozer\n3. Cargador\n4. Cami\u00f3n\n5. Motoconformadora\n6. Otro";
+
+    case "esperando_maquina_tipo":
+      const tipo = TIPOS_MAQUINA[msg] || msg;
+      datos.maquina_tipo = tipo;
+
+      const { data: nuevoEquipo } = await supabase
+        .from("equipos")
+        .insert({
+          empresa_id: datos.empresa_id,
+          alias: datos.maquina_alias,
+          codigo: datos.maquina_codigo,
+          serie: datos.maquina_serie,
+          tipo: tipo
+        })
+        .select()
+        .single();
+
+      await saveSession(telefono, "admin_onboarding", "esperando_siguiente_accion", {
+        empresa_id: datos.empresa_id
+      });
+
+      return "\u2705 " + datos.maquina_alias + " \u00b7 " + datos.maquina_codigo + " \u00b7 " + tipo + "\n\n\u00bfQu\u00e9 sigue?\n\n1. Registrar otra m\u00e1quina\n2. Registrar operador";
+
+    case "esperando_siguiente_accion":
+      if (msg === "1") {
+        await saveSession(telefono, "admin_onboarding", "esperando_maquina_alias", {
+          empresa_id: datos.empresa_id
+        });
+        return "\u00bfC\u00f3mo se llama la siguiente m\u00e1quina?";
+      }
+      if (msg === "2") {
+        await saveSession(telefono, "admin_onboarding", "esperando_operador_nombre", {
+          empresa_id: datos.empresa_id
+        });
+        return "\u00bfC\u00f3mo se llama el operador?";
+      }
+      return "Responde 1 o 2:\n1. Registrar m\u00e1quina\n2. Registrar operador";
+
+    case "esperando_operador_nombre":
+      datos.operador_nombre = msg;
+      await saveSession(telefono, "admin_onboarding", "esperando_operador_telefono", datos);
+      return "\u2705 " + msg + ".\n\u00bfCu\u00e1l es su tel\u00e9fono WhatsApp?\nEjemplo: 5539954872";
+
+    case "esperando_operador_telefono":
+      const telNormalizado = normalizarE164(msg);
+      if (!telNormalizado) {
+        return "Tel\u00e9fono no v\u00e1lido.\nEjemplo: 5539954872";
+      }
+      datos.operador_telefono = telNormalizado;
+
+      const equipos = await getEquiposByEmpresa(datos.empresa_id);
+      if (equipos.length === 0) {
+        return "No tienes m\u00e1quinas registradas.\nPrimero registra una m\u00e1quina.";
+      }
+
+      let lista = "\u00bfA qu\u00e9 m\u00e1quina lo asignas?";
+      equipos.forEach(function(eq, i) {
+        lista += "\n\n" + (i + 1) + ". " + eq.alias + " (" + eq.codigo + ")";
+      });
+
+      datos.equipos_disponibles = equipos;
+      await saveSession(telefono, "admin_onboarding", "esperando_operador_maquina", datos);
+      return lista;
+
+    case "esperando_operador_maquina":
+      const idx = parseInt(msg) - 1;
+      const equiposDisp = datos.equipos_disponibles || [];
+
+      if (isNaN(idx) || idx < 0 || idx >= equiposDisp.length) {
+        let lista2 = "Responde el n\u00famero de la m\u00e1quina:";
+        equiposDisp.forEach(function(eq, i) {
+          lista2 += "\n\n" + (i + 1) + ". " + eq.alias + " (" + eq.codigo + ")";
+        });
+        return lista2;
+      }
+
+      const equipoSeleccionado = equiposDisp[idx];
+
+      await supabase
+        .from("asignaciones")
+        .update({ activa: false })
+        .eq("equipo_id", equipoSeleccionado.id)
+        .eq("activa", true);
+
+      const { data: nuevoOperador } = await supabase
+        .from("usuarios")
+        .insert({
+          empresa_id: datos.empresa_id,
+          nombre: datos.operador_nombre,
+          telefono: datos.operador_telefono,
+          rol: "operador"
+        })
+        .select()
+        .single();
+
+      await supabase
+        .from("asignaciones")
+        .insert({
+          empresa_id: datos.empresa_id,
+          operador_id: nuevoOperador.id,
+          equipo_id: equipoSeleccionado.id
+        });
+
+      await enviarWhatsApp(
+        datos.operador_telefono,
+        "Hola " + datos.operador_nombre + ", te registraron en IronSync.\n\nPara activar tu cuenta manda tu PIN de 4 d\u00edgitos.\nEjemplo: 1234"
+      );
+
+      await saveSession(telefono, "admin_onboarding", "esperando_otro_operador", {
+        empresa_id: datos.empresa_id
+      });
+
+      return "\u2705 " + datos.operador_nombre + " \u2192 " + equipoSeleccionado.alias + "\n\n" + datos.operador_nombre + " recibi\u00f3 un mensaje para activar su cuenta.\n\n\u00bfOtro operador o terminar?\n1. Otro operador\n2. Terminar";
+
+    case "esperando_otro_operador":
+      if (msg === "1") {
+        await saveSession(telefono, "admin_onboarding", "esperando_operador_nombre", {
+          empresa_id: datos.empresa_id
+        });
+        return "\u00bfC\u00f3mo se llama el siguiente operador?";
+      }
+      if (msg === "2") {
+        await clearSession(telefono);
+        return await mostrarResumen(datos.empresa_id);
+      }
+      return "Responde 1 o 2:\n1. Otro operador\n2. Terminar";
+
+    default:
+      await clearSession(telefono);
+      return mensajes.sesionExpirada();
+  }
+}
+
+async function mostrarEstado(empresaId) {
+  const equipos = await getEquiposByEmpresa(empresaId);
+  const operadores = await getOperadoresByEmpresa(empresaId);
+
+  let estado = "\ud83d\udcca Estado actual:";
+  estado += "\n\n\ud83d\ude9b M\u00e1quinas (" + equipos.length + "):";
+  equipos.forEach(function(eq) {
+    estado += "\n  \u2022 " + eq.alias + " (" + eq.codigo + ")";
+  });
+  estado += "\n\n\ud83d\udc77 Operadores (" + operadores.length + "):";
+  operadores.forEach(function(op) {
+    estado += "\n  \u2022 " + op.nombre;
+  });
+  return estado;
+}
+
+async function mostrarResumen(empresaId) {
+  const { data: empresa } = await supabase
+    .from("empresas").select("*").eq("id", empresaId).single();
+  const equipos = await getEquiposByEmpresa(empresaId);
+  const operadores = await getOperadoresByEmpresa(empresaId);
+
+  let resumen = "\u2705 Configuraci\u00f3n completa.\n\n\ud83c\udfe2 " + empresa.nombre;
+  equipos.forEach(function(eq) {
+    resumen += "\n\n\ud83d\ude9b " + eq.alias + " \u00b7 " + eq.tipo;
+  });
+  resumen += "\n";
+  operadores.forEach(function(op) {
+    resumen += "\n\ud83d\udc77 " + op.nombre;
+  });
+  resumen += "\n\nPara agregar m\u00e1s, escribe: MAQUINA u OPERADOR";
+  return resumen;
+}
+
+function mostrarAyudaAdmin() {
+  return "\ud83d\udcda Comandos:\n\nMAQUINA \u2192 Registrar m\u00e1quina\nOPERADOR \u2192 Registrar operador\nESTADO \u2192 Ver configuraci\u00f3n\nCANCELAR \u2192 Salir de flujo\nAYUDA \u2192 Esta ayuda";
+}
+
+async function enviarWhatsApp(telefono, mensaje) {
+  try {
+    const twilio = require("twilio");
+    const client = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
+    await client.messages.create({
+      from: process.env.TWILIO_WHATSAPP_NUMBER,
+      to: "whatsapp:" + telefono,
+      body: mensaje
+    });
+    console.log("WHATSAPP_ENVIADO", telefono);
+  } catch (error) {
+    console.error("ERROR_WHATSAPP", { telefono, error: error.message });
+  }
+}
+
+module.exports = { handleAdminMessage };
+
+
+=== flows\operador.js ===
+const { createClient } = require("@supabase/supabase-js");
+const { getSession, saveSession, clearSession } = require("../lib/sesiones");
+const { normalizarE164 } = require("../lib/telefono");
+const { hashearPin } = require("../lib/adminAuth");
+const { verificarRateLimit, registrarIntento } = require("../lib/rateLimit");
+const mensajes = require("../lib/mensajes");
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+const TIPOS_PARO = {
+  "1": { tipo: "PARO_CLI", motivo: "Diesel" },
+  "2": { tipo: "PARO_CLI", motivo: "Espera cliente" },
+  "3": { tipo: "PARO_ARR", motivo: "Falla mecanica" },
+  "4": { tipo: "PARO_OTRO", motivo: "Otro" }
+};
+
+async function handleOperadorMessage(telefono, mensaje, mediaUrl) {
+  const msg = (mensaje || "").trim();
+  const upper = msg.toUpperCase();
+  const session = await getSession(telefono);
+
+  if (upper === "CANCELAR" || upper === "CANCEL") {
+    if (session) {
+      await clearSession(telefono);
+      return "Cancelado.\n\nManda INICIO para turno\nManda AYUDA para opciones";
+    }
+    return "No hay nada que cancelar.\nManda INICIO para turno.";
+  }
+
+  if (session && session.flujo === "operador") {
+    return await continuarFlujo(telefono, session, msg, mediaUrl);
+  }
+
+  const operador = await getOperadorByTelefono(telefono);
+
+  if (!operador) {
+    return mensajes.noRegistrado();
+  }
+
+  if (!operador.pin) {
+    if (session && session.paso === "esperando_pin") {
+      return await activarCuenta(telefono, operador, msg);
+    }
+    await saveSession(telefono, "operador", "esperando_pin", {
+      operador_id: operador.id
+    });
+    return "Hola " + operador.nombre + ", te registraron en IronSync.\n\nPara activar tu cuenta manda tu PIN de 4 d\u00edgitos.\nEjemplo: 1234";
+  }
+
+  return await procesarComando(telefono, operador, upper, msg, mediaUrl);
+}
+
+async function getOperadorByTelefono(telefono) {
+  const telNorm = normalizarE164(telefono);
+
+  const { data } = await supabase
+    .from("usuarios")
+    .select("*")
+    .eq("telefono", telNorm)
+    .eq("rol", "operador")
+    .eq("activo", true)
+    .limit(1)
+    .single();
+
+  if (data) return data;
+
+  const tel10 = telNorm ? telNorm.slice(-10) : "";
+  const { data: fb } = await supabase
+    .from("usuarios")
+    .select("*")
+    .eq("rol", "operador")
+    .eq("activo", true)
+    .ilike("telefono", "%" + tel10)
+    .limit(1)
+    .single();
+
+  return fb || null;
+}
+
+async function getAsignacionesOperador(operadorId) {
+  const { data } = await supabase
+    .from("asignaciones")
+    .select("*, equipos(*)")
+    .eq("operador_id", operadorId)
+    .eq("activa", true);
+  return data || [];
+}
+
+async function getTurnoAbierto(operadorId) {
+  const { data } = await supabase
+    .from("turnos")
+    .select("*")
+    .eq("operador_id", operadorId)
+    .eq("estado", "abierto")
+    .order("inicio", { ascending: false })
+    .limit(1);
+
+  if (!data || data.length === 0) return null;
+
+  const turno = data[0];
+  await supabase
+    .from("turnos")
+    .update({ estado: "cerrado_auto", observaciones: "Turno duplicado cerrado" })
+    .eq("operador_id", operadorId)
+    .eq("estado", "abierto")
+    .neq("id", turno.id);
+
+  return turno;
+}
+
+async function getEquipoById(equipoId) {
+  const { data } = await supabase
+    .from("equipos")
+    .select("*")
+    .eq("id", equipoId)
+    .single();
+  return data;
+}
+
+async function generarFolio(codigo) {
+  const fecha = new Date();
+  const yyyy = fecha.getFullYear();
+  const mm = String(fecha.getMonth() + 1).padStart(2, "0");
+  const dd = String(fecha.getDate()).padStart(2, "0");
+  const prefijo = "IS-" + yyyy + "-" + mm + "-" + dd + "-" + codigo;
+
+  const { count } = await supabase
+    .from("turnos")
+    .select("*", { count: "exact", head: true })
+    .like("folio", prefijo + "%");
+
+  const num = String((count || 0) + 1).padStart(3, "0");
+  return prefijo + "-" + num;
+}
+
+async function activarCuenta(telefono, operador, msg) {
+  const pin = msg.replace(/\D/g, "");
+
+  if (pin.length < 4 || pin.length > 6) {
+    return "El PIN debe tener 4 a 6 d\u00edgitos.\nEjemplo: 1234";
+  }
+
+  const pinHash = await hashearPin(pin);
+
+  await supabase
+    .from("usuarios")
+    .update({ pin: pinHash })
+    .eq("id", operador.id);
+
+  await clearSession(telefono);
+
+  const asignaciones = await getAsignacionesOperador(operador.id);
+  const maquina = asignaciones.length > 0 ? asignaciones[0].equipos : null;
+
+  let respuesta = "\u2705 Cuenta activada.\n";
+  if (maquina) {
+    respuesta += "Tu m\u00e1quina: " + (maquina.alias || maquina.codigo);
+    if (maquina.alias && maquina.codigo) {
+      respuesta += " \u00b7 " + maquina.codigo;
+    }
+    respuesta += "\n";
+  }
+  respuesta += "\nPara iniciar turno manda: INICIO";
+  return respuesta;
+}
+
+async function procesarComando(telefono, operador, upper, msg, mediaUrl) {
+  if (upper === "INICIO" || upper.startsWith("INICIO ")) {
+    return await cmdInicio(telefono, operador, upper);
+  }
+  if (upper === "FIN") {
+    return await cmdFin(telefono, operador);
+  }
+  if (upper === "PARO") {
+    return await cmdParo(telefono, operador);
+  }
+  if (upper === "FALLA") {
+    return await cmdFalla(telefono, operador);
+  }
+  if (upper === "REANUDA") {
+    return await cmdReanuda(telefono, operador);
+  }
+  if (upper === "TURNO" || upper === "STATUS") {
+    return await cmdTurno(telefono, operador);
+  }
+  if (upper === "PERFIL") {
+    return await cmdPerfil(operador);
+  }
+  if (upper === "PIN" || upper === "CAMBIAR PIN") {
+    return await cmdCambiarPin(telefono, operador);
+  }
+  if (upper === "AYUDA" || upper === "HELP") {
+    return cmdAyuda();
+  }
+
+  if (mediaUrl && !upper) {
+    return "Foto recibida.\nSi quieres iniciar turno manda: INICIO";
+  }
+
+  return mensajes.noEntendi();
+}
+
+async function cmdInicio(telefono, operador, upper) {
+  const turnoAbierto = await getTurnoAbierto(operador.id);
+
+  if (turnoAbierto) {
+    const session = await getSession(telefono);
+    if (session && session.paso === "esperando_reanuda") {
+      return "Tienes un paro abierto.\nManda REANUDA o FIN.";
+    }
+
+    const horas = ((Date.now() - new Date(turnoAbierto.inicio).getTime()) / 3600000).toFixed(1);
+
+    await saveSession(telefono, "operador", "esperando_decision_turno", {
+      turno_anterior: turnoAbierto
+    });
+    return "Turno abierto hace " + horas + " hrs.\n\n1. Cerrar y abrir nuevo\n2. Continuar actual\n3. Cerrar (FIN)";
+  }
+
+  const asignaciones = await getAsignacionesOperador(operador.id);
+  if (asignaciones.length === 0) {
+    return "No tienes m\u00e1quina asignada.\nHabla con tu jefe.";
+  }
+
+  const partes = upper.split(" ");
+  if (partes.length >= 3) {
+    const codigo = partes[1];
+    const horometro = parseFloat(partes[2]);
+    if (!isNaN(horometro)) {
+      const asig = asignaciones.find(function(a) {
+        return a.equipos && a.equipos.codigo === codigo;
+      });
+      if (asig) {
+        return await abrirTurno(telefono, operador, asig, horometro, null, false);
+      }
+    }
+  }
+
+  if (asignaciones.length === 1) {
+    const eq = asignaciones[0].equipos;
+    await saveSession(telefono, "operador", "esperando_horometro_inicio", {
+      asignacion_id: asignaciones[0].id,
+      equipo_id: eq.id,
+      equipo_alias: eq.alias,
+      equipo_codigo: eq.codigo
+    });
+    return (eq.alias || eq.codigo) + " \u00b7 contador inicial.\nEjemplo: 5690";
+  }
+
+  let lista = "\u00bfQu\u00e9 m\u00e1quina?";
+  asignaciones.forEach(function(a, i) {
+    const eq = a.equipos;
+    lista += "\n\n" + (i + 1) + ". " + (eq.alias || eq.codigo);
+    if (eq.alias && eq.codigo) lista += " \u00b7 " + eq.codigo;
+  });
+
+  await saveSession(telefono, "operador", "esperando_seleccion_maquina", {
+    asignaciones: asignaciones.map(function(a) {
+      return { id: a.id, equipo_id: a.equipos.id, alias: a.equipos.alias, codigo: a.equipos.codigo };
+    })
+  });
+  return lista;
+}
+
+async function continuarFlujo(telefono, session, msg, mediaUrl) {
+  const paso = session.paso;
+  const datos = session.datos || {};
+  const upper = msg.toUpperCase();
+
+  switch (paso) {
+
+    case "esperando_pin":
+      return await activarCuenta(telefono, await getOperadorByTelefono(telefono), msg);
+
+    case "esperando_decision_turno":
+      if (msg === "1") {
+        await supabase.from("turnos").update({
+          fin: new Date().toISOString(),
+          estado: "cerrado_manual",
+          observaciones: "Cerrado para abrir nuevo"
+        }).eq("id", datos.turno_anterior.id);
+
+        const asignaciones = await getAsignacionesOperador(
+          (await getOperadorByTelefono(telefono)).id
+        );
+        if (asignaciones.length === 1) {
+          const eq = asignaciones[0].equipos;
+          await saveSession(telefono, "operador", "esperando_horometro_inicio", {
+            asignacion_id: asignaciones[0].id,
+            equipo_id: eq.id, equipo_alias: eq.alias, equipo_codigo: eq.codigo
+          });
+          return "Turno anterior cerrado.\n\n" + (eq.alias || eq.codigo) + " \u00b7 contador actual.\nEjemplo: 5690";
+        }
+        await clearSession(telefono);
+        return "Turno anterior cerrado.\nManda INICIO para abrir nuevo.";
+      }
+      if (msg === "2") {
+        await clearSession(telefono);
+        return "Contin\u00faa con tu turno actual.";
+      }
+      if (msg === "3") {
+        return await cmdFin(telefono, await getOperadorByTelefono(telefono));
+      }
+      return "Responde 1, 2 o 3.";
+
+    case "esperando_seleccion_maquina":
+      const idx = parseInt(msg) - 1;
+      const asignaciones = datos.asignaciones || [];
+      if (isNaN(idx) || idx < 0 || idx >= asignaciones.length) {
+        return "Responde el n\u00famero de la m\u00e1quina.";
+      }
+      const sel = asignaciones[idx];
+      await saveSession(telefono, "operador", "esperando_horometro_inicio", {
+        asignacion_id: sel.id, equipo_id: sel.equipo_id,
+        equipo_alias: sel.alias, equipo_codigo: sel.codigo
+      });
+      return (sel.alias || sel.codigo) + " \u00b7 contador inicial.\nEjemplo: 5690";
+
+    case "esperando_horometro_inicio":
+      const h = parseFloat(msg);
+      if (isNaN(h)) return "Manda solo el n\u00famero del contador.\nEjemplo: 5690";
+      datos.horometro_inicio = h;
+      await saveSession(telefono, "operador", "esperando_foto_inicio", datos);
+      return "Manda foto del contador.\nSi no puedes, escribe: SIN FOTO";
+
+    case "esperando_foto_inicio":
+      if (!mediaUrl && msg) {
+        if (upper === "SIN FOTO" || upper === "NO") {
+          const op = await getOperadorByTelefono(telefono);
+          return await abrirTurno(telefono, op,
+            { id: datos.asignacion_id, equipos: { id: datos.equipo_id, alias: datos.equipo_alias, codigo: datos.equipo_codigo } },
+            datos.horometro_inicio, null, true);
+        }
+        return "Eso no es una foto \ud83d\udcf7\n\nToma una foto del contador.\nSi no puedes, escribe: SIN FOTO";
+      }
+      if (!mediaUrl && !msg) {
+        return "Esperando foto del contador.\nSi no puedes, escribe: SIN FOTO";
+      }
+      const opFoto = await getOperadorByTelefono(telefono);
+      return await abrirTurno(telefono, opFoto,
+        { id: datos.asignacion_id, equipos: { id: datos.equipo_id, alias: datos.equipo_alias, codigo: datos.equipo_codigo } },
+        datos.horometro_inicio, mediaUrl, false);
+
+    case "esperando_tipo_paro":
+      const tipoParo = TIPOS_PARO[msg];
+      if (!tipoParo) {
+        return "Responde 1, 2, 3 o 4:\n1. Diesel\n2. Espera cliente\n3. Falla mecanica\n4. Otro";
+      }
+      if (msg === "4") {
+        await saveSession(telefono, "operador", "esperando_motivo_paro", datos);
+        return "\u00bfQu\u00e9 pas\u00f3? Descr\u00edbelo en pocas palabras.";
+      }
+      return await registrarParo(telefono, datos, tipoParo.tipo, tipoParo.motivo);
+
+    case "esperando_motivo_paro":
+      return await registrarParo(telefono, datos, "PARO_OTRO", msg);
+
+    case "esperando_descripcion_falla":
+      await supabase.from("turno_eventos").insert({
+        turno_id: datos.turno_id,
+        tipo_evento: "FALLA",
+        motivo_reportado: msg,
+        timestamp_inicio: new Date().toISOString()
+      });
+      await saveSession(telefono, "operador", "esperando_reanuda", {
+        turno_id: datos.turno_id,
+        horometro_inicio: datos.horometro_inicio,
+        evento_inicio: new Date().toISOString()
+      });
+      return "\u2705 Falla registrada: " + msg + "\nManda REANUDA cuando sigas.";
+
+    case "esperando_reanuda":
+      if (upper === "REANUDA") {
+        const inicioEvento = new Date(datos.evento_inicio);
+        const duracion = Math.round((Date.now() - inicioEvento.getTime()) / 60000);
+
+        await supabase.from("turno_eventos").update({
+          timestamp_fin: new Date().toISOString(),
+          duracion_min: duracion
+        }).eq("turno_id", datos.turno_id).eq("timestamp_fin", null);
+
+        await clearSession(telefono);
+        return "\u2705 Reanudado \u00b7 Paro: " + duracion + " min.\nContin\u00faa trabajando.";
+      }
+      return "Manda REANUDA para continuar.\nManda FIN para cerrar turno.";
+
+    case "esperando_horometro_fin":
+      const hf = parseFloat(msg);
+      if (isNaN(hf)) return "Manda solo el n\u00famero del contador.\nInicial: " + datos.horometro_inicio;
+      if (hf < datos.horometro_inicio) {
+        return "El contador final no puede ser menor que " + datos.horometro_inicio + ".";
+      }
+      datos.horometro_fin = hf;
+      await saveSession(telefono, "operador", "esperando_foto_fin", datos);
+      return "Manda foto del contador final.\nSi no puedes, escribe: SIN FOTO";
+
+    case "esperando_foto_fin":
+      if (!mediaUrl && msg) {
+        if (upper === "SIN FOTO" || upper === "NO") {
+          return await cerrarTurno(telefono, datos, null, true);
+        }
+        return "Eso no es una foto \ud83d\udcf7\nToma una foto del contador final.\nSi no puedes, escribe: SIN FOTO";
+      }
+      if (!mediaUrl && !msg) {
+        return "Esperando foto del contador final.\nSi no puedes, escribe: SIN FOTO";
+      }
+      return await cerrarTurno(telefono, datos, mediaUrl, false);
+
+    case "esperando_nuevo_pin":
+      const np = msg.replace(/\D/g, "");
+      if (np.length < 4 || np.length > 6) return "El PIN debe tener 4 a 6 d\u00edgitos.";
+      const hash = await hashearPin(np);
+      const operadorPin = await getOperadorByTelefono(telefono);
+      await supabase.from("usuarios").update({ pin: hash }).eq("id", operadorPin.id);
+      await clearSession(telefono);
+      return "\u2705 PIN actualizado.\nPara iniciar turno manda: INICIO";
+
+    default:
+      await clearSession(telefono);
+      return mensajes.sesionExpirada();
+  }
+}
+
+async function abrirTurno(telefono, operador, asignacion, horometro, fotoUrl, sinFoto) {
+  const equipo = asignacion.equipos || {};
+  const folio = await generarFolio(equipo.codigo || "SIN");
+
+  try {
+    const { data: turno, error } = await supabase
+      .from("turnos")
+      .insert({
+        empresa_id: operador.empresa_id,
+        operador_id: operador.id,
+        equipo_id: equipo.id,
+        folio: folio,
+        maquina: equipo.codigo,
+        inicio: new Date().toISOString(),
+        horometro_inicio: horometro,
+        foto_inicio_url: fotoUrl,
+        sin_foto_inicio: sinFoto,
+        estado: "abierto",
+        operador_telefono: operador.telefono,
+        operador_nombre: operador.nombre,
+        fecha_turno: new Date().toISOString().split("T")[0]
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await clearSession(telefono);
+
+    let r = "\u2705 Turno abierto \u00b7 " + (equipo.alias || equipo.codigo) + " \u00b7 " + horometro + " hrs.";
+    if (sinFoto) r += "\n\u26a0\ufe0f Sin foto de inicio.";
+    r += "\n\nAl terminar manda FIN.";
+    return r;
+
+  } catch (error) {
+    console.error("ERROR_ABRIR_TURNO", error);
+    return mensajes.errorConexion();
+  }
+}
+
+async function cmdParo(telefono, operador) {
+  const turno = await getTurnoAbierto(operador.id);
+  if (!turno) return "No tienes turno abierto.";
+
+  await saveSession(telefono, "operador", "esperando_tipo_paro", {
+    turno_id: turno.id,
+    horometro_inicio: turno.horometro_inicio
+  });
+  return "\u00bfQu\u00e9 pas\u00f3?\n\n1. Diesel\n2. Espera cliente\n3. Falla mecanica\n4. Otro";
+}
+
+async function registrarParo(telefono, datos, tipoEvento, motivo) {
+  await supabase.from("turno_eventos").insert({
+    turno_id: datos.turno_id,
+    tipo_evento: tipoEvento,
+    motivo_reportado: motivo,
+    timestamp_inicio: new Date().toISOString()
+  });
+  await saveSession(telefono, "operador", "esperando_reanuda", {
+    turno_id: datos.turno_id,
+    horometro_inicio: datos.horometro_inicio,
+    evento_inicio: new Date().toISOString()
+  });
+  return "\u2705 Paro registrado \u00b7 " + motivo + "\nManda REANUDA cuando sigas.";
+}
+
+async function cmdFalla(telefono, operador) {
+  const turno = await getTurnoAbierto(operador.id);
+  if (!turno) return "No tienes turno abierto.";
+
+  await saveSession(telefono, "operador", "esperando_descripcion_falla", {
+    turno_id: turno.id,
+    horometro_inicio: turno.horometro_inicio
+  });
+  return "Describe la falla en pocas palabras.\nEjemplo: fuga de aceite";
+}
+
+async function cmdReanuda(telefono, operador) {
+  const session = await getSession(telefono);
+  if (session && session.paso === "esperando_reanuda") {
+    const datos = session.datos;
+    const duracion = Math.round((Date.now() - new Date(datos.evento_inicio).getTime()) / 60000);
+
+    await supabase.from("turno_eventos").update({
+      timestamp_fin: new Date().toISOString(),
+      duracion_min: duracion
+    }).eq("turno_id", datos.turno_id).eq("timestamp_fin", null);
+
+    await clearSession(telefono);
+    return "\u2705 Reanudado \u00b7 Paro: " + duracion + " min.\nContin\u00faa trabajando.";
+  }
+  return "No tienes paro registrado.\nSi necesitas reportar un paro manda: PARO";
+}
+
+async function cmdFin(telefono, operador) {
+  const turno = await getTurnoAbierto(operador.id);
+  if (!turno) return "No tienes turno abierto.";
+
+  await saveSession(telefono, "operador", "esperando_horometro_fin", {
+    turno_id: turno.id,
+    horometro_inicio: turno.horometro_inicio,
+    equipo_id: turno.equipo_id
+  });
+  return "Contador final.\nInicial: " + turno.horometro_inicio + "\nManda el n\u00famero actual.";
+}
+
+async function cerrarTurno(telefono, datos, fotoUrl, sinFoto) {
+  const horas = Math.round((datos.horometro_fin - datos.horometro_inicio) * 10) / 10;
+
+  try {
+    await supabase.from("turnos").update({
+      fin: new Date().toISOString(),
+      horometro_fin: datos.horometro_fin,
+      horas_horometro: horas,
+      foto_fin_url: fotoUrl,
+      sin_foto_fin: sinFoto,
+      estado: "cerrado"
+    }).eq("id", datos.turno_id);
+
+    await clearSession(telefono);
+
+    let r = "\u2705 Turno cerrado \u00b7 " + horas + " hrs.";
+    if (sinFoto) r += "\n\u26a0\ufe0f Sin foto de cierre.";
+    r += "\nReporte listo.";
+    return r;
+
+  } catch (error) {
+    console.error("ERROR_CERRAR_TURNO", error);
+    return mensajes.errorConexion();
+  }
+}
+
+async function cmdTurno(telefono, operador) {
+  const turno = await getTurnoAbierto(operador.id);
+  if (!turno) return "\u2705 Sin turno abierto.\nManda INICIO para abrir uno.";
+
+  const equipo = await getEquipoById(turno.equipo_id);
+  const horas = ((Date.now() - new Date(turno.inicio).getTime()) / 3600000).toFixed(1);
+
+  let r = "\ud83d\ude9b Turno abierto\n\n";
+  r += "M\u00e1quina: " + (equipo ? (equipo.alias || equipo.codigo) : "N/A") + "\n";
+  r += "Hor\u00f3metro: " + turno.horometro_inicio + " hrs\n";
+  r += "Abierto hace: " + horas + " hrs\n";
+  r += "Folio: " + turno.folio;
+
+  const session = await getSession(telefono);
+  if (session && session.paso === "esperando_reanuda") {
+    r += "\n\n\u26a0\ufe0f Paro activo.\nManda REANUDA o FIN.";
+  } else {
+    r += "\n\nManda PARO, FIN o AYUDA.";
+  }
+  return r;
+}
+
+async function cmdPerfil(operador) {
+  const asignaciones = await getAsignacionesOperador(operador.id);
+  const turno = await getTurnoAbierto(operador.id);
+
+  let p = "\ud83d\udc64 " + operador.nombre;
+  asignaciones.forEach(function(a) {
+    const eq = a.equipos;
+    p += "\n\n\ud83d\ude9b " + (eq.alias || eq.codigo);
+    if (eq.alias && eq.codigo) p += " \u00b7 " + eq.codigo;
+  });
+
+  if (turno) {
+    const hrs = ((Date.now() - new Date(turno.inicio).getTime()) / 3600000).toFixed(1);
+    p += "\n\n\u26a1 Turno abierto hace " + hrs + " hrs";
+  } else {
+    p += "\n\n\u2705 Sin turno abierto";
+  }
+  return p;
+}
+
+async function cmdCambiarPin(telefono, operador) {
+  await saveSession(telefono, "operador", "esperando_nuevo_pin", {
+    operador_id: operador.id
+  });
+  return "Manda tu nuevo PIN de 4 a 6 d\u00edgitos.\nEjemplo: 5678";
+}
+
+function cmdAyuda() {
+  return "\ud83d\udcda Comandos:\n\nINICIO \u2192 Abrir turno\nPARO \u2192 Reportar paro\nFALLA \u2192 Reportar falla\nREANUDA \u2192 Continuar\nFIN \u2192 Cerrar turno\nTURNO \u2192 Ver turno actual\nPERFIL \u2192 Tu informaci\u00f3n\nPIN \u2192 Cambiar PIN\nCANCELAR \u2192 Salir de flujo\nAYUDA \u2192 Esta ayuda";
+}
+
+module.exports = { handleOperadorMessage };
+
+
+=== lib\telefono.js ===
+function normalizarE164(input) {
+  if (!input) return null;
+
+  let limpio = input
+    .replace("whatsapp:", "")
+    .replace(/[\s\-\(\)\.]/g, "")
+    .trim();
+
+  if (limpio.startsWith("+")) {
+    if (limpio.startsWith("+521") && limpio.length === 14) {
+      return "+52" + limpio.substring(4);
+    }
+    return limpio;
+  }
+
+  const digits = limpio.replace(/\D/g, "");
+
+  if (digits.length === 10) {
+    return "+52" + digits;
+  }
+
+  if (digits.length === 12 && digits.startsWith("52")) {
+    return "+" + digits;
+  }
+
+  if (digits.length === 13 && digits.startsWith("521")) {
+    return "+52" + digits.substring(3);
+  }
+
+  return "+52" + digits.slice(-10);
+}
+
+function compararTelefonos(tel1, tel2) {
+  const a = normalizarE164(tel1);
+  const b = normalizarE164(tel2);
+  return a && b && a === b;
+}
+
+function ultimos10(telefono) {
+  const e164 = normalizarE164(telefono);
+  return e164 ? e164.slice(-10) : "";
+}
+
+function deTwilioAtelefono(from) {
+  return normalizarE164(from);
+}
+
+module.exports = {
+  normalizarE164,
+  compararTelefonos,
+  ultimos10,
+  deTwilioAtelefono
+};
+
+
+=== lib\sesiones.js ===
+const { createClient } = require("@supabase/supabase-js");
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+const TTL_MINUTOS = 30;
+
+async function getSession(telefono) {
+  const { data } = await supabase
+    .from("sesiones")
+    .select("*")
+    .eq("telefono", telefono)
+    .single();
+
+  if (!data) return null;
+
+  const updatedAt = new Date(data.updated_at);
+  const minutos = (Date.now() - updatedAt.getTime()) / 60000;
+
+  if (minutos > TTL_MINUTOS) {
+    await clearSession(telefono);
+    return null;
+  }
+
+  return data;
+}
+
+async function saveSession(telefono, flujo, paso, datos) {
+  await supabase
+    .from("sesiones")
+    .upsert({
+      telefono,
+      flujo,
+      paso,
+      datos: datos || {},
+      updated_at: new Date().toISOString()
+    }, { onConflict: "telefono" });
+}
+
+async function clearSession(telefono) {
+  await supabase
+    .from("sesiones")
+    .delete()
+    .eq("telefono", telefono);
+}
+
+module.exports = { getSession, saveSession, clearSession };
+
+
+=== lib\mensajes.js ===
+module.exports = {
+  ok: function(msg) {
+    return "\u2705 " + msg;
+  },
+  error: function(msg) {
+    return "\u274c " + msg;
+  },
+  warn: function(msg) {
+    return "\u26a0\ufe0f " + msg;
+  },
+  noEntendi: function() {
+    return "No te entend\u00ed.\n\n" +
+      "Manda INICIO para turno\n" +
+      "Manda AYUDA para opciones\n" +
+      "Manda CANCELAR para salir";
+  },
+  noRegistrado: function() {
+    return "Tu n\u00famero no est\u00e1 registrado.\n" +
+      "Habla con tu jefe.";
+  },
+  errorConexion: function() {
+    return "Problema de conexi\u00f3n.\n" +
+      "Intenta de nuevo en un momento.\n" +
+      "Si persiste, contacta a Ulises.";
+  },
+  sesionExpirada: function() {
+    return "La sesi\u00f3n expir\u00f3.\n" +
+      "Manda INICIO para empezar de nuevo.";
+  }
+};
+
+
+=== lib\adminAuth.js ===
+const bcrypt = require("bcrypt");
+const { createClient } = require("@supabase/supabase-js");
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+async function hashearPin(pin) {
+  return await bcrypt.hash(pin, 10);
+}
+
+async function verificarPinAdmin(telefono, pinIngresado) {
+  const { data: admin } = await supabase
+    .from("usuarios")
+    .select("pin")
+    .eq("telefono", telefono)
+    .eq("rol", "admin")
+    .single();
+
+  if (!admin || !admin.pin) return false;
+  return await bcrypt.compare(pinIngresado, admin.pin);
+}
+
+async function verificarPinOperador(operador, pinIngresado) {
+  if (!operador || !operador.pin) return false;
+  return await bcrypt.compare(pinIngresado, operador.pin);
+}
+
+module.exports = { hashearPin, verificarPinAdmin, verificarPinOperador };
+
+
+=== lib\rateLimit.js ===
+const { createClient } = require("@supabase/supabase-js");
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+const MAX_INTENTOS = 5;
+const BLOQUEO_MINUTOS = 15;
+
+async function verificarRateLimit(telefono, accion) {
+  const clave = telefono + ":" + accion;
+
+  const { data } = await supabase
+    .from("rate_limits")
+    .select("*")
+    .eq("clave", clave)
+    .single();
+
+  if (!data) return { permitido: true };
+
+  if (data.intentos >= MAX_INTENTOS) {
+    const hasta = new Date(data.ultimo_intento);
+    hasta.setMinutes(hasta.getMinutes() + BLOQUEO_MINUTOS);
+
+    if (new Date() < hasta) {
+      const min = Math.ceil((hasta - new Date()) / 60000);
+      return {
+        permitido: false,
+        mensaje: "Demasiados intentos.\nEspera " + min + " minutos."
+      };
+    }
+
+    await supabase.from("rate_limits").delete().eq("clave", clave);
+    return { permitido: true };
+  }
+
+  return { permitido: true };
+}
+
+async function registrarIntento(telefono, accion, exitoso) {
+  const clave = telefono + ":" + accion;
+
+  if (exitoso) {
+    await supabase.from("rate_limits").delete().eq("clave", clave);
+    return;
+  }
+
+  const { data } = await supabase
+    .from("rate_limits")
+    .select("intentos")
+    .eq("clave", clave)
+    .single();
+
+  if (data) {
+    await supabase
+      .from("rate_limits")
+      .update({
+        intentos: data.intentos + 1,
+        ultimo_intento: new Date().toISOString()
+      })
+      .eq("clave", clave);
+  } else {
+    await supabase
+      .from("rate_limits")
+      .insert({
+        clave: clave,
+        intentos: 1,
+        ultimo_intento: new Date().toISOString()
+      });
+  }
+}
+
+module.exports = { verificarRateLimit, registrarIntento };
+
+
+=== lib\twilioVerify.js ===
+const crypto = require("crypto");
+
+function verificarTwilio(req) {
+  if (process.env.NODE_ENV === "development") return true;
+
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  if (!authToken) return true;
+
+  const signature = req.headers["x-twilio-signature"];
+  if (!signature) return true;
+
+  const url = "https://" + req.headers.host + req.originalUrl;
+  const params = req.body || {};
+  let data = url;
+
+  Object.keys(params).sort().forEach(function(key) {
+    data += key + params[key];
+  });
+
+  const hmac = crypto.createHmac("sha1", authToken);
+  hmac.update(data);
+  const expected = hmac.digest("base64");
+
+  return signature === expected;
+}
+
+module.exports = { verificarTwilio };
+
+
+=== lib\router.js ===
+const { createClient } = require("@supabase/supabase-js");
+const { getSession } = require("./sesiones");
+const { normalizarE164 } = require("./telefono");
+const { handleAdminMessage } = require("../flows/admin");
+const { handleOperadorMessage } = require("../flows/operador");
+const mensajes = require("./mensajes");
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+async function rutearMensaje(telefono, body, mediaUrl) {
+  const sesion = await getSession(telefono);
+
+  if (sesion) {
+    if (sesion.flujo === "admin_onboarding" || sesion.flujo === "admin_auth") {
+      return await handleAdminMessage(telefono, body, mediaUrl);
+    }
+    if (sesion.flujo === "operador") {
+      return await handleOperadorMessage(telefono, body, mediaUrl);
+    }
+  }
+
+  const { data: empresa } = await supabase
+    .from("empresas")
+    .select("id")
+    .eq("admin_telefono", telefono)
+    .limit(1)
+    .single();
+
+  if (empresa) {
+    return await handleAdminMessage(telefono, body, mediaUrl);
+  }
+
+  const telNorm = normalizarE164(telefono);
+  const digits = telNorm ? telNorm.slice(-10) : "";
+
+  const { data: op } = await supabase
+    .from("usuarios")
+    .select("id")
+    .eq("rol", "operador")
+    .eq("activo", true)
+    .ilike("telefono", "%" + digits)
+    .limit(1)
+    .single();
+
+  if (op) {
+    return await handleOperadorMessage(telefono, body, mediaUrl);
+  }
+
+  return mensajes.noRegistrado();
+}
+
+module.exports = { rutearMensaje };
+
+
+=== lib\supabaseClient.js ===
+const { createClient } = require('@supabase/supabase-js');
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+module.exports = supabase;
+
+=== jobs\limpiarSesiones.js ===
+const { createClient } = require("@supabase/supabase-js");
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+async function limpiarSesionesExpiradas() {
+  const fechaLimite = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+
+  await supabase
+    .from("sesiones")
+    .delete()
+    .lt("updated_at", fechaLimite);
+
+  console.log("SESIONES_LIMPIADAS", new Date().toISOString());
+}
+
+function iniciarCronJob() {
+  limpiarSesionesExpiradas();
+  setInterval(limpiarSesionesExpiradas, 30 * 60 * 1000);
+  console.log("CRON_SESIONES_INICIADO");
+}
+
+module.exports = { iniciarCronJob };
+
+
+=== db\schema.sql ===
+-- IRONSYNC Schema v1
+
+CREATE TABLE IF NOT EXISTS empresas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre TEXT NOT NULL,
+  admin_telefono TEXT NOT NULL,
+  admin_nombre TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS usuarios (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id UUID REFERENCES empresas(id),
+  nombre TEXT NOT NULL,
+  telefono TEXT NOT NULL,
+  rol TEXT CHECK (rol IN (''admin'', ''operador'')) NOT NULL,
+  pin TEXT,
+  activo BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS equipos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id UUID REFERENCES empresas(id),
+  alias TEXT,
+  codigo TEXT NOT NULL,
+  marca TEXT DEFAULT ''Caterpillar'',
+  modelo TEXT,
+  serie TEXT,
+  tipo TEXT,
+  activo BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS asignaciones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id UUID REFERENCES empresas(id),
+  operador_id UUID REFERENCES usuarios(id),
+  equipo_id UUID REFERENCES equipos(id),
+  activa BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sesiones (
+  telefono TEXT PRIMARY KEY,
+  flujo TEXT,
+  paso TEXT,
+  datos JSONB DEFAULT ''{}'',
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS rate_limits (
+  clave TEXT PRIMARY KEY,
+  intentos INTEGER DEFAULT 1,
+  ultimo_intento TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS turnos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id UUID,
+  operador_id UUID,
+  equipo_id UUID,
+  folio TEXT UNIQUE,
+  maquina TEXT,
+  serie TEXT,
+  inicio TIMESTAMPTZ,
+  fin TIMESTAMPTZ,
+  horometro_inicio DECIMAL,
+  horometro_fin DECIMAL,
+  horas_horometro DECIMAL,
+  operador_telefono TEXT,
+  operador_nombre TEXT,
+  fecha_turno DATE,
+  observaciones TEXT,
+  cliente_nombre TEXT,
+  contrato_id TEXT,
+  foto_inicio_url TEXT,
+  foto_fin_url TEXT,
+  sin_foto_inicio BOOLEAN DEFAULT FALSE,
+  sin_foto_fin BOOLEAN DEFAULT FALSE,
+  firma_residente_status TEXT DEFAULT ''pendiente'',
+  estado TEXT DEFAULT ''abierto'',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS turno_eventos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  turno_id UUID REFERENCES turnos(id),
+  tipo_evento TEXT,
+  motivo_reportado TEXT,
+  timestamp_inicio TIMESTAMPTZ,
+  timestamp_fin TIMESTAMPTZ,
+  duracion_min INTEGER,
+  foto_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_usuarios_telefono ON usuarios(telefono);
+CREATE INDEX IF NOT EXISTS idx_usuarios_empresa ON usuarios(empresa_id);
+CREATE INDEX IF NOT EXISTS idx_equipos_empresa ON equipos(empresa_id);
+CREATE INDEX IF NOT EXISTS idx_asignaciones_operador ON asignaciones(operador_id);
+CREATE INDEX IF NOT EXISTS idx_asignaciones_equipo ON asignaciones(equipo_id);
+CREATE INDEX IF NOT EXISTS idx_turnos_operador ON turnos(operador_id);
+CREATE INDEX IF NOT EXISTS idx_turnos_estado ON turnos(estado);
+CREATE INDEX IF NOT EXISTS idx_turnos_folio ON turnos(folio);
+CREATE INDEX IF NOT EXISTS idx_sesiones_updated ON sesiones(updated_at);
+
+
