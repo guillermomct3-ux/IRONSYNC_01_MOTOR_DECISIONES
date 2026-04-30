@@ -17,6 +17,26 @@ const TIPOS_PARO = {
   "4": { tipo: "PARO_OTRO", motivo: "Otro" }
 };
 
+// UPG-05: Lenguaje natural para PARO
+const PARO_NATURAL = [
+  { palabras: ["sin diesel", "no hay diesel", "diesel", "gasolina", "sin gasolina", "sin combustible"], tipo: "PARO_CLI", motivo: "Diesel" },
+  { palabras: ["espera", "esperando", "cliente", "espera cliente", "no hay material", "me dijeron que pare", "pararon", "me pararon"], tipo: "PARO_CLI", motivo: "Espera cliente" },
+  { palabras: ["falla", "se descompuso", "no jala", "fallo", "mecanica", "falla mecanica", "se atoro", "no enciende", "se calo", "se cal�", "revent�", "revento", "pinchazo", "llanta"], tipo: "PARO_ARR", motivo: "Falla mecanica" }
+];
+
+function buscarParoNatural(texto) {
+  const lower = texto.toLowerCase().trim();
+  for (let i = 0; i < PARO_NATURAL.length; i++) {
+    const grupo = PARO_NATURAL[i];
+    for (let j = 0; j < grupo.palabras.length; j++) {
+      if (lower.includes(grupo.palabras[j])) {
+        return { tipo: grupo.tipo, motivo: grupo.motivo };
+      }
+    }
+  }
+  return null;
+}
+
 async function handleOperadorMessage(telefono, mensaje, mediaUrl) {
   const msg = (mensaje || "").trim();
   const upper = msg.toUpperCase();
@@ -375,9 +395,17 @@ async function continuarFlujo(telefono, session, msg, mediaUrl) {
         datos.horometro_inicio, mediaUrl, false);
 
     case "esperando_tipo_paro":
-      const tipoParo = TIPOS_PARO[msg];
+      // UPG-05: Primero intentar lenguaje natural
+      const paroNatural = buscarParoNatural(msg);
+      let tipoParo = null;
+      if (paroNatural) {
+        tipoParo = paroNatural;
+      } else {
+        tipoParo = TIPOS_PARO[msg];
+      }
       if (!tipoParo) {
-        return "Responde 1, 2, 3 o 4:\n1. Diesel\n2. Espera cliente\n3. Falla mecanica\n4. Otro";
+        // Si escribio algo no reconocido, tratarlo como OTRO
+        return await registrarParo(telefono, datos, "PARO_OTRO", msg);
       }
       if (msg === "4") {
         await saveSession(telefono, "operador", "esperando_motivo_paro", datos);
@@ -507,7 +535,7 @@ async function cmdParo(telefono, operador) {
     turno_id: turno.id,
     horometro_inicio: turno.horometro_inicio
   });
-  return "\u00bfQu\u00e9 pas\u00f3?\n\n1. Diesel\n2. Espera cliente\n3. Falla mecanica\n4. Otro";
+  return "\u00bfQu\u00e9 pas\u00f3?\n\n1. Diesel\n2. Espera cliente\n3. Falla mecanica\n4. Otro\n\nTambi\u00e9n puedes escribirlo con tus palabras.";
 }
 
 async function registrarParo(telefono, datos, tipoEvento, motivo) {
