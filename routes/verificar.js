@@ -1,11 +1,13 @@
 const crypto = require('crypto');
+const express = require('express');
+const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
 async function verificarFolio(req, res) {
   const { folio } = req.params;
 
-  // 1. Obtener el último hash guardado para este folio
+  // 1. Obtener el ï¿½ltimo hash guardado para este folio
   const { data: hashRow, error: hashError } = await supabase
     .from('pdf_hashes')
     .select('sha256, creado_at')
@@ -63,4 +65,5 @@ async function verificarFolio(req, res) {
   );
 }
 
-module.exports = { verificarFolio };
+router.get('/:folio', verificarFolio);
+module.exports = router;
