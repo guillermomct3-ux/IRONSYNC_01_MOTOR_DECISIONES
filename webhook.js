@@ -8,6 +8,8 @@ const { procesarMensajeFirma } = require('./webhooks/whatsapp');
 const signaturesRouter = require('./api/v1/signatures');
 const { rutearMensaje } = require('./lib/router');
 const { deTwilioAtelefono } = require('./lib/telefono');
+const { registrarMensajeEntrante, marcarProcesado, marcarDuplicado, marcarFallido } = require('./lib/idempotency');
+const { resolverEstadoOperador } = require('./lib/stateResolver');
 const { iniciarCronJob } = require('./jobs/limpiarSesiones');
 
 process.on('uncaughtException', (err) => {
@@ -125,11 +127,21 @@ app.post('/webhook', async (req, res) => {
   // === NUEVO FLUJO ONBOARDING ===
   try {
     const telefonoNorm = deTwilioAtelefono(from);
+
+    // UPG-13: Idempotencia � prevenir duplicados
+    const messageSid = req.body.MessageSid || req.body.SmsMessageSid || null;
+    const idResult = await registrarMensajeEntrante(messageSid, telefonoNorm, body, mediaUrl);
+    if (idResult.duplicado) {
+      console.log("DUPLICADO detectado:", idResult.razon);
+      return res.type('text/xml').send(twiml.toString());
+    }
+    const incomingId = idResult.id;
     const { getSession } = require('./lib/sesiones');
     const sesionNueva = await getSession(telefonoNorm);
 
     if (sesionNueva) {
       const respuestaNueva = await rutearMensaje(telefonoNorm, body, mediaUrl);
+      if (incomingId) await marcarProcesado(incomingId, respuestaNueva);
       twiml.message(respuestaNueva);
       return res.type('text/xml').send(twiml.toString());
     }
@@ -143,22 +155,17 @@ app.post('/webhook', async (req, res) => {
 
     if (nuevaEmpresa) {
       const respuestaNueva = await rutearMensaje(telefonoNorm, body, mediaUrl);
+      if (incomingId) await marcarProcesado(incomingId, respuestaNueva);
       twiml.message(respuestaNueva);
       return res.type('text/xml').send(twiml.toString());
     }
 
-    const tel10 = telefonoNorm ? telefonoNorm.slice(-10) : '';
-    const { data: nuevoOp } = await supabase
-      .from('usuarios')
-      .select('id')
-      .eq('rol', 'operador')
-      .eq('activo', true)
-      .ilike('telefono', '%' + tel10)
-      .limit(1)
-      .single();
-
-    if (nuevoOp) {
+    // UPG-14: stateResolver en vez de busqueda manual
+    const estadoOp = await resolverEstadoOperador(telefonoNorm);
+    if (estadoOp && estadoOp.operador) {
       const respuestaNueva = await rutearMensaje(telefonoNorm, body, mediaUrl);
+      // UPG-13: marcar procesado
+      if (incomingId) await marcarProcesado(incomingId, respuestaNueva);
       twiml.message(respuestaNueva);
       return res.type('text/xml').send(twiml.toString());
     }
