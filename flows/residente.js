@@ -1,10 +1,10 @@
 // ============================================================
 // flows/residente.js
-// Flujo completo para residente: disputas, revocación de PIN
+// Flujo completo para residente: disputas, revocaciï¿½n de PIN
 // ============================================================
 const { saveSession, getSession, clearSession } = require('../lib/sesiones');
 const supabase = require('../lib/supabaseClient');
-const bcrypt = require('bcryptjs');
+// bcrypt se carga lazy para evitar crash si falta el modulo
 
 async function handleResidenteMessage(telefono, mensaje, mediaUrl) {
   const msg = (mensaje || '').trim().toUpperCase();
@@ -42,7 +42,7 @@ async function handleResidenteMessage(telefono, mensaje, mediaUrl) {
     return 'Explica brevemente por que rechazas este turno (max 200 caracteres):';
   }
 
-  // --- FLUJO DE SESIÓN -------------------------------------
+  // --- FLUJO DE SESIï¿½N -------------------------------------
   if (session && session.rol === 'residente') {
 
     // Esperando motivo de disputa
@@ -74,7 +74,7 @@ async function handleResidenteMessage(telefono, mensaje, mediaUrl) {
         return 'No se encontro tu registro. Contacta a Mota-Engil.';
       }
 
-      const valido = await bcrypt.compare(mensaje, residente.pin_hash);
+      const valido = await require('bcryptjs').compare(mensaje, residente.pin_hash);
       if (!valido) {
         await clearSession(telefono);
         return 'PIN incorrecto. Operacion cancelada.';
@@ -91,7 +91,7 @@ async function handleResidenteMessage(telefono, mensaje, mediaUrl) {
         return 'El PIN debe tener 4 a 6 digitos. Intenta otra vez.';
       }
 
-      const nuevoHash = await bcrypt.hash(nuevoPin, 12);
+      const nuevoHash = await require('bcryptjs').hash(nuevoPin, 12);
       await supabase
         .from('residentes')
         .update({ pin_hash: nuevoHash })
