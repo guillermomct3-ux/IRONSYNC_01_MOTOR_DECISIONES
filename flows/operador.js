@@ -144,7 +144,7 @@ async function activarCuenta(telefono, operador, msg) {
   const pin = msg.replace(/\D/g, "");
 
   if (pin.length < 4 || pin.length > 6) {
-    return "El PIN debe tener 4 a 6 d\u00edgitos.\nEjemplo: 1234";
+    return "Manda 4 n�meros.\nEjemplo: 3847";
   }
 
   const pinHash = await hashearPin(pin);
@@ -159,15 +159,15 @@ async function activarCuenta(telefono, operador, msg) {
   const asignaciones = await getAsignacionesOperador(operador.id);
   const maquina = asignaciones.length > 0 ? asignaciones[0].equipos : null;
 
-  let respuesta = "\u2705 Cuenta activada.\n";
+  let respuesta = "Cuenta activada.\n";
   if (maquina) {
-    respuesta += "Tu m\u00e1quina: " + (maquina.alias || maquina.codigo);
+    respuesta += "Tu m�quina: " + (maquina.alias || maquina.codigo);
     if (maquina.alias && maquina.codigo) {
-      respuesta += " \u00b7 " + maquina.codigo;
+      respuesta += " � " + maquina.codigo;
     }
     respuesta += "\n";
   }
-  respuesta += "\nPara iniciar turno manda: INICIO";
+  respuesta += "\nPara empezar manda:\nINICIO";
   return respuesta;
 }
 
@@ -245,7 +245,7 @@ async function cmdInicio(telefono, operador, upper) {
           equipo_codigo: asig.equipos.codigo,
           horometro_inicio: horometro
         });
-        return "Manda foto del contador.\nSi no puedes, escribe: SIN FOTO";
+        return "Manda foto del contador.\nSi no puedes, manda el n�mero que ves.";
       }
     }
   }
@@ -258,7 +258,12 @@ async function cmdInicio(telefono, operador, upper) {
       equipo_alias: eq.alias,
       equipo_codigo: eq.codigo
     });
-    return (eq.alias || eq.codigo) + " \u00b7 contador inicial.\nEjemplo: 5690";
+    const saludo1 = getSaludoDelDia();
+    const { data: ut1 } = await supabase.from('turnos').select('horometro_fin').eq('operador_id', operador.id).eq('equipo_id', eq.id).eq('estado', 'cerrado').order('fin', { ascending: false }).limit(1).maybeSingle();
+    if (ut1 && ut1.horometro_fin) {
+      return saludo1 + "\n\nLa �ltima vez dejaste la " + (eq.alias || eq.codigo) + " en " + ut1.horometro_fin + " hrs.\n�Arrancamos con ese n�mero? Manda OK o el contador actual.";
+    }
+    return saludo1 + "\n\n" + (eq.alias || eq.codigo) + " � contador inicial.\nEjemplo: 5690";
   }
 
   let lista = "\u00bfQu\u00e9 m\u00e1quina?";
@@ -328,27 +333,41 @@ async function continuarFlujo(telefono, session, msg, mediaUrl) {
         asignacion_id: sel.id, equipo_id: sel.equipo_id,
         equipo_alias: sel.alias, equipo_codigo: sel.codigo
       });
-      return (sel.alias || sel.codigo) + " \u00b7 contador inicial.\nEjemplo: 5690";
+      const saludo2 = getSaludoDelDia();
+          const { data: ut2 } = await supabase.from('turnos').select('horometro_fin').eq('operador_id', operador.id).eq('equipo_id', sel.equipo_id).eq('estado', 'cerrado').order('fin', { ascending: false }).limit(1).maybeSingle();
+          if (ut2 && ut2.horometro_fin) {
+            return saludo2 + "\n\nLa �ltima vez dejaste la " + (sel.alias || sel.codigo) + " en " + ut2.horometro_fin + " hrs.\n�Arrancamos con ese n�mero? Manda OK o el contador actual.";
+          }
+          return saludo2 + "\n\n" + (sel.alias || sel.codigo) + " � contador inicial.\nEjemplo: 5690";
 
     case "esperando_horometro_inicio":
+      if (upper === "OK") {
+        const { data: utOk } = await supabase.from("turnos").select("horometro_fin").eq("operador_id", operador.id).eq("equipo_id", datos.equipo_id).eq("estado", "cerrado").order("fin", { ascending: false }).limit(1).maybeSingle();
+        if (utOk && utOk.horometro_fin) {
+          datos.horometro_inicio = utOk.horometro_fin;
+          await saveSession(telefono, "operador", "esperando_foto_inicio", datos);
+          return "\u2705 Turno abierto \u00b7 " + (datos.equipo_alias || datos.equipo_codigo) + " \u00b7 " + utOk.horometro_fin + " hrs.\n\nToma foto del contador.\nSi no puedes, manda el n\u00famero que ves.";
+        }
+        return "No tengo un contador anterior.\nManda el n\u00famero del contador.\nEjemplo: 5690";
+      }
       const h = parseFloat(msg);
       if (isNaN(h)) return "Manda solo el n\u00famero del contador.\nEjemplo: 5690";
       datos.horometro_inicio = h;
       await saveSession(telefono, "operador", "esperando_foto_inicio", datos);
-      return "Manda foto del contador.\nSi no puedes, escribe: SIN FOTO";
+      return "Manda foto del contador.\nSi no puedes, manda el n�mero que ves.";
 
     case "esperando_foto_inicio":
       if (!mediaUrl && msg) {
-        if (upper === "SIN FOTO" || upper === "NO") {
+        if (upper === "el n�mero que ves" || upper === "NO") {
           const op = await getOperadorByTelefono(telefono);
           return await abrirTurno(telefono, op,
             { id: datos.asignacion_id, equipos: { id: datos.equipo_id, alias: datos.equipo_alias, codigo: datos.equipo_codigo } },
             datos.horometro_inicio, null, true);
         }
-        return "Eso no es una foto \ud83d\udcf7\n\nToma una foto del contador.\nSi no puedes, escribe: SIN FOTO";
+        return "Eso no es una foto \ud83d\udcf7\n\nToma una foto del contador.\nSi no puedes, manda el n�mero que ves.";
       }
       if (!mediaUrl && !msg) {
-        return "Esperando foto del contador.\nSi no puedes, escribe: SIN FOTO";
+        return "Esperando foto del contador.\nSi no puedes, manda el n�mero que ves.";
       }
       const opFoto = await getOperadorByTelefono(telefono);
       return await abrirTurno(telefono, opFoto,
@@ -381,7 +400,7 @@ async function continuarFlujo(telefono, session, msg, mediaUrl) {
         horometro_inicio: datos.horometro_inicio,
         evento_inicio: new Date().toISOString()
       });
-      return "\u2705 Falla registrada: " + msg + "\nManda REANUDA cuando sigas.";
+      return "\u2705 Falla registrada: " + msg + "\nCuando la m�quina arranque manda:\nREANUDA.";
 
     case "esperando_reanuda":
       if (upper === "REANUDA") {
@@ -406,17 +425,17 @@ async function continuarFlujo(telefono, session, msg, mediaUrl) {
       }
       datos.horometro_fin = hf;
       await saveSession(telefono, "operador", "esperando_foto_fin", datos);
-      return "Manda foto del contador final.\nSi no puedes, escribe: SIN FOTO";
+      return "Manda foto del contador final.\nSi no puedes, manda el n�mero que ves.";
 
     case "esperando_foto_fin":
       if (!mediaUrl && msg) {
-        if (upper === "SIN FOTO" || upper === "NO") {
+        if (upper === "el n�mero que ves" || upper === "NO") {
           return await cerrarTurno(telefono, datos, null, true);
         }
-        return "Eso no es una foto \ud83d\udcf7\nToma una foto del contador final.\nSi no puedes, escribe: SIN FOTO";
+        return "Eso no es una foto \ud83d\udcf7\nToma una foto del contador final.\nSi no puedes, manda el n�mero que ves.";
       }
       if (!mediaUrl && !msg) {
-        return "Esperando foto del contador final.\nSi no puedes, escribe: SIN FOTO";
+        return "Esperando foto del contador final.\nSi no puedes, manda el n�mero que ves.";
       }
       return await cerrarTurno(telefono, datos, mediaUrl, false);
 
@@ -471,7 +490,7 @@ async function abrirTurno(telefono, operador, asignacion, horometro, fotoUrl, si
 
     let r = "\u2705 Turno abierto \u00b7 " + (equipo.alias || equipo.codigo) + " \u00b7 " + horometro + " hrs.";
     if (sinFoto) r += "\n\u26a0\ufe0f Sin foto de inicio.";
-    r += "\n\nAl terminar manda FIN.";
+    r += "\n\nTrabaja normal. Cuando termines manda:\nFIN.";
     return r;
 
   } catch (error) {
@@ -517,7 +536,7 @@ async function registrarParo(telefono, datos, tipoEvento, motivo) {
     horometro_inicio: datos.horometro_inicio,
     evento_inicio: new Date().toISOString()
   });
-  return "\u2705 Paro registrado \u00b7 " + motivo + "\nManda REANUDA cuando sigas.";
+  return "\u2705 Paro registrado \u00b7 " + motivo + "\nCuando la m�quina arranque manda:\nREANUDA.";
 }
 
 async function cmdFalla(telefono, operador) {

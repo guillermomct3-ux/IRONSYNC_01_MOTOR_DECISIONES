@@ -103,6 +103,10 @@ async function handleAdminExistente(telefono, empresa, msg) {
     return mostrarAyudaAdmin();
   }
 
+  if (upper === "STATUS") {
+    return await mostrarEstadoActivacion(empresa.id);
+  }
+
   return "Hola " + empresa.admin_nombre + " \ud83d\udc4b\n\n\u00bfQu\u00e9 quieres hacer?\n\n1. Registrar m\u00e1quina\n2. Registrar operador\n3. Ver estado\n4. Ayuda";
 }
 
@@ -373,6 +377,34 @@ async function mostrarEstado(empresaId) {
     estado += "\n  \u2022 " + op.nombre;
   });
   return estado;
+}
+
+async function mostrarEstadoActivacion(empresaId) {
+  const operadores = await getOperadoresByEmpresa(empresaId);
+
+  let activos = 0;
+  let pendientes = 0;
+
+  let reporte = "Estado de activacion:\n";
+
+  operadores.forEach(function(op) {
+    const activo = op.pin && op.pin.length > 0;
+    if (activo) {
+      reporte += "\n? " + op.nombre + " - activo";
+      activos++;
+    } else {
+      reporte += "\n? " + op.nombre + " - pendiente";
+      pendientes++;
+    }
+  });
+
+  reporte += "\n\n" + activos + " de " + operadores.length + " activos.";
+
+  if (pendientes > 0) {
+    reporte += "\n\nMandales un mensaje a los pendientes para que pongan su PIN.";
+  }
+
+  return reporte;
 }
 
 async function mostrarResumen(empresaId) {
