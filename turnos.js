@@ -228,10 +228,32 @@ async function procesarInicioTurno(from, texto) {
     turnos.push(nuevoTurno);
 
     let turnoSupabaseData = null;
+    // FIX: Buscar empresa_id del operador
+    let empresaIdTurno = null;
+    try {
+      const { data: opData } = await supabase
+        .from('operadores')
+        .select('empresa_id')
+        .eq('telefono', from.replace('whatsapp:', ''))
+        .maybeSingle();
+      if (opData && opData.empresa_id) empresaIdTurno = opData.empresa_id;
+    } catch(e) {}
+    if (!empresaIdTurno) {
+      try {
+        const { data: userData } = await supabase
+          .from('usuarios')
+          .select('empresa_id')
+          .eq('telefono', from.replace('whatsapp:', ''))
+          .maybeSingle();
+        if (userData && userData.empresa_id) empresaIdTurno = userData.empresa_id;
+      } catch(e) {}
+    }
+    console.log('[EMPRESA_ID_LOOKUP]', { from: from, empresaId: empresaIdTurno });
     try {
       const { data: turnoSupabase, error: errorInsert } = await supabase
         .from('turnos')
         .insert({
+          empresa_id: empresaIdTurno,
           operador_id: from,
           maquina: maquina,
           serie: serie,
@@ -391,7 +413,7 @@ async function procesarFinTurno(from, texto) {
     dispararPDFAsync({
       turnoId: turno.supabase_id,
       folio: turno.folio,
-      empresaId: null,
+      empresaId: empresaIdTurno,
       telefonoOperador: from,
       horasHorometro: horasTurno,
       horometroFinal: horometroFinal,
@@ -428,7 +450,7 @@ async function procesarFinTurno(from, texto) {
   dispararPDFAsync({
     turnoId: turno.supabase_id,
     folio: turno.folio,
-    empresaId: null,
+    empresaId: empresaIdTurno,
     telefonoOperador: from,
     horasHorometro: horasTurno,
     horometroFinal: horometroFinal,
