@@ -1,4 +1,4 @@
-const { dispararPDFAsync } = require("./lib/pdfAuto");
+﻿const { dispararPDFAsync } = require("./lib/pdfAuto");
 const fs = require('fs');
 const path = require('path');
 const validadores = require('./validadores');
@@ -267,7 +267,7 @@ async function procesarInicioTurno(from, texto) {
       console.error('Error Supabase inicio:', err.message);
     }
 
-    // FIX 11: Supervisor abre turno — preguntar operador
+    // FIX 11: Supervisor abre turno â€” preguntar operador
     if (esSupervisor) {
       nuevoTurno.esperando_nombre_operador = true;
       guardarTurnos(turnos);
@@ -394,6 +394,8 @@ async function procesarFinTurno(from, texto) {
       empresaId: null,
       telefonoOperador: from,
       horasHorometro: horasTurno,
+      horometroFinal: horometroFinal,
+      timestampFin: new Date().toISOString(),
       equipoTexto: turno.maquina || "equipo"
     });
 
@@ -429,6 +431,8 @@ async function procesarFinTurno(from, texto) {
     empresaId: null,
     telefonoOperador: from,
     horasHorometro: horasTurno,
+    horometroFinal: horometroFinal,
+    timestampFin: new Date().toISOString(),
     equipoTexto: turno.maquina || "equipo"
   });
 
@@ -471,7 +475,7 @@ function procesarConfirmacionHorometro(from, texto) {
   const turno = obtenerTurnoActivo(turnos, from);
   if (!turno || !turno.esperando_confirmacion_horometro) return null;
 
-  if (textoNorm === 'si' || textoNorm === 'sí') {
+  if (textoNorm === 'si' || textoNorm === 'sÃ­') {
     const horometroFinal = turno.horometro_pendiente;
     const unidades = horometroFinal - turno.horometro_inicial;
     const horasTurno = 0;
