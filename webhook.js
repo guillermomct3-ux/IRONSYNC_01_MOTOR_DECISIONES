@@ -133,6 +133,36 @@ app.post('/webhook', async (req, res) => {
   const bodyVacio = !body || body.trim() === '';
 
   const _safeNorm = /^\d{4,6}$/.test(textoNorm) ? '****' : textoNorm; console.log('TEXTO NORMALIZADO:', _safeNorm);
+  // OVERRIDE LEGACY OPERADOR:
+  // Comandos operativos saltan admin/onboarding y van directo a turnos.
+  // Tolerancia a truncamiento: "NICIO"/"ICIO" -> "INICIO"
+  const textoOperadorRaw = (textoNorm || "").trim();
+  let textoOperador = textoOperadorRaw;
+  let bodyOperador = body;
+
+  if (/^(nicio|icio)\b/i.test(textoOperadorRaw)) {
+    textoOperador = textoOperadorRaw.replace(/^(nicio|icio)\b/i, "inicio");
+    bodyOperador = body.replace(/^\s*(nicio|icio)\b/i, "INICIO");
+  }
+
+  const esComandoLegacyOperador =
+    /^(inicio|fin|paro|reanuda|falla|horas)\b/i.test(textoOperador);
+
+  if (esComandoLegacyOperador) {
+    console.log("[WEBHOOK_LEGACY_OPERATOR_OVERRIDE]", {
+      from: from,
+      bodyOriginal: body,
+      bodyOperador: bodyOperador,
+      textoOperador: textoOperador
+    });
+
+    const { handleOperadorMessage } = require("./flows/operador");
+    const respuestaOverride = await handleOperadorMessage(from, bodyOperador, mediaUrl);
+    const twimlOverride = new twilio.twiml.MessagingResponse();
+    twimlOverride.message(respuestaOverride);
+    return res.type("text/xml").send(twimlOverride.toString());
+  }
+
   // OVERRIDE OPERADOR: comandos operativos ignoran sesion admin
   if (/^(inicio|fin|paro|reanuda|falla|horas|pdf)\b/i.test(texto)) {
     console.log('[WEBHOOK_OVERRIDE_OPERADOR]', { from, body });
