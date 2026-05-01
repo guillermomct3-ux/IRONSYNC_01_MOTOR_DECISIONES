@@ -133,6 +133,16 @@ app.post('/webhook', async (req, res) => {
   const bodyVacio = !body || body.trim() === '';
 
   const _safeNorm = /^\d{4,6}$/.test(textoNorm) ? '****' : textoNorm; console.log('TEXTO NORMALIZADO:', _safeNorm);
+  // OVERRIDE OPERADOR: comandos operativos ignoran sesion admin
+  if (/^(inicio|fin|paro|reanuda|falla|horas|pdf)\b/i.test(texto)) {
+    console.log('[WEBHOOK_OVERRIDE_OPERADOR]', { from, body });
+    const { handleOperadorMessage } = require('./flows/operador');
+    const respuestaOp = await handleOperadorMessage(from, body, mediaUrl);
+    const twimlOp = new twilio.twiml.MessagingResponse();
+    twimlOp.message(respuestaOp);
+    return res.type('text/xml').send(twimlOp.toString());
+  }
+
 
   const twiml = new twilio.twiml.MessagingResponse();
   let respuesta = '';
