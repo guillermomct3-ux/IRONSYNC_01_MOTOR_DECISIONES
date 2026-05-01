@@ -610,9 +610,9 @@ async function cmdFin(telefono, operador) {
 
 async function cerrarTurno(telefono, datos, fotoUrl, sinFoto) {
   var horas = Math.round((datos.horometro_fin - datos.horometro_inicio) * 10) / 10;
+  var timestampFin = new Date().toISOString();
 
   try {
-    // Cerrar paro abierto (Grok fix R6: maybeSingle)
     var paroAbierto = await supabase
       .from("turno_eventos")
       .select("id, timestamp_inicio")
@@ -627,46 +627,45 @@ async function cerrarTurno(telefono, datos, fotoUrl, sinFoto) {
       );
       await supabase
         .from("turno_eventos")
-        .update({
-          timestamp_fin: new Date().toISOString(),
-          duracion_min: duracionMin
-        })
+        .update({ timestamp_fin: timestampFin, duracion_min: duracionMin })
         .eq("id", paroAbierto.data.id);
     }
 
-    // Actualizar turno a cerrado
-    await supabase.from("turnos").update({
-      fin: new Date().toISOString(),
-      horometro_fin: datos.horometro_fin,
-      horas_horometro: horas,
-      foto_fin_url: fotoUrl,
-      sin_foto_fin: sinFoto,
-      estado: "cerrado"
-    }).eq("id", datos.turno_id);
-
-    // Buscar datos del turno para PDF
-    var turnoData = await supabase
+    var updateResult = await supabase
       .from("turnos")
-      .select("folio, empresa_id")
+      .update({
+        fin: timestampFin,
+        horometro_fin: datos.horometro_fin,
+        horas_horometro: horas,
+        foto_fin_url: fotoUrl,
+        sin_foto_fin: sinFoto,
+        estado: "cerrado"
+      })
       .eq("id", datos.turno_id)
+      .select("folio, empresa_id")
       .single();
 
-    // Limpiar sesion
+    if (updateResult.error) {
+      console.error("ERROR_UPDATE_TURNO", updateResult.error);
+      return mensajes.errorConexion();
+    }
+
+    var turnoCerrado = updateResult.data;
     await clearSession(telefono);
 
-    // ChatGPT fix R1: "generandose" no "generado"
     var r = "\u2705 Turno cerrado \u00b7 " + horas + " hrs.";
     if (sinFoto) r += "\n\u26a0\ufe0f Sin foto de cierre.";
-    r += "\n\ud83d\udc44 Reporte gener\u00e1ndose...";
+    r += "\nReporte gener\u00e1ndose...";
 
-    // PDF AUTOMATICO (fire and forget)
-    if (turnoData && turnoData.data && turnoData.data.folio) {
+    if (turnoCerrado && turnoCerrado.folio) {
       dispararPDFAsync({
         turnoId: datos.turno_id,
-        folio: turnoData.data.folio,
-        empresaId: turnoData.data.empresa_id,
+        folio: turnoCerrado.folio,
+        empresaId: turnoCerrado.empresa_id,
         telefonoOperador: telefono,
         horasHorometro: horas,
+        horometroFinal: datos.horometro_fin,
+        timestampFin: timestampFin,
         equipoTexto: datos.equipo_alias || datos.equipo_codigo || "equipo"
       });
     }

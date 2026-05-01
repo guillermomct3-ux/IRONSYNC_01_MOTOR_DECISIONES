@@ -125,7 +125,7 @@ function calcularHashDatos(turno, eventos) {
 
 // GENERADOR PDF
 
-async function generarPDFReporteDiario(folio) {
+async function generarPDFReporteDiario(folio, datosOverride) {
   const { data: turnos, error: turnoError } = await supabase
     .from('turnos')
     .select('*')
@@ -137,6 +137,26 @@ async function generarPDFReporteDiario(folio) {
 
   if (turnoError || !turno) {
     throw new Error('Turno no encontrado con folio: ' + folio);
+  }
+
+  if (datosOverride) {
+    if (datosOverride.horometroFinal !== null && datosOverride.horometroFinal !== undefined) {
+      turno.horometro_fin = Number(datosOverride.horometroFinal);
+    }
+    if (datosOverride.horasHorometro !== null && datosOverride.horasHorometro !== undefined) {
+      turno.horas_horometro = Number(datosOverride.horasHorometro);
+    }
+    if (datosOverride.timestampFin) {
+      turno.fin = datosOverride.timestampFin;
+    }
+    console.log("[PDF_OVERRIDE_APLICADO]", { folio: folio });
+  }
+
+  if (datosOverride && turno.horometro_fin !== Number(datosOverride.horometroFinal)) {
+    console.error("[PDF_OVERRIDE_WARNING]", {
+      folio: folio,
+      mensaje: "BD tiene horometro_fin diferente al override"
+    });
   }
 
   const { data: eventos } = await supabase
