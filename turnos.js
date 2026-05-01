@@ -1,3 +1,4 @@
+const { dispararPDFAsync } = require("./lib/pdfAuto");
 const fs = require('fs');
 const path = require('path');
 const validadores = require('./validadores');
@@ -386,6 +387,16 @@ async function procesarFinTurno(from, texto) {
       });
     }
 
+    // PDF AUTOMATICO (fire and forget) - rango inusual
+    dispararPDFAsync({
+      turnoId: turno.supabase_id,
+      folio: turno.folio,
+      empresaId: null,
+      telefonoOperador: from,
+      horasHorometro: horasTurno,
+      equipoTexto: turno.maquina || "equipo"
+    });
+
     const turnosActualizados = cargarTurnos();
     const acumulado = validadores.calcularAcumuladoHoy(turnosActualizados, from);
     return FIN_RANGO_INUSUAL(horasTurno, acumulado, turno.horometro_inicial, horometroFinal);
@@ -410,6 +421,16 @@ async function procesarFinTurno(from, texto) {
       else console.log('Turno cerrado en Supabase:', turno.supabase_id);
     });
   }
+
+  // PDF AUTOMATICO (fire and forget)
+  dispararPDFAsync({
+    turnoId: turno.supabase_id,
+    folio: turno.folio,
+    empresaId: null,
+    telefonoOperador: from,
+    horasHorometro: horasTurno,
+    equipoTexto: turno.maquina || "equipo"
+  });
 
   const turnosActualizados = cargarTurnos();
   const acumulado = validadores.calcularAcumuladoHoy(turnosActualizados, from);
