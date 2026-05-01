@@ -90,6 +90,17 @@ function separarEquipoPegado(body) {
 cargarEquipos();
 
 app.post('/webhook', async (req, res) => {
+  // FIX: Ignorar callbacks de status de Twilio
+  if (req.body.MessageStatus && !req.body.Body) {
+    console.log('[TWILIO_STATUS_CALLBACK]', {
+      status: req.body.MessageStatus,
+      sid: req.body.MessageSid,
+      to: req.body.To,
+      from: req.body.From
+    });
+    return res.status(200).send('');
+  }
+
   const from = req.body.From;
   let body = (req.body.Body || '').split('\n')[0].split('\r')[0].trim();
 
@@ -132,7 +143,7 @@ app.post('/webhook', async (req, res) => {
 
     // UPG-13: Idempotencia � prevenir duplicados
     const messageSid = req.body.MessageSid || req.body.SmsMessageSid || null;
-    const idResult = await registrarMensajeEntrante(messageSid, telefonoNorm, body, mediaUrl);
+    const idResult = await registrarMensajeEntrante({ messageSid: messageSid, telefono: telefonoNorm, body: body, mediaUrl: mediaUrl });
     if (idResult.duplicado) {
       console.log("DUPLICADO detectado:", idResult.razon);
       return res.type('text/xml').send(twiml.toString());
