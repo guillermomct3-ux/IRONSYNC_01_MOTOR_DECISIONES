@@ -1,3 +1,4 @@
+const { dispararPDFAsync } = require("../lib/pdfAuto");
 const { createClient } = require("@supabase/supabase-js");
 const { getSession, saveSession, clearSession } = require("../lib/sesiones");
 const { normalizarE164 } = require("../lib/telefono");
@@ -608,29 +609,32 @@ async function cmdFin(telefono, operador) {
 }
 
 async function cerrarTurno(telefono, datos, fotoUrl, sinFoto) {
-  const horas = Math.round((datos.horometro_fin - datos.horometro_inicio) * 10) / 10;
+  var horas = Math.round((datos.horometro_fin - datos.horometro_inicio) * 10) / 10;
 
   try {
-    // FIX 5: Cerrar paro abierto antes de cerrar turno
-    const { data: paroAbierto } = await supabase
+    // Cerrar paro abierto (Grok fix R6: maybeSingle)
+    var paroAbierto = await supabase
       .from("turno_eventos")
       .select("id, timestamp_inicio")
       .eq("turno_id", datos.turno_id)
       .is("timestamp_fin", null)
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (paroAbierto) {
-      const duracionMin = Math.round((Date.now() - new Date(paroAbierto.timestamp_inicio).getTime()) / 60000);
+    if (paroAbierto && paroAbierto.data) {
+      var duracionMin = Math.round(
+        (Date.now() - new Date(paroAbierto.data.timestamp_inicio).getTime()) / 60000
+      );
       await supabase
         .from("turno_eventos")
         .update({
           timestamp_fin: new Date().toISOString(),
           duracion_min: duracionMin
         })
-        .eq("id", paroAbierto.id);
+        .eq("id", paroAbierto.data.id);
     }
 
+    // Actualizar turno a cerrado
     await supabase.from("turnos").update({
       fin: new Date().toISOString(),
       horometro_fin: datos.horometro_fin,
@@ -640,11 +644,33 @@ async function cerrarTurno(telefono, datos, fotoUrl, sinFoto) {
       estado: "cerrado"
     }).eq("id", datos.turno_id);
 
+    // Buscar datos del turno para PDF
+    var turnoData = await supabase
+      .from("turnos")
+      .select("folio, empresa_id")
+      .eq("id", datos.turno_id)
+      .single();
+
+    // Limpiar sesion
     await clearSession(telefono);
 
-    let r = "\u2705 Turno cerrado \u00b7 " + horas + " hrs.";
+    // ChatGPT fix R1: "generandose" no "generado"
+    var r = "\u2705 Turno cerrado \u00b7 " + horas + " hrs.";
     if (sinFoto) r += "\n\u26a0\ufe0f Sin foto de cierre.";
-    r += "\nReporte listo.";
+    r += "\n\ud83d\udc44 Reporte gener\u00e1ndose...";
+
+    // PDF AUTOMATICO (fire and forget)
+    if (turnoData && turnoData.data && turnoData.data.folio) {
+      dispararPDFAsync({
+        turnoId: datos.turno_id,
+        folio: turnoData.data.folio,
+        empresaId: turnoData.data.empresa_id,
+        telefonoOperador: telefono,
+        horasHorometro: horas,
+        equipoTexto: datos.equipo_alias || datos.equipo_codigo || "equipo"
+      });
+    }
+
     return r;
 
   } catch (error) {
