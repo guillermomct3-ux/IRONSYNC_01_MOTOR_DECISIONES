@@ -7,7 +7,7 @@ repo: "IRONSYNC_01_MOTOR_DECISIONES"
 memoria_oficial: "GitHub /docs/context"
 commit_estable_actual: "142c971"
 commit_mensaje: "fix: propagate empresa_id to fin turno pdf"
-agente_actual: "ninguno — reposo entre chats"
+agente_actual: "MiMo V2 + Guillermo — sesion activa"
 ultima_sesion: "2026-05-02 — MiMo V2 + Guillermo"
 
 stack_real:
