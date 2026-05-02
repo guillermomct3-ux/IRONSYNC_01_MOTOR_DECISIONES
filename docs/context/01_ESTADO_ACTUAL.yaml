@@ -1,0 +1,51 @@
+﻿# IronSync A — Estado Actual
+# Última actualización: 2026-05-03
+# Regla: si no está aquí, no está confirmado.
+
+proyecto: "IronSync A"
+repo: "IRONSYNC_01_MOTOR_DECISIONES"
+memoria_oficial: "GitHub /docs/context"
+commit_estable_actual: "c715073"
+commit_mensaje: "fix: propagate empresa_id to fin turno pdf"
+agente_actual: "ninguno — reposo entre chats"
+ultima_sesion: "2026-05-02 — MiMo V2 + Guillermo"
+
+stack_real:
+  backend: "Node.js + Express"
+  canal: "Twilio WhatsApp"
+  database: "Supabase"
+  storage: "Supabase Storage"
+  hosting: "Railway"
+  version_control: "GitHub"
+
+estado_funcional:
+  inicio: "funciona"
+  fin: "funciona"
+  pdf_automatico: "funciona / no bloquea FIN"
+  railway: "deploy correcto"
+  whatsapp: "probado en flujo real"
+  supabase: "recibe turnos/eventos"
+
+ultima_prueba_real:
+  fecha: "2026-05-02"
+  flujo: "INICIO CAT336 5900 -> FIN CAT336 5901"
+  resultado: "PASS"
+  bug_cerrado: "BUG-001 empresaIdTurno fuera de scope en FIN"
+
+riesgos_abiertos:
+  - id: "R-PERSISTENCIA-DUAL"
+    descripcion: "turnos_activos.json + Supabase pueden crear split-brain"
+    estado: "abierto"
+  - id: "R-CONTEXTO"
+    descripcion: "AIs pierden contexto entre chats si no leen /docs/context"
+    estado: "en mitigacion"
+  - id: "R-SCRIPTS-TEMP"
+    descripcion: "fix*.js y backups no trackeados en raíz local"
+    estado: "no tocar todavía"
+
+metodo_actual:
+  fase: "Definir preservación de contexto antes de más código"
+  objetivo: "Crear capa mínima /docs/context"
+  prohibido: ["codigo", "fixes", "deploy", "limpieza de scripts", "features nuevas"]
+
+siguiente_accion: "Commit 00_LEER_PRIMERO + 01_ESTADO_ACTUAL. Después: crear 10_PROTOCOLO_ARRANQUE_CIERRE.md"
