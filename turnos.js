@@ -201,6 +201,7 @@ async function procesarInicioTurno(from, texto) {
       folio,
       maquina,
       serie,
+      empresa_id: null,
       horometro_inicial: horometro,
       horometro_final: null,
       unidades_horometro: null,
@@ -249,6 +250,7 @@ async function procesarInicioTurno(from, texto) {
       } catch(e) {}
     }
     console.log('[EMPRESA_ID_LOOKUP]', { from: from, empresaId: empresaIdTurno });
+    nuevoTurno.empresa_id = empresaIdTurno;
     try {
       const { data: turnoSupabase, error: errorInsert } = await supabase
         .from('turnos')
@@ -271,7 +273,7 @@ async function procesarInicioTurno(from, texto) {
           tiene_anomalia: false,
           origen_datos: 'whatsapp'
         })
-        .select('id')
+        .select('id, empresa_id')
         .single();
 
       if (errorInsert) {
@@ -282,6 +284,7 @@ async function procesarInicioTurno(from, texto) {
         return 'Error al crear turno. Intenta de nuevo o habla con Ulises.';
       } else {
         nuevoTurno.supabase_id = turnoSupabase.id;
+        nuevoTurno.empresa_id = turnoSupabase.empresa_id || empresaIdTurno;
         turnoSupabaseData = turnoSupabase;
         console.log('Turno guardado en Supabase:', turnoSupabase.id);
       }
@@ -334,6 +337,7 @@ async function procesarFinTurno(from, texto) {
       folio: turnoSupabase.folio,
       maquina: turnoSupabase.maquina,
       serie: turnoSupabase.serie || 'SIN-SERIE',
+      empresa_id: turnoSupabase.empresa_id || null,
       horometro_inicial: turnoSupabase.horometro_inicio,
       horometro_final: null,
       unidades_horometro: null,
@@ -413,7 +417,7 @@ async function procesarFinTurno(from, texto) {
     dispararPDFAsync({
       turnoId: turno.supabase_id,
       folio: turno.folio,
-      empresaId: empresaIdTurno,
+      empresaId: turno.empresa_id || null,
       telefonoOperador: from,
       horasHorometro: horasTurno,
       horometroFinal: horometroFinal,
@@ -450,7 +454,7 @@ async function procesarFinTurno(from, texto) {
   dispararPDFAsync({
     turnoId: turno.supabase_id,
     folio: turno.folio,
-    empresaId: empresaIdTurno,
+    empresaId: turno.empresa_id || null,
     telefonoOperador: from,
     horasHorometro: horasTurno,
     horometroFinal: horometroFinal,
