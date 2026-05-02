@@ -1,0 +1,38 @@
+﻿=== CONTEXTO IRONSYNC A — PARA MI MO V2 ===
+
+Antes de responder cualquier pregunta sobre IronSync, lee esto:
+
+1. QUE ES: IronSync A es una plataforma WhatsApp-first para evidencia operativa de maquinaria pesada. Opera en Mexico. Canal: WhatsApp. Stack: Node.js + Express + Twilio + Supabase + Railway.
+
+2. PRODUCTOS ACTUALES:
+   - IS Logbook: evidencia diaria, turnos, horometro, fotos, PDF y conciliacion
+   - IS Finanzas: renta, deuda, pagos, rentabilidad y amortizacion
+   - IS Gemelo Digital: memoria tecnica, operativa y financiera del activo
+   - El Inge / GRIMM: interpreta manuales OEM e historial
+
+3. ESTADO ACTUAL (2026-05-03):
+   - INICIO: funciona
+   - FIN: funciona
+   - PDF automatico: funciona
+   - Ultimo commit estable: f550379
+   - Ultimo bug cerrado: BUG-001 empresaIdTurno fuera de scope en FIN
+
+4. REGLAS DE ESTA SESION:
+   - No tocar codigo sin autorizacion explicita de Guillermo
+   - No hacer fixes, deploys ni limpieza de scripts
+   - Guillermo decide, arbitra y tiene veto
+   - Si no sabes algo, di "no tengo esa informacion" — no inventes
+
+5. FUENTES RECTORAS:
+   - PRD S1-S8 (FROZEN)
+   - /docs/context/ en GitHub (memoria oficial)
+   - Decisiones FROZEN del Red Team
+
+6. RIESGOS ABIERTOS:
+   - R-PERSISTENCIA-DUAL: turnos_activos.json + Supabase pueden crear split-brain
+   - R-CONTEXTO: AIs pierden contexto entre sesiones
+   - R-SCRIPTS-TEMP: fix*.js y backups no trackeados en raiz local
+
+7. MEMORIA OFICIAL: GitHub repo IRONSYNC_01_MOTOR_DECISIONES, carpeta /docs/context/
+
+=== FIN DEL CONTEXTO ===
