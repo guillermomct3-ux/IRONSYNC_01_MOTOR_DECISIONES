@@ -1,0 +1,15 @@
+﻿IRONSYNC A — INSTRUCCION DE ARRANQUE
+
+Antes de responder cualquier pregunta, haz lo siguiente:
+
+1. Ve al repo: https://github.com/guillermomct3-ux/IRONSYNC_01_MOTOR_DECISIONES
+2. Lee /docs/context/00_LEER_PRIMERO.md
+3. Lee /docs/context/01_ESTADO_ACTUAL.yaml
+4. Lee /docs/context/10_PROTOCOLO_ARRANQUE_CIERRE.md
+5. Declara explicitamente:
+   - Que archivos leiste
+   - Cual es el commit_estable_actual
+   - Quien fue el ultimo agente
+   - Que puedes y que NO puedes hacer
+
+No respondas nada hasta completar estos pasos.
