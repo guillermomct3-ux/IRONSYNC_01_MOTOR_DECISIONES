@@ -48,4 +48,4 @@ metodo_actual:
   objetivo: "Crear capa mínima /docs/context"
   prohibido: ["codigo", "fixes", "deploy", "limpieza de scripts", "features nuevas"]
 
-siguiente_accion: "Commit 00_LEER_PRIMERO + 01_ESTADO_ACTUAL. Después: crear 10_PROTOCOLO_ARRANQUE_CIERRE.md"
+siguiente_accion: "Crear 13_CHANGELOG.md — registrar historial de cambios al contexto"
