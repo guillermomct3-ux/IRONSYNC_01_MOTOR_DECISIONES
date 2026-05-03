@@ -1,0 +1,183 @@
+﻿# IRONSYNC A — BUG TRACKER v1.0
+# Fecha: 2026-05-03
+# Estado: BORRADOR — pendiente revisión final
+# Repo: IRONSYNC_01_MOTOR_DECISIONES
+# Fuente: 04_REBASELINE_REPORT.md + 14_INVENTARIO_RAIZ_REPO.md + 05_MASTER_BASELINE.md
+# Regla: un bug, una causa, un fix, una prueba, un estado.
+
+version: "1.0"
+documento: "08_BUG_TRACKER.yaml"
+proposito: "Registro oficial de bugs de IronSync A para evitar que bugs vivan solo en memoria de chat."
+estado_documento: "BORRADOR — pendiente revisión final"
+
+reglas:
+  - "No incluir riesgos puros; esos van en 09_RISK_REGISTER.yaml."
+  - "No incluir features; esas van en PRD o roadmap."
+  - "No incluir tareas de limpieza sin bug asociado."
+  - "No incluir código ni pseudocódigo."
+  - "Todo bug debe tener ID, causa, fix o fix pendiente, prueba y estado."
+
+bugs:
+  - id: "BUG-001"
+    titulo: "empresaIdTurno fuera de scope en FIN"
+    estado: "CERRADO"
+    severidad: "alta"
+    categoria: "flujo_fin"
+    descripcion: "FIN fallaba porque empresaIdTurno no estaba disponible en el scope donde se disparaba el PDF automático."
+    causa_raiz: "empresaIdTurno se resolvía en procesarInicioTurno, pero no se propagaba de forma confiable al objeto turno usado en FIN/PDF."
+    sintoma: "El cierre FIN podía fallar o disparar PDF sin empresa_id correcto."
+    fix_aplicado: "Propagar empresa_id al turno, pedir empresa_id en select de Supabase y usar turno.empresa_id en dispararPDFAsync."
+    commit_fix: "c715073"
+    prueba_minima: "INICIO CAT336 5900 → FIN CAT336 5901 con turno cerrado correctamente."
+    evidencia:
+      - "04_REBASELINE_REPORT.md"
+      - "Historial de ejecución MiMo V2 + Guillermo"
+    tocar_ahora: false
+
+  - id: "BUG-002"
+    titulo: "Persistencia dual JSON + Supabase"
+    estado: "ABIERTO"
+    severidad: "critica"
+    categoria: "persistencia"
+    descripcion: "El sistema mantiene estado en JSON local y en Supabase, creando riesgo de split-brain."
+    causa_raiz: "Coexistencia de archivos DATA_LOCAL con base Supabase como fuente operativa."
+    sintoma: "Un turno puede aparecer abierto en JSON y cerrado en Supabase, o viceversa."
+    archivos_relacionados:
+      - "turnos_activos.json"
+      - "bitacora.json"
+      - "eventos.json"
+      - "reporte_turno.json"
+      - "turnos_activos.json.corrupto"
+    evidencia_historica: "turnos_activos.json.corrupto confirma fallo histórico de persistencia local."
+    fix_propuesto: "Diseñar arquitectura de persistencia única: Supabase como fuente de verdad o JSON degradado formalmente a cache no autoritativa."
+    prueba_minima: "Turnos INICIO→FIN sobreviven reinicio Railway sin divergencia entre fuentes."
+    riesgo_asociado: "R-PERSISTENCIA-DUAL"
+    evidencia:
+      - "14_INVENTARIO_RAIZ_REPO.md"
+      - "04_REBASELINE_REPORT.md"
+      - "05_MASTER_BASELINE.md"
+    tocar_ahora: false
+
+  - id: "BUG-003"
+    titulo: "Scripts temporales fix_*.js en raíz"
+    estado: "ABIERTO"
+    severidad: "alta"
+    categoria: "repo_higiene"
+    descripcion: "La raíz del repo contiene múltiples scripts temporales fix_*.js que pueden confundir ejecución y contaminar commits."
+    causa_raiz: "Ejecución reactiva previa sin fase formal de archivo, clasificación o limpieza."
+    sintoma: "Riesgo de ejecutar script obsoleto, agregarlo por accidente o usarlo como fuente falsa de verdad."
+    evidencia_cuantitativa: "58 archivos TEMPORAL_FIX en raíz."
+    fix_propuesto: "Clasificar scripts A/B/C en fase posterior de limpieza controlada."
+    prueba_minima: "Inventario aprobado y plan de limpieza controlada sin scripts temporales activos en raíz."
+    riesgo_asociado: "R-SCRIPTS-TEMP"
+    evidencia:
+      - "14_INVENTARIO_RAIZ_REPO.md"
+      - "05_MASTER_BASELINE.md"
+    tocar_ahora: false
+
+  - id: "BUG-004"
+    titulo: "Raíz repo desordenada"
+    estado: "ABIERTO"
+    severidad: "alta"
+    categoria: "repo_higiene"
+    descripcion: "La raíz del repo tiene deuda técnica alta y mezcla producción, backups, fixes, datos locales, PDFs de prueba y documentos antiguos."
+    causa_raiz: "Ausencia previa de reglas de clasificación, archivo y commit controlado durante Sprint 0."
+    sintoma: "Dificulta auditoría, genera riesgo de git add accidental y confunde a nuevas AIs o humanos."
+    evidencia_cuantitativa:
+      archivos_raiz_visibles_localmente: 93
+      carpetas_raiz_visibles_localmente: 15
+      temporal_fix: 58
+      data_local: 5
+      backup: 6
+      pdf_prueba: 2
+      documentos_estado: 8
+      artefactos_terminal: 3
+    fix_propuesto: "Diseñar plan de limpieza controlada posterior con clasificación A/B/C y aprobación de Guillermo."
+    prueba_minima: "Raíz reducida a estructura aprobada sin pérdida de historia ni contaminación de commits."
+    riesgo_asociado: "R-RAIZ-DESORDENADA"
+    evidencia:
+      - "14_INVENTARIO_RAIZ_REPO.md"
+      - "05_MASTER_BASELINE.md"
+    tocar_ahora: false
+
+  - id: "BUG-005"
+    titulo: "Versiones duales webhook/backups sin destino claro"
+    estado: "ABIERTO"
+    severidad: "media"
+    categoria: "versionado"
+    descripcion: "Existen variantes de webhook y backups en raíz sin clasificación formal de cuál es activo, histórico o eliminable."
+    causa_raiz: "Backups y versiones temporales quedaron en raíz durante correcciones previas."
+    sintoma: "Riesgo de que una AI o humano tome una versión incorrecta como referencia."
+    archivos_relacionados:
+      - "webhook.js"
+      - "webhook_anterior.js"
+      - "webhook_backup.js"
+      - "webhook_test.js"
+      - "turnos_backup_pre_fix_empresaIdTurno.js"
+    fix_propuesto: "Clasificar versiones en fase posterior: producción, backup histórico, eliminar, archivar."
+    prueba_minima: "Documento de clasificación aprobado y raíz sin backups ambiguos."
+    riesgo_asociado: "R-VERSIONES-DUALES"
+    evidencia:
+      - "14_INVENTARIO_RAIZ_REPO.md"
+      - "05_MASTER_BASELINE.md"
+    tocar_ahora: false
+
+candidatos_por_validar:
+  - id: "CANDIDATO-001"
+    titulo: "PDF generado con datos PRE-UPDATE / posible race condition"
+    origen: "Claude"
+    estado: "POR_VALIDAR"
+    motivo_no_oficial: "Requiere evidencia actual, reproducción y archivo afectado antes de registrarse como bug oficial."
+    posible_sintoma: "PDF muestra datos previos al cierre, horometro_fin null o valores inconsistentes."
+    accion_siguiente: "Validar contra flujo real y logs antes de promover a BUG-006."
+
+  - id: "CANDIDATO-002"
+    titulo: "Hash SHA-256 truncado a 32 caracteres en PDF footer"
+    origen: "Claude"
+    estado: "POR_VALIDAR"
+    motivo_no_oficial: "Requiere confirmar si el comportamiento existe en el código actual."
+    posible_sintoma: "Hash de PDF no coincide con almacenamiento o validación esperada."
+    accion_siguiente: "Validar código y PDF generado antes de promover."
+
+  - id: "CANDIDATO-003"
+    titulo: "TWILIO_AUTH_TOKEN truncado o corrupto en Railway"
+    origen: "Claude"
+    estado: "POR_VALIDAR"
+    motivo_no_oficial: "Puede ser incidente de configuración, no bug de código."
+    posible_sintoma: "Authentication Error / invalid username."
+    accion_siguiente: "Validar estado actual de variables Railway sin exponer secretos."
+
+  - id: "CANDIDATO-004"
+    titulo: "Inconsistencia de payload WhatsApp en Railway"
+    origen: "Gemini"
+    estado: "POR_VALIDAR"
+    motivo_no_oficial: "Requiere caso reproducible y evidencia de payload."
+    posible_sintoma: "Webhook recibe estructura inesperada o falla parsing."
+    accion_siguiente: "Validar logs y payloads reales antes de promover."
+
+  - id: "CANDIDATO-005"
+    titulo: "Archivos 0 bytes con posible impacto funcional"
+    origen: "DeepSeek"
+    estado: "POR_VALIDAR"
+    motivo_no_oficial: "Hallazgo de inventario; falta confirmar impacto funcional."
+    archivos_relacionados:
+      - "pdfReporteDiario.js"
+      - "IRONSYNC_SPRINT0_FROZEN.txt"
+    accion_siguiente: "Determinar si son placeholders, basura o dependencias reales."
+
+riesgos_no_bugs:
+  - id: "R-ENV-LOCAL"
+    descripcion: ".env existe localmente pero no está trackeado por Git. Debe verificarse .gitignore sin exponer secretos."
+    destino: "09_RISK_REGISTER.yaml"
+  - id: "R-DUMP-CODIGO"
+    descripcion: "IRONSYNC_CODIGO_COMPLETO.txt puede crear segunda fuente de verdad del código."
+    destino: "09_RISK_REGISTER.yaml"
+  - id: "R-GIT-FORCE"
+    descripcion: "Artefactos terminal sugieren comandos peligrosos guardados como archivos."
+    destino: "09_RISK_REGISTER.yaml"
+
+proxima_accion_recomendada:
+  documento: "09_RISK_REGISTER.yaml"
+  razon: "Separar bugs confirmados de riesgos activos para evitar mezclar fallas reproducibles con condiciones de riesgo."
+
+nota_final: "Este documento NO autoriza código, fixes, deploy ni limpieza."
