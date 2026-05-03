@@ -32,3 +32,97 @@ Crear IRONSYNC_REBASELINE_REPORT_v1.0 para reconciliar:
 - PRD febrero
 - C0-C10 marzo
 - repo real mayo
+
+---
+
+## 2026-05-03 — Gobernanza documental base completada
+
+### Documentos creados y pusheados
+
+- 14_INVENTARIO_RAIZ_REPO.md → 70cd552
+- 04_REBASELINE_REPORT.md → b051b9c
+- 05_MASTER_BASELINE.md → 40bd0a4
+- 08_BUG_TRACKER.yaml → f2be4e5
+- 09_RISK_REGISTER.yaml → b9f1a8c
+- 11_DEV_PIPELINE.md → 31d46b5
+
+### Resultado
+
+Se completo la base documental minima para volver a ejecucion tecnica con metodo:
+
+1. Inventario raiz.
+2. Rebaseline.
+3. Master Baseline.
+4. Bug Tracker.
+5. Risk Register.
+6. Dev Pipeline.
+
+El repositorio queda clasificado como:
+
+IS Logbook Lite / Sprint 0 funcional con deuda tecnica alta
+
+### Auditoria integral del equipo
+
+Gemini, Grok, DeepSeek, GLM5 y ChatGPT validaron coherencia general de la reorganizacion documental.
+
+Dictamen consolidado:
+
+- GO para la reorganizacion documental.
+- ITERAR antes de abrir persistencia unica.
+
+No se detectaron contradicciones graves.
+
+El hueco principal detectado fue la necesidad de actualizar:
+
+- 01_ESTADO_ACTUAL.yaml
+- 13_CHANGELOG.md
+
+### Restricciones respetadas
+
+- 0 codigo tocado.
+- 0 fixes ejecutados.
+- 0 deploy.
+- 0 limpieza.
+- 0 archivos movidos o borrados.
+
+### Riesgos principales abiertos
+
+- R-PERSISTENCIA-DUAL
+- R-CONTEXTO
+- R-SCRIPTS-TEMP
+- R-RAIZ-DESORDENADA
+- R-DUMP-CODIGO
+- R-GIT-FORCE
+- R-VERSIONES-DUALES
+- R-ENV-LOCAL
+- R-ARCHIVOS-VACIOS
+
+### Bugs principales
+
+Cerrado:
+
+- BUG-001 — empresaIdTurno fuera de scope en FIN.
+
+Abiertos:
+
+- BUG-002 — Persistencia dual JSON + Supabase.
+- BUG-003 — Scripts temporales / fix_*.js en raiz.
+- BUG-004 — Raiz repo desordenada.
+- BUG-005 — Versiones duales webhook/backups.
+
+### Siguiente accion
+
+Disenar arquitectura de persistencia unica para:
+BUG-002 / R-PERSISTENCIA-DUAL
+antes de tocar codigo.
+
+### Nota metodologica
+
+La ejecucion tecnica queda bloqueada hasta que exista:
+
+- Plan del Dia.
+- Diseno de persistencia unica.
+- Archivos permitidos y prohibidos.
+- Prueba minima.
+- Rollback.
+- Aprobacion explicita de Guillermo.
