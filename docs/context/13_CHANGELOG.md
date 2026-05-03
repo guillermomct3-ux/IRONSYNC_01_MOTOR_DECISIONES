@@ -126,3 +126,27 @@ La ejecucion tecnica queda bloqueada hasta que exista:
 - Prueba minima.
 - Rollback.
 - Aprobacion explicita de Guillermo.
+
+---
+
+## 2026-05-03 — Agent Strategy / Synthetic Field Lab
+
+- Se consolido el Timing Review del equipo sobre Synthetic Field Lab.
+- Decision oficial: DOCUMENTAR AHORA / EJECUTAR DESPUES DE PERSISTENCIA UNICA + STAGING FUNCIONAL.
+- Se aprueba conceptualmente la creacion de:
+  - docs/context/15_AGENT_STRATEGY_BRIEF.md
+  - docs/agents/ como carpeta pasiva Markdown.
+- Se bloquea cualquier ejecucion tecnica de agentes hasta:
+  - BUG-002 cerrado;
+  - persistencia unica implementada;
+  - staging funcional;
+  - AI Ops Budget aprobado;
+  - PASS/FAIL estructurado;
+  - Dev Pipeline extendido para agentes;
+  - autorizacion explicita de Guillermo.
+- Ruta futura de motor:
+  - Manual Markdown;
+  - Workspace Agents;
+  - LangGraph/CrewAI.
+- Primer agente futuro recomendado:
+  - operador_ramon_synthetic.md dentro del Synthetic Operator Lab.

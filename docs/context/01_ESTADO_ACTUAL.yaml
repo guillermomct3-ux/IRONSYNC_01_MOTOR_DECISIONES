@@ -131,3 +131,38 @@ metodo_actual:
     - "git add ."
 
 siguiente_accion: "Diseñar arquitectura de persistencia única para BUG-002 / R-PERSISTENCIA-DUAL antes de tocar código"
+
+agent_strategy:
+  status: APPROVED_CONCEPTUAL
+  execution_status: BLOCKED
+  timing_decision: "Documentar ahora / ejecutar despues de persistencia unica + staging funcional"
+  primary_document: "docs/context/15_AGENT_STRATEGY_BRIEF.md"
+  agent_library_path: "docs/agents/"
+  allowed_now:
+    - "Documentar vision"
+    - "Crear carpeta pasiva Markdown"
+    - "Disenar prompts y escenarios"
+    - "Definir PASS/FAIL conceptual"
+  blocked_now:
+    - "Ejecutar agentes"
+    - "Conectar Workspace Agents"
+    - "Conectar Supabase"
+    - "Conectar Twilio"
+    - "Conectar Railway"
+    - "Consumir AI Ops Budget"
+    - "Modificar produccion"
+  unlock_conditions:
+    - "BUG-002 Persistencia Dual cerrado"
+    - "Persistencia unica implementada"
+    - "Supabase como fuente unica de verdad"
+    - "Staging environment funcional"
+    - "Staging DB aislada con fake data"
+    - "AI Ops Budget aprobado"
+    - "PASS/FAIL estructurado"
+    - "Dev Pipeline extendido para agentes"
+    - "Autorizacion explicita de Guillermo"
+  first_future_agent: "operador_ramon_synthetic.md"
+  future_engine_path:
+    - "Manual Markdown"
+    - "Workspace Agents"
+    - "LangGraph/CrewAI"
