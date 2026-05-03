@@ -1,0 +1,200 @@
+﻿# IRONSYNC A — RISK REGISTER v1.0
+# Fecha: 2026-05-03
+# Estado: BORRADOR — pendiente revision final
+# Repo: IRONSYNC_01_MOTOR_DECISIONES
+# Fuente: 04_REBASELINE_REPORT.md + 14_INVENTARIO_RAIZ_REPO.md + 05_MASTER_BASELINE.md + 08_BUG_TRACKER.yaml
+# Regla: un riesgo, una causa, una mitigacion, un propietario operativo, un estado.
+
+version: "1.0"
+documento: "09_RISK_REGISTER.yaml"
+proposito: "Registro oficial de riesgos activos de IronSync A para separar condiciones de riesgo de bugs confirmados."
+estado_documento: "BORRADOR — pendiente revision final"
+
+reglas:
+  - "No incluir bugs reproducibles; esos van en 08_BUG_TRACKER.yaml."
+  - "No incluir features; esas van en PRD o roadmap."
+  - "No incluir tareas de limpieza sin fase aprobada."
+  - "No incluir codigo ni pseudocodigo."
+  - "Todo riesgo debe tener ID, descripcion, causa, impacto, mitigacion y estado."
+  - "Ningun riesgo se resuelve por impulso; requiere plan, aprobacion y ejecucion controlada."
+
+riesgos:
+  - id: "R-PERSISTENCIA-DUAL"
+    titulo: "Persistencia dual JSON + Supabase"
+    estado: "ABIERTO"
+    severidad: "critica"
+    probabilidad: "alta"
+    impacto: "critico"
+    categoria: "arquitectura_datos"
+    descripcion: "El sistema puede mantener estado operativo en archivos JSON locales y en Supabase al mismo tiempo."
+    causa: "Coexistencia de DATA_LOCAL en raiz con Supabase como base operativa."
+    consecuencia: "Puede generarse split-brain: una fuente indica turno abierto y otra fuente indica turno cerrado."
+    evidencia:
+      - "14_INVENTARIO_RAIZ_REPO.md: DATA_LOCAL"
+      - "08_BUG_TRACKER.yaml: BUG-002"
+      - "turnos_activos.json.corrupto como evidencia historica"
+    mitigacion: "Disenar arquitectura de persistencia unica: Supabase como fuente de verdad o JSON degradado formalmente a cache no autoritativa."
+    propietario_operativo: "Guillermo + MiMo V2 bajo plan tecnico aprobado"
+    tocar_ahora: false
+    proxima_accion: "Disenar documento de arquitectura de persistencia unica antes de tocar codigo."
+
+  - id: "R-CONTEXTO"
+    titulo: "Perdida de contexto entre chats y agentes"
+    estado: "EN_MITIGACION"
+    severidad: "alta"
+    probabilidad: "alta"
+    impacto: "alto"
+    categoria: "gobernanza"
+    descripcion: "Las AIs y humanos pueden operar con memoria parcial o desactualizada si no leen el contexto oficial."
+    causa: "Dependencia historica de memoria de chat, Estado Vivo pegado y contexto humano."
+    consecuencia: "Repeticion de decisiones, contradicciones, ejecucion reactiva y perdida de alineacion."
+    evidencia:
+      - "00_LEER_PRIMERO.md"
+      - "01_ESTADO_ACTUAL.yaml"
+      - "10_PROTOCOLO_ARRANQUE_CIERRE.md"
+      - "13_CHANGELOG.md"
+    mitigacion: "GitHub /docs/context como memoria oficial; toda AI declara archivos leidos antes de opinar."
+    propietario_operativo: "Guillermo + equipo AI"
+    tocar_ahora: false
+    proxima_accion: "Mantener actualizado 01_ESTADO_ACTUAL.yaml y 13_CHANGELOG.md al cierre de sesiones relevantes."
+
+  - id: "R-SCRIPTS-TEMP"
+    titulo: "Scripts temporales fix_*.js en raiz"
+    estado: "ABIERTO"
+    severidad: "alta"
+    probabilidad: "alta"
+    impacto: "alto"
+    categoria: "repo_higiene"
+    descripcion: "La raiz contiene numerosos scripts temporales de fix que pueden confundirse con codigo vigente."
+    causa: "Ejecucion reactiva previa sin fase formal de archivo, clasificacion o limpieza."
+    consecuencia: "Riesgo de ejecutar script obsoleto, contaminar commits o usar un parche viejo como referencia falsa."
+    evidencia:
+      - "14_INVENTARIO_RAIZ_REPO.md: 58 TEMPORAL_FIX"
+      - "08_BUG_TRACKER.yaml: BUG-003"
+    mitigacion: "Clasificacion A/B/C en fase posterior de limpieza controlada."
+    propietario_operativo: "Guillermo + MiMo V2"
+    tocar_ahora: false
+    proxima_accion: "No mover ni borrar; esperar plan de limpieza controlada."
+
+  - id: "R-RAIZ-DESORDENADA"
+    titulo: "Raiz del repo desordenada"
+    estado: "ABIERTO"
+    severidad: "alta"
+    probabilidad: "alta"
+    impacto: "alto"
+    categoria: "repo_higiene"
+    descripcion: "La raiz del repo mezcla produccion, backups, fixes, datos locales, PDFs de prueba, documentos antiguos y artefactos."
+    causa: "Sprint 0 acumulo archivos durante ejecucion reactiva sin estructura formal de archivo."
+    consecuencia: "Reduce auditabilidad, aumenta riesgo de git add accidental y confunde a nuevos agentes."
+    evidencia:
+      - "14_INVENTARIO_RAIZ_REPO.md: 93 archivos raiz visibles localmente"
+      - "08_BUG_TRACKER.yaml: BUG-004"
+    mitigacion: "Disenar plan de limpieza controlada con clasificacion A/B/C y aprobacion de Guillermo."
+    propietario_operativo: "Guillermo"
+    tocar_ahora: false
+    proxima_accion: "Esperar documento de limpieza controlada posterior al Dev Pipeline."
+
+  - id: "R-DUMP-CODIGO"
+    titulo: "IRONSYNC_CODIGO_COMPLETO.txt como segunda fuente de verdad"
+    estado: "ABIERTO"
+    severidad: "media"
+    probabilidad: "media"
+    impacto: "alto"
+    categoria: "fuente_de_verdad"
+    descripcion: "Existe un dump de codigo en texto plano que puede ser confundido con el codigo real vigente."
+    causa: "Archivo documental antiguo o snapshot creado durante desarrollo sin clasificacion formal."
+    consecuencia: "Una AI o humano podria usar contenido obsoleto como referencia tecnica."
+    evidencia:
+      - "14_INVENTARIO_RAIZ_REPO.md: IRONSYNC_CODIGO_COMPLETO.txt"
+      - "08_BUG_TRACKER.yaml: riesgos_no_bugs"
+    mitigacion: "Clasificar como snapshot historico, archivar o eliminar en fase posterior aprobada."
+    propietario_operativo: "Guillermo + MiMo V2"
+    tocar_ahora: false
+    proxima_accion: "No usar como fuente tecnica; registrar en futura limpieza controlada."
+
+  - id: "R-GIT-FORCE"
+    titulo: "Artefactos terminal con comandos peligrosos"
+    estado: "ABIERTO"
+    severidad: "media"
+    probabilidad: "media"
+    impacto: "alto"
+    categoria: "operacion_git"
+    descripcion: "Existen artefactos de terminal que parecen comandos Git guardados accidentalmente como archivos."
+    causa: "Errores de terminal durante ejecucion previa."
+    consecuencia: "Pueden confundir auditoria y sugieren riesgo operativo en manejo de Git."
+    evidencia:
+      - "14_INVENTARIO_RAIZ_REPO.md: et --hard 87806e1"
+      - "14_INVENTARIO_RAIZ_REPO.md: h origin main --force"
+      - "14_INVENTARIO_RAIZ_REPO.md: how --stat HEAD more"
+      - "08_BUG_TRACKER.yaml: riesgos_no_bugs"
+    mitigacion: "Clasificar como candidatos a eliminacion en Fase de Limpieza Controlada, previa aprobacion de Guillermo."
+    propietario_operativo: "Guillermo"
+    tocar_ahora: false
+    proxima_accion: "No borrar ahora; incluir en plan de limpieza controlada."
+
+  - id: "R-VERSIONES-DUALES"
+    titulo: "Versiones duales de webhook y backups"
+    estado: "ABIERTO"
+    severidad: "media"
+    probabilidad: "media"
+    impacto: "alto"
+    categoria: "versionado"
+    descripcion: "Existen variantes de webhook y backups sin destino formal."
+    causa: "Respaldos y versiones temporales quedaron en raiz durante fixes previos."
+    consecuencia: "Una AI o humano podria tomar una version incorrecta como referencia."
+    evidencia:
+      - "08_BUG_TRACKER.yaml: BUG-005"
+      - "14_INVENTARIO_RAIZ_REPO.md: webhook.js, webhook_anterior.js, webhook_backup.js, webhook_test.js"
+    mitigacion: "Clasificar versiones en fase posterior: produccion, backup historico, archivar o eliminar."
+    propietario_operativo: "Guillermo + MiMo V2"
+    tocar_ahora: false
+    proxima_accion: "No mover ni borrar; esperar plan de limpieza controlada."
+
+  - id: "R-ENV-LOCAL"
+    titulo: ".env local no trackeado"
+    estado: "ABIERTO"
+    severidad: "media"
+    probabilidad: "media"
+    impacto: "critico"
+    categoria: "seguridad_config"
+    descripcion: ".env existe localmente pero no esta trackeado por Git. Debe verificarse que .gitignore lo excluya correctamente sin exponer secretos."
+    causa: "Configuracion local de entorno necesaria para ejecucion, con riesgo si se trackea o comparte accidentalmente."
+    consecuencia: "Exposicion de secretos si se agrega por error o si .gitignore es insuficiente."
+    evidencia:
+      - "14_INVENTARIO_RAIZ_REPO.md: .env existe en disco pero NO esta trackeado por Git"
+      - "08_BUG_TRACKER.yaml: riesgos_no_bugs"
+    mitigacion: "Verificar .gitignore y nunca pegar contenido de .env en chat."
+    propietario_operativo: "Guillermo"
+    tocar_ahora: false
+    proxima_accion: "Verificar .gitignore en fase aprobada sin revelar secretos."
+
+  - id: "R-ARCHIVOS-VACIOS"
+    titulo: "Archivos 0 bytes con proposito no confirmado"
+    estado: "ABIERTO"
+    severidad: "baja"
+    probabilidad: "media"
+    impacto: "medio"
+    categoria: "repo_higiene"
+    descripcion: "Existen archivos vacios que pueden ser placeholders, basura o dependencias no documentadas."
+    causa: "Creacion de archivos durante iteraciones previas sin documentar proposito."
+    consecuencia: "Confusion sobre si un archivo es requerido o eliminable."
+    evidencia:
+      - "08_BUG_TRACKER.yaml: CANDIDATO-005"
+      - "14_INVENTARIO_RAIZ_REPO.md: pdfReporteDiario.js"
+      - "14_INVENTARIO_RAIZ_REPO.md: IRONSYNC_SPRINT0_FROZEN.txt"
+    mitigacion: "Validar si son placeholders requeridos antes de clasificarlos para limpieza."
+    propietario_operativo: "Guillermo + MiMo V2"
+    tocar_ahora: false
+    proxima_accion: "Mantener como riesgo hasta fase de clasificacion."
+
+criterios_de_mitigacion:
+  - "Todo riesgo critico debe tener plan antes de tocar codigo."
+  - "Todo riesgo de repo_higiene se atiende solo en fase de limpieza controlada."
+  - "Todo riesgo de configuracion se revisa sin exponer secretos."
+  - "Todo riesgo que se convierta en bug reproducible debe moverse o duplicarse en 08_BUG_TRACKER.yaml con evidencia."
+
+proxima_accion_recomendada:
+  documento: "11_DEV_PIPELINE.md"
+  razon: "Definir el flujo obligatorio para volver a ejecutar cambios sin romper metodologia."
+
+nota_final: "Este documento NO autoriza codigo, fixes, deploy ni limpieza."
