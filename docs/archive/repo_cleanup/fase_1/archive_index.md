@@ -240,3 +240,51 @@ Si se requiere revertir Lote 6:
 
 - Mover los 5 archivos de vuelta de docs/archive/repo_cleanup/fase_1/ a raiz.
 - Commit: revert: undo Fase 1 Lote 6 - restore 5 fix scripts to root
+
+---
+
+## Lote 7 — 2026-05-04
+
+Commit base: 134c77f
+Archivos: 9
+Tipo: fix*.js trackeados — scripts one-time genericos
+Protocolo: git mv (archivos trackeados)
+Resultado: EXITO
+
+| # | Archivo original | Clasificacion | Origen | Razon | Accion | Commit base | Rollback | Prueba | Resultado |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | fix1.js | C | Trackeado | Script one-time generico. 0 referencias produccion. | git mv a fase_1/ | 134c77f | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 2 | fix3.js | C | Trackeado | Script one-time generico. 0 referencias produccion. | git mv a fase_1/ | 134c77f | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 3 | fix4.js | C | Trackeado | Script one-time generico. 0 referencias produccion. | git mv a fase_1/ | 134c77f | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 4 | fix5.js | C | Trackeado | Script one-time generico. 0 referencias produccion. | git mv a fase_1/ | 134c77f | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 5 | fix6.js | C | Trackeado | Script one-time generico. 0 referencias produccion. | git mv a fase_1/ | 134c77f | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 6 | fix8.js | C | Trackeado | Script one-time generico. 0 referencias produccion. | git mv a fase_1/ | 134c77f | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 7 | fix9.js | C | Trackeado | Script one-time generico. 0 referencias produccion. | git mv a fase_1/ | 134c77f | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 8 | fix11.js | C | Trackeado | Script one-time generico. 0 referencias produccion. | git mv a fase_1/ | 134c77f | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 9 | fix12.js | C | Trackeado | Script one-time generico. 0 referencias produccion. | git mv a fase_1/ | 134c77f | git mv de vuelta a raiz | git status + node --check | EXITO |
+
+### Pruebas Lote 7
+
+| Prueba | Antes | Despues | Resultado |
+|--------|-------|---------|-----------|
+| node --check webhook.js | OK | OK | SIN REGRESION |
+| node --check turnos.js | OK | OK | SIN REGRESION |
+| git status DATA_LOCAL | Clean | Clean | SIN CAMBIO |
+| git status produccion | Clean | Clean | SIN CAMBIO |
+| require('./fix') | 0 | 0 | SIN DEPENDENCIA |
+
+### Nota tecnica Lote 7
+
+Primer lote con protocolo git mv para archivos trackeados. git mv deja los movimientos staged automaticamente. No requiere git add adicional para los archivos movidos.
+Rollback antes de commit: git mv de vuelta a raiz. Rollback despues de commit: git revert o git mv de vuelta + commit.
+
+### Rollback Lote 7
+
+Si se requiere revertir Lote 7 antes de commit:
+
+- git mv docs/archive/repo_cleanup/fase_1/fix1.js fix1.js (repetir para los 9)
+- git reset HEAD docs/archive/repo_cleanup/fase_1/archive_index.md
+
+Si se requiere revertir despues de commit:
+
+- git revert <commit_hash>
