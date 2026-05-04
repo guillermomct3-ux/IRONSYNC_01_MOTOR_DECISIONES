@@ -230,3 +230,18 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - Maximo 10-15 archivos por commit futuro.
 - Siguiente decision: votacion GO/NO-GO para ejecutar Fase 1.
 - 0 codigo tocado. 0 archivos movidos/borrados. 0 limpieza ejecutada.
+
+---
+
+## 2026-05-04 — Plan del Dia Fase 0b Diagnostic Trackeado
+
+- Se creo docs/context/19_PLAN_DEL_DIA_REPO_CLEANUP_FASE_0B_TRACKEADOS.md.
+- Estado: PLAN_DEL_DIA / EJECUCION_BLOQUEADA.
+- STOP tecnico activo por mapa de limpieza incompleto.
+- Fase 0 solo cubrio 41 archivos untracked. Fase 0b cubre 38 archivos trackeados.
+- Clasificacion trackeados: 20 fix D, 2 posible produccion D, 3 investigar D, 7 B archivar, 2 C candidato, 4 DATA_LOCAL bloqueado.
+- Upgrades aplicados: lista explicita de 38 archivos, regla fix genericos, comando git log --oneline --all.
+- respuestas.js y validadores.js clasificados como D hasta confirmar uso productivo.
+- DATA_LOCAL (4 archivos) permanece BLOQUEADO hasta BUG-002.
+- Siguiente decision: votacion GO/NO-GO para ejecutar Fase 0b.
+- 0 codigo tocado. 0 archivos movidos/borrados. 0 limpieza ejecutada.
