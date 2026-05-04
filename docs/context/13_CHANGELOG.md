@@ -366,3 +366,31 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - Fase 1 Lote 4 sigue BLOQUEADO hasta votacion GO/NO-GO.
 - Mapa actualizado post-aislamiento: A=7, B=18, C=38 restantes, D=0, D-Riesgo=0, DATA_LOCAL=4.
 - Total aislado: 25/63.
+
+---
+
+## 2026-05-04 — Fase 1 Lote 4 — 10 fix scripts untracked aislados
+
+- Se ejecuto Fase 1 Lote 4 del plan 22_PLAN_DEL_DIA_REPO_CLEANUP_FASE_1_63C.md.
+- 10 archivos C untracked aislados a docs/archive/repo_cleanup/fase_1/.
+- Archivos movidos:
+  - fix_turnos_simple.js (script temporal turnos)
+  - fix_verificar.js (script temporal verificacion)
+  - fix_version.js (script temporal version)
+  - fix_deepseek_f1.js (parche one-time PARO natural DeepSeek)
+  - fix_empresaIdTurno.js (parche one-time buscar empresa_id)
+  - fix_move_override.js (parche one-time mover bloque override)
+  - fix_router.js (parche one-time admin/operador)
+  - fix_router_override.js (parche one-time comandos operador)
+  - fix_turnos_empresa.js (parche one-time empresa_id insert)
+  - fix_turnos_empresa2.js (parche one-time empresa_id operador)
+- Commit: b1b75bd.
+- Busqueda require('./fix_'): 0 resultados.
+- Coincidencias sensibles (router, turnos, twilio, empresaId, verificar): todas son palabras en codigo de produccion, NO dependencias.
+- node --check webhook.js: OK antes y despues.
+- node --check turnos.js: OK antes y despues.
+- DATA_LOCAL: intacto.
+- A produccion: intacto.
+- Fase 1 Lote 5 sigue BLOQUEADO hasta votacion GO/NO-GO.
+- Mapa actualizado post-aislamiento: A=7, B=18, C=28 restantes, D=0, D-Riesgo=0, DATA_LOCAL=4.
+- Total aislado: 35/63.
