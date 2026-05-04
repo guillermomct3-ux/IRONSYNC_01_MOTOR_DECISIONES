@@ -394,3 +394,24 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - Fase 1 Lote 5 sigue BLOQUEADO hasta votacion GO/NO-GO.
 - Mapa actualizado post-aislamiento: A=7, B=18, C=28 restantes, D=0, D-Riesgo=0, DATA_LOCAL=4.
 - Total aislado: 35/63.
+
+---
+
+## 2026-05-04 — Fase 1 Lote 5 — 3 fix scripts untracked aislados
+
+- Se ejecuto Fase 1 Lote 5 del plan 22_PLAN_DEL_DIA_REPO_CLEANUP_FASE_1_63C.md.
+- 3 archivos C untracked aislados a docs/archive/repo_cleanup/fase_1/.
+- Archivos movidos:
+  - fix_twilio_client.js (parche one-time cliente Twilio)
+  - fix_webhook_legacy_override.js (parche one-time override webhook legacy)
+  - fix_webhook_legacy_v2.js (parche one-time webhook legacy v2)
+- Commit: 776d4ab.
+- Busqueda require('./fix_'): 0 resultados.
+- Coincidencias sensibles webhook_legacy y legacy_override: son strings de console.log/error en webhook.js, NO dependencias.
+- node --check webhook.js: OK antes y despues.
+- node --check turnos.js: OK antes y despues.
+- DATA_LOCAL: intacto.
+- A produccion: intacto.
+- Fase 1 Lote 6 sigue BLOQUEADO hasta votacion GO/NO-GO.
+- Mapa actualizado post-aislamiento: A=7, B=18, C=25 restantes, D=0, D-Riesgo=0, DATA_LOCAL=4.
+- Total aislado: 38/63.
