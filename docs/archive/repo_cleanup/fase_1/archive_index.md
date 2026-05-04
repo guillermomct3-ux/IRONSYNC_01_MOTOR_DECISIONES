@@ -126,3 +126,42 @@ Si se requiere revertir Lote 3:
 
 - Mover los 10 archivos de vuelta de docs/archive/repo_cleanup/fase_1/ a raiz.
 - Commit: revert: undo Fase 1 Lote 3 - restore 10 fix scripts to root
+
+---
+
+## Lote 4 — 2026-05-04
+
+Commit base: e8a9f69
+Archivos: 10
+Tipo: fix_*.js untracked — scripts one-time
+Resultado: EXITO
+
+| # | Archivo original | Clasificacion | Origen | Razon | Accion | Commit base | Rollback | Prueba | Resultado |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | fix_turnos_simple.js | C | Untracked | Script temporal turnos. 0 referencias produccion. | Move-Item a fase_1/ | e8a9f69 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 2 | fix_verificar.js | C | Untracked | Script temporal verificacion. 0 referencias produccion. | Move-Item a fase_1/ | e8a9f69 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 3 | fix_version.js | C | Untracked | Script temporal version. 0 referencias produccion. | Move-Item a fase_1/ | e8a9f69 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 4 | fix_deepseek_f1.js | C | Untracked | Parche one-time deteccion PARO natural DeepSeek. 0 referencias produccion. | Move-Item a fase_1/ | e8a9f69 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 5 | fix_empresaIdTurno.js | C | Untracked | Parche one-time buscar empresa_id antes de insert. 0 referencias produccion. | Move-Item a fase_1/ | e8a9f69 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 6 | fix_move_override.js | C | Untracked | Parche one-time mover bloque override PARO/FALLA. 0 referencias produccion. | Move-Item a fase_1/ | e8a9f69 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 7 | fix_router.js | C | Untracked | Parche one-time admin tambien puede ser operador. 0 referencias produccion. | Move-Item a fase_1/ | e8a9f69 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 8 | fix_router_override.js | C | Untracked | Parche one-time comandos operador siempre van a operador. 0 referencias produccion. | Move-Item a fase_1/ | e8a9f69 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 9 | fix_turnos_empresa.js | C | Untracked | Parche one-time buscar empresa_id antes del insert. 0 referencias produccion. | Move-Item a fase_1/ | e8a9f69 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 10 | fix_turnos_empresa2.js | C | Untracked | Parche one-time buscar empresa_id del operador. 0 referencias produccion. | Move-Item a fase_1/ | e8a9f69 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+
+### Pruebas Lote 4
+
+| Prueba | Antes | Despues | Resultado |
+|--------|-------|---------|-----------|
+| node --check webhook.js | OK | OK | SIN REGRESION |
+| node --check turnos.js | OK | OK | SIN REGRESION |
+| git status DATA_LOCAL | Clean | Clean | SIN CAMBIO |
+| git status produccion | Clean | Clean | SIN CAMBIO |
+| require('./fix_') | 0 | 0 | SIN DEPENDENCIA |
+
+### Rollback Lote 4
+
+Si se requiere revertir Lote 4:
+
+- Mover los 10 archivos de vuelta de docs/archive/repo_cleanup/fase_1/ a raiz.
+- Commit: revert: undo Fase 1 Lote 4 - restore 10 fix scripts to root
