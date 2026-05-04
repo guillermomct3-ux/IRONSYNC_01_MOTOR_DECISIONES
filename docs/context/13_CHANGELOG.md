@@ -440,3 +440,32 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - Fase 1 Lote 7 sigue BLOQUEADO hasta votacion GO/NO-GO.
 - Mapa actualizado post-aislamiento: A=7, B=18, C=20 restantes, D=0, D-Riesgo=0, DATA_LOCAL=4.
 - Total aislado: 43/63.
+
+---
+
+## 2026-05-04 — Fase 1 Lote 7 — 9 tracked fix scripts aislados (PRIMER LOTE GIT MV)
+
+- Se ejecuto Fase 1 Lote 7 del plan 22_PLAN_DEL_DIA_REPO_CLEANUP_FASE_1_63C.md.
+- 9 archivos C trackeados aislados a docs/archive/repo_cleanup/fase_1/ via git mv.
+- Archivos movidos:
+  - fix1.js (script one-time generico)
+  - fix3.js (script one-time generico)
+  - fix4.js (script one-time generico)
+  - fix5.js (script one-time generico)
+  - fix6.js (script one-time generico)
+  - fix8.js (script one-time generico)
+  - fix9.js (script one-time generico)
+  - fix11.js (script one-time generico)
+  - fix12.js (script one-time generico)
+- Commit: 3b6a0cd.
+- Protocolo: git mv (archivos trackeados). Primer lote con este protocolo.
+- Busqueda require('./fix'): 0 resultados.
+- Coincidencias sensibles: 0 para los 9 archivos.
+- node --check webhook.js: OK antes y despues.
+- node --check turnos.js: OK antes y despues.
+- DATA_LOCAL: intacto.
+- A produccion: intacto.
+- B excluidos (turnos_backup_pre_fix_empresaIdTurno.js, webhook_backup.js): intactos.
+- Fase 1 Lote 8 sigue BLOQUEADO hasta votacion GO/NO-GO.
+- Mapa actualizado post-aislamiento: A=7, B=18, C=11 restantes, D=0, D-Riesgo=0, DATA_LOCAL=4.
+- Total aislado: 52/63.
