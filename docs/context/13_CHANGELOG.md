@@ -339,3 +339,30 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - A produccion: intacto.
 - Fase 1 Lote 3 sigue BLOQUEADO hasta votacion GO/NO-GO.
 - Mapa actualizado post-aislamiento: A=7, B=18, C=48 restantes, D=0, D-Riesgo=0, DATA_LOCAL=4.
+
+---
+
+## 2026-05-04 — Fase 1 Lote 3 — 10 fix scripts untracked aislados
+
+- Se ejecuto Fase 1 Lote 3 del plan 22_PLAN_DEL_DIA_REPO_CLEANUP_FASE_1_63C.md.
+- 10 archivos C untracked aislados a docs/archive/repo_cleanup/fase_1/.
+- Archivos movidos:
+  - fix_paro_top.js (script temporal paro)
+  - fix_pdf_reporte_final.js (parche one-time PDF reporte)
+  - fix_pdfauto_final.js (parche one-time PDF automatico)
+  - fix_pdfauto_resilient.js (parche one-time PDF resiliente)
+  - fix_quitar_residente.js (script temporal residente)
+  - fix_require_lazy.js (parche one-time lazy loading)
+  - fix_residente.js (script temporal residente)
+  - fix_sesion_prioridad.js (script temporal sesion)
+  - fix_turnos_final.js (script temporal turnos)
+  - fix_turnos_pdf.js (script temporal turnos PDF)
+- Commit: 24beae7.
+- Nota tecnica: doble verificacion encontro palabra residente en webhook.js (lineas 245-253). Es feature firma digital, NO referencia a fix_residente.js. No fue STOP tecnico.
+- node --check webhook.js: OK antes y despues.
+- node --check turnos.js: OK antes y despues.
+- DATA_LOCAL: intacto.
+- A produccion: intacto.
+- Fase 1 Lote 4 sigue BLOQUEADO hasta votacion GO/NO-GO.
+- Mapa actualizado post-aislamiento: A=7, B=18, C=38 restantes, D=0, D-Riesgo=0, DATA_LOCAL=4.
+- Total aislado: 25/63.
