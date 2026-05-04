@@ -415,3 +415,28 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - Fase 1 Lote 6 sigue BLOQUEADO hasta votacion GO/NO-GO.
 - Mapa actualizado post-aislamiento: A=7, B=18, C=25 restantes, D=0, D-Riesgo=0, DATA_LOCAL=4.
 - Total aislado: 38/63.
+
+---
+
+## 2026-05-04 — Fase 1 Lote 6 — 5 fix scripts untracked aislados (CIERRE UNTRACKED)
+
+- Se ejecuto Fase 1 Lote 6 del plan 22_PLAN_DEL_DIA_REPO_CLEANUP_FASE_1_63C.md.
+- 5 archivos C untracked aislados a docs/archive/repo_cleanup/fase_1/.
+- Archivos movidos:
+  - fix_status2.js (parche one-time status)
+  - fix_status_callback.js (parche one-time status callback)
+  - fix_webhook_line.js (parche one-time webhook line)
+  - fix_webhook_override.js (parche one-time webhook override)
+  - fix_webhook_status.js (parche one-time webhook status)
+- Commit: 9fc61f1.
+- Busqueda require('./fix_'): 0 resultados.
+- Coincidencias sensibles: 0 para los 5 archivos.
+- node --check webhook.js: OK antes y despues.
+- node --check turnos.js: OK antes y despues.
+- DATA_LOCAL: intacto.
+- A produccion: intacto.
+- B excluidos (turnos_backup_pre_fix_empresaIdTurno.js, webhook_backup.js): intactos en raiz.
+- Lote 6 CIERRA los archivos untracked (C). Lotes 7 y 8 cambian de protocolo a git mv para trackeados.
+- Fase 1 Lote 7 sigue BLOQUEADO hasta votacion GO/NO-GO.
+- Mapa actualizado post-aislamiento: A=7, B=18, C=20 restantes, D=0, D-Riesgo=0, DATA_LOCAL=4.
+- Total aislado: 43/63.
