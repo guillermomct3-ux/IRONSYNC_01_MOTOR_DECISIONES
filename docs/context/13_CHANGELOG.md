@@ -314,3 +314,28 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - A produccion: intacto.
 - Fase 1 Lote 2 sigue BLOQUEADO hasta votacion GO/NO-GO.
 - Mapa actualizado post-aislamiento: A=7, B=18, C=58 restantes, D=0, D-Riesgo=0, DATA_LOCAL=4.
+
+---
+
+## 2026-05-04 — Fase 1 Lote 2 — 10 fix scripts untracked aislados
+
+- Se ejecuto Fase 1 Lote 2 del plan 22_PLAN_DEL_DIA_REPO_CLEANUP_FASE_1_63C.md.
+- 10 archivos C untracked aislados a docs/archive/repo_cleanup/fase_1/.
+- Archivos movidos:
+  - fix_clean.js (script temporal limpieza)
+  - fix_debug.js (script temporal debug)
+  - fix_final.js (script temporal generico)
+  - fix_idempotency.js (script temporal idempotencia)
+  - fix_op_final.js (script temporal operacional)
+  - fix_operador.js (script temporal operador)
+  - fix_override_antes.js (script temporal override)
+  - fix_override_final.js (script temporal override)
+  - fix_override_top.js (script temporal override)
+  - fix_paro_natural.js (script temporal paro)
+- Commit: 8565fb5.
+- node --check webhook.js: OK antes y despues.
+- node --check turnos.js: OK antes y despues.
+- DATA_LOCAL: intacto.
+- A produccion: intacto.
+- Fase 1 Lote 3 sigue BLOQUEADO hasta votacion GO/NO-GO.
+- Mapa actualizado post-aislamiento: A=7, B=18, C=48 restantes, D=0, D-Riesgo=0, DATA_LOCAL=4.
