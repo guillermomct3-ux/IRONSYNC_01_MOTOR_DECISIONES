@@ -196,3 +196,21 @@ Qwen recomienda limpieza controlada por fases.
 
 Convocar votacion del equipo para FROZEN de 16_REPO_CLEANUP_PLAN.md.
 Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
+
+---
+
+## 2026-05-04 — Plan del Dia Repo Cleanup Fase 0/1
+
+- Se creo docs/context/17_PLAN_DEL_DIA_REPO_CLEANUP_FASE_0_1.md.
+- Estado: PLAN_DEL_DIA / EJECUCION_BLOQUEADA.
+- 16_REPO_CLEANUP_PLAN.md queda ESTRATEGIA_FROZEN / EJECUCION_BLOQUEADA.
+- Clasificacion A/B/C/D corregida para ser consistente con 16_REPO_CLEANUP_PLAN.md:
+  A=Produccion/conservar, B=Historico/archivar, C=CandidatoEliminar, D=Investigar.
+- Fix aplicado: Seccion 13 alineada con 16_REPO_CLEANUP_PLAN.md para evitar ambiguedad A/C.
+- Prioridad tecnica actualizada:
+  #1 BUG-002 Persistencia unica Supabase
+  #2 Staging funcional minimo
+  #3 Limpieza controlada Fases 0-3
+  #4 Fase 4 DATA_LOCAL solo despues de cerrar BUG-002
+- Siguiente decision: votacion GO/NO-GO para ejecutar Fase 0 diagnostico controlado.
+- 0 codigo tocado. 0 limpieza ejecutada. 0 archivos movidos/borrados.
