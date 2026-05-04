@@ -214,3 +214,19 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
   #4 Fase 4 DATA_LOCAL solo despues de cerrar BUG-002
 - Siguiente decision: votacion GO/NO-GO para ejecutar Fase 0 diagnostico controlado.
 - 0 codigo tocado. 0 limpieza ejecutada. 0 archivos movidos/borrados.
+
+---
+
+## 2026-05-04 — Plan del Dia Fase 1 Aislamiento Controlado
+
+- Se creo docs/context/18_PLAN_DEL_DIA_REPO_CLEANUP_FASE_1.md.
+- Estado: PLAN_DEL_DIA / EJECUCION_BLOQUEADA.
+- Clasificacion consolidada: A=0, B=2, C=23, D=16.
+- fix_status_callback.js reclasificado de C a D por posible relacion con callbacks/status/Twilio/webhook.
+- Accion propuesta: aislar 23 archivos C a docs/archive/scripts_temp/.
+- No eliminar. Archivar.
+- Busqueda pasiva obligatoria antes de mover cualquier archivo.
+- Rollback base: 28e8d98.
+- Maximo 10-15 archivos por commit futuro.
+- Siguiente decision: votacion GO/NO-GO para ejecutar Fase 1.
+- 0 codigo tocado. 0 archivos movidos/borrados. 0 limpieza ejecutada.
