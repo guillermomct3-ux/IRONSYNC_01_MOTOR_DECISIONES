@@ -150,3 +150,49 @@ La ejecucion tecnica queda bloqueada hasta que exista:
   - LangGraph/CrewAI.
 - Primer agente futuro recomendado:
   - operador_ramon_synthetic.md dentro del Synthetic Operator Lab.
+
+---
+
+## 2026-05-04 — Persistencia Unica + Synthetic Field Lab + Repo Cleanup Plan
+
+### Documentos creados y pusheados
+
+- 12_PERSISTENCIA_UNICA_DESIGN.md → 42d67f7
+- 15_AGENT_STRATEGY_BRIEF.md → 9f4f6b7
+- docs/agents/README.md → 9f4f6b7
+- docs/agents/EXECUTION_BLOCKED.md → 9f4f6b7
+- 16_REPO_CLEANUP_PLAN.md → 256582d
+
+### Resultado
+
+Se completo el diseno documental para tres frentes:
+
+1. Persistencia unica: Supabase como fuente unica de verdad, JSON deprecado.
+2. Synthetic Field Lab: vision estrategica aprobada conceptualmente, ejecucion bloqueada hasta post-persistencia + staging.
+3. Repo Cleanup Plan: clasificacion A/B/C/D de raiz, 5 fases, DATA_LOCAL bloqueado hasta BUG-002.
+
+### Auditoria Qwen
+
+Qwen audito el repo como agente externo. Calificaciones:
+- Ejecucion: 7/10
+- Viabilidad: 9/10
+- Arquitectura: 6/10
+- Orden/Organizacion: 4/10
+- Gobernanza documental: 9/10
+- Promedio: 6.7/10
+
+Qwen recomienda limpieza controlada por fases.
+
+### Restricciones respetadas
+
+- 0 codigo tocado
+- 0 fixes ejecutados
+- 0 deploy
+- 0 limpieza ejecutada
+- 0 archivos movidos o borrados
+- 0 DATA_LOCAL tocado
+
+### Siguiente accion
+
+Convocar votacion del equipo para FROZEN de 16_REPO_CLEANUP_PLAN.md.
+Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
