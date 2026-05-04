@@ -84,3 +84,45 @@ Si se requiere revertir Lote 2:
 
 - Mover los 10 archivos de vuelta de docs/archive/repo_cleanup/fase_1/ a raiz.
 - Commit: revert: undo Fase 1 Lote 2 - restore 10 fix scripts to root
+
+---
+
+## Lote 3 — 2026-05-04
+
+Commit base: 8df83e2
+Archivos: 10
+Tipo: fix_*.js untracked — scripts one-time
+Resultado: EXITO
+
+| # | Archivo original | Clasificacion | Origen | Razon | Accion | Commit base | Rollback | Prueba | Resultado |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | fix_paro_top.js | C | Untracked | Script temporal paro. 0 referencias produccion. | Move-Item a fase_1/ | 8df83e2 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 2 | fix_pdf_reporte_final.js | C | Untracked | Parche one-time PDF reporte. 0 referencias produccion. | Move-Item a fase_1/ | 8df83e2 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 3 | fix_pdfauto_final.js | C | Untracked | Parche one-time PDF automatico. 0 referencias produccion. | Move-Item a fase_1/ | 8df83e2 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 4 | fix_pdfauto_resilient.js | C | Untracked | Parche one-time PDF resiliente. 0 referencias produccion. | Move-Item a fase_1/ | 8df83e2 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 5 | fix_quitar_residente.js | C | Untracked | Script temporal residente. 0 referencias produccion. | Move-Item a fase_1/ | 8df83e2 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 6 | fix_require_lazy.js | C | Untracked | Parche one-time lazy loading. 0 referencias produccion. | Move-Item a fase_1/ | 8df83e2 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 7 | fix_residente.js | C | Untracked | Script temporal residente. 0 referencias produccion. | Move-Item a fase_1/ | 8df83e2 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 8 | fix_sesion_prioridad.js | C | Untracked | Script temporal sesion. 0 referencias produccion. | Move-Item a fase_1/ | 8df83e2 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 9 | fix_turnos_final.js | C | Untracked | Script temporal turnos. 0 referencias produccion. | Move-Item a fase_1/ | 8df83e2 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 10 | fix_turnos_pdf.js | C | Untracked | Script temporal turnos PDF. 0 referencias produccion. | Move-Item a fase_1/ | 8df83e2 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+
+### Pruebas Lote 3
+
+| Prueba | Antes | Despues | Resultado |
+|--------|-------|---------|-----------|
+| node --check webhook.js | OK | OK | SIN REGRESION |
+| node --check turnos.js | OK | OK | SIN REGRESION |
+| git status DATA_LOCAL | Clean | Clean | SIN CAMBIO |
+| git status produccion | Clean | Clean | SIN CAMBIO |
+
+### Nota tecnica Lote 3
+
+Doble verificacion de refs criticas encontro coincidencia de palabra residente en webhook.js (lineas 245-253). Analisis: es la feature firma digital residente, NO es referencia a fix_residente.js ni fix_quitar_residente.js. No es STOP tecnico.
+
+### Rollback Lote 3
+
+Si se requiere revertir Lote 3:
+
+- Mover los 10 archivos de vuelta de docs/archive/repo_cleanup/fase_1/ a raiz.
+- Commit: revert: undo Fase 1 Lote 3 - restore 10 fix scripts to root
