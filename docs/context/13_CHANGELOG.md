@@ -245,3 +245,17 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - DATA_LOCAL (4 archivos) permanece BLOQUEADO hasta BUG-002.
 - Siguiente decision: votacion GO/NO-GO para ejecutar Fase 0b.
 - 0 codigo tocado. 0 archivos movidos/borrados. 0 limpieza ejecutada.
+
+---
+
+## 2026-05-04 — Plan del Dia Clasificar 39 Archivos D
+
+- Se creo docs/context/20_PLAN_DEL_DIA_REPO_CLEANUP_CLASIFICAR_D.md.
+- Estado: PLAN_DEL_DIA / EJECUCION_BLOQUEADA.
+- 39 archivos D pendientes de clasificacion definitiva.
+- Mapa actual: A=7, B=15, C=27, D=39, DATA_LOCAL=4.
+- Objetivo: reducir D a minimo antes de ejecutar Fase 1.
+- 4 grupos de diagnostic: fix genericos trackeados (9), fix con nombre trackeados (11), otros D trackeados (3), fix untracked (16).
+- respuestas.js y validadores.js confirmados como A. No se reabren.
+- Siguiente decision: votacion GO/NO-GO para ejecutar diagnostico de clasificacion D.
+- 0 codigo tocado. 0 archivos movidos/borrados. 0 limpieza ejecutada.
