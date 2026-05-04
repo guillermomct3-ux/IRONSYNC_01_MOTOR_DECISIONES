@@ -469,3 +469,58 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - Fase 1 Lote 8 sigue BLOQUEADO hasta votacion GO/NO-GO.
 - Mapa actualizado post-aislamiento: A=7, B=18, C=11 restantes, D=0, D-Riesgo=0, DATA_LOCAL=4.
 - Total aislado: 52/63.
+
+---
+
+## 2026-05-04 — Fase 1 Lote 8 — 11 tracked fix scripts aislados — CIERRE FASE 1
+
+- Se ejecuto Fase 1 Lote 8 del plan 22_PLAN_DEL_DIA_REPO_CLEANUP_FASE_1_63C.md.
+- 11 archivos C trackeados aislados a docs/archive/repo_cleanup/fase_1/ via git mv.
+- Archivos movidos:
+  - fix_ayuda.js (script one-time ayuda)
+  - fix_integrar.js (script one-time integracion)
+  - fix_ok.js (script one-time ok)
+  - fix_status.js (script one-time status)
+  - fix_upg01.js (script one-time upgrade 01)
+  - fix_upg05.js (script one-time upgrade 05)
+  - fix_upg05b.js (script one-time upgrade 05b)
+  - fix_upg09.js (script one-time upgrade 09)
+  - fix_upg13_14.js (script one-time upgrade 13-14)
+  - fix_upg26_27.js (script one-time upgrade 26-27)
+  - fix_upgrades.js (script one-time upgrades)
+- Commit: c1f16de.
+- Protocolo: git mv (archivos trackeados).
+- Busqueda require('./fix'): 0 resultados.
+- Coincidencias sensibles: 0 para los 11 archivos.
+- node --check webhook.js: OK antes y despues.
+- node --check turnos.js: OK antes y despues.
+- DATA_LOCAL: intacto.
+- A produccion: intacto.
+- B excluidos (turnos_backup_pre_fix_empresaIdTurno.js, webhook_backup.js): intactos.
+- FASE 1 COMPLETADA: 63/63 archivos C aislados.
+- Fase 2 BLOQUEADA hasta autorizacion.
+
+### RESUMEN FASE 1 COMPLETADA
+
+| Lote | Archivos | Tipo | Protocolo | Commit | Estado |
+|------|----------|------|-----------|--------|--------|
+| 1 | 5 | Untracked | Move-Item | e37ef95, 6c37a48, ed0e819 | EXITO |
+| 2 | 10 | Untracked | Move-Item | 8565fb5, 8df83e2 | EXITO |
+| 3 | 10 | Untracked | Move-Item | 24beae7, e8a9f69 | EXITO |
+| 4 | 10 | Untracked | Move-Item | b1b75bd, 85940b0 | EXITO |
+| 5 | 3 | Untracked | Move-Item | 776d4ab, c8894e1 | EXITO |
+| 6 | 5 | Untracked | Move-Item | 9fc61f1, 134c77f | EXITO |
+| 7 | 9 | Trackeado | git mv | 3b6a0cd, 905b434 | EXITO |
+| 8 | 11 | Trackeado | git mv | c1f16de | EXITO |
+| **Total** | **63** | | | **17 commits** | **COMPLETADA** |
+
+### Estado post-Fase 1
+
+- A Produccion: 7 archivos (intocados)
+- B Historico: 18 archivos (intocados, 2 backups untracked excluidos)
+- C Aislados: 63/63 (todos en docs/archive/repo_cleanup/fase_1/)
+- D: 0
+- D-Riesgo: 0
+- DATA_LOCAL: 4 archivos (intocados)
+- Fase 1: COMPLETADA
+- Fase 2: BLOQUEADA hasta autorizacion
