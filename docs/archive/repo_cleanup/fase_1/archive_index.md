@@ -288,3 +288,80 @@ Si se requiere revertir Lote 7 antes de commit:
 Si se requiere revertir despues de commit:
 
 - git revert <commit_hash>
+
+---
+
+## Lote 8 — 2026-05-04
+
+Commit base: 905b434
+Archivos: 11
+Tipo: fix_*.js trackeados — scripts one-time con nombre
+Protocolo: git mv (archivos trackeados)
+Resultado: EXITO — CIERRE FASE 1
+
+| # | Archivo original | Clasificacion | Origen | Razon | Accion | Commit base | Rollback | Prueba | Resultado |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | fix_ayuda.js | C | Trackeado | Script one-time ayuda. 0 referencias produccion. | git mv a fase_1/ | 905b434 | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 2 | fix_integrar.js | C | Trackeado | Script one-time integracion. 0 referencias produccion. | git mv a fase_1/ | 905b434 | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 3 | fix_ok.js | C | Trackeado | Script one-time ok. 0 referencias produccion. | git mv a fase_1/ | 905b434 | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 4 | fix_status.js | C | Trackeado | Script one-time status. 0 referencias produccion. | git mv a fase_1/ | 905b434 | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 5 | fix_upg01.js | C | Trackeado | Script one-time upgrade 01. 0 referencias produccion. | git mv a fase_1/ | 905b434 | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 6 | fix_upg05.js | C | Trackeado | Script one-time upgrade 05. 0 referencias produccion. | git mv a fase_1/ | 905b434 | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 7 | fix_upg05b.js | C | Trackeado | Script one-time upgrade 05b. 0 referencias produccion. | git mv a fase_1/ | 905b434 | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 8 | fix_upg09.js | C | Trackeado | Script one-time upgrade 09. 0 referencias produccion. | git mv a fase_1/ | 905b434 | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 9 | fix_upg13_14.js | C | Trackeado | Script one-time upgrade 13-14. 0 referencias produccion. | git mv a fase_1/ | 905b434 | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 10 | fix_upg26_27.js | C | Trackeado | Script one-time upgrade 26-27. 0 referencias produccion. | git mv a fase_1/ | 905b434 | git mv de vuelta a raiz | git status + node --check | EXITO |
+| 11 | fix_upgrades.js | C | Trackeado | Script one-time upgrades. 0 referencias produccion. | git mv a fase_1/ | 905b434 | git mv de vuelta a raiz | git status + node --check | EXITO |
+
+### Pruebas Lote 8
+
+| Prueba | Antes | Despues | Resultado |
+|--------|-------|---------|-----------|
+| node --check webhook.js | OK | OK | SIN REGRESION |
+| node --check turnos.js | OK | OK | SIN REGRESION |
+| git status DATA_LOCAL | Clean | Clean | SIN CAMBIO |
+| git status produccion | Clean | Clean | SIN CAMBIO |
+| require('./fix') | 0 | 0 | SIN DEPENDENCIA |
+
+### Nota tecnica Lote 8
+
+Lote 8 cierra Fase 1 del plan 22_PLAN_DEL_DIA_REPO_CLEANUP_FASE_1_63C.md.
+Total de archivos C aislados: 63/63.
+Lotes 1-6 usaron Move-Item (archivos untracked).
+Lotes 7-8 usaron git mv (archivos trackeados).
+Protocolo git mv validado exitosamente en Lotes 7 y 8.
+
+### Resumen Fase 1
+
+| Lote | Archivos | Tipo | Protocolo | Estado |
+|------|----------|------|-----------|--------|
+| 1 | 5 | Untracked | Move-Item | EXITO |
+| 2 | 10 | Untracked | Move-Item | EXITO |
+| 3 | 10 | Untracked | Move-Item | EXITO |
+| 4 | 10 | Untracked | Move-Item | EXITO |
+| 5 | 3 | Untracked | Move-Item | EXITO |
+| 6 | 5 | Untracked | Move-Item | EXITO |
+| 7 | 9 | Trackeado | git mv | EXITO |
+| 8 | 11 | Trackeado | git mv | EXITO |
+| **Total** | **63** | | | **FASE 1 COMPLETADA** |
+
+### Rollback Lote 8
+
+Si se requiere revertir Lote 8 antes de commit:
+
+- git mv docs/archive/repo_cleanup/fase_1/fix_ayuda.js fix_ayuda.js (repetir para los 11)
+
+Si se requiere revertir despues de commit:
+
+- git revert <commit_hash>
+
+### Estado post-Fase 1
+
+- A Produccion: 7 archivos (intocados)
+- B Historico: 18 archivos (intocados, 2 backups untracked excluidos)
+- C Aislados: 63/63 (todos en docs/archive/repo_cleanup/fase_1/)
+- D: 0
+- D-Riesgo: 0
+- DATA_LOCAL: 4 archivos (intocados)
+- Fase 1: COMPLETADA
+- Fase 2: BLOQUEADA hasta autorizacion
