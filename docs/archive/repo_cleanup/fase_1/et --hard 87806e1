@@ -1,0 +1,30 @@
+[33mb8fcd41[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m fix: override PARO ANTES de idempotencia - fix incomingId + limpiar duplicados
+[33md9078ca[m fix: ignorar status callbacks Twilio + log override detallado
+[33mbc3d052[m fix: require lazy handleOperadorMessage - evitar crash en startup
+[33md6c4db6[m fix: override PARO/FALLA ANTES de sesiones - bypass completo
+[33m753eee1[m fix: override PARO/FALLA natural en webhook + debug endpoint + Guillermo como operador
+[33m0e1fc61[m fix: admin con turno abierto manda comandos operacionales a operador handler
+[33m45c63cd[m fix: PARO/FALLA natural al inicio de handleOperadorMessage - interrumpe cualquier sesion
+[33mb862fe6[m debug: version marker 1.1.0-UPG05 en health endpoint
+[33m3897d79[m feat: FIX DeepSeek - PARO/FALLA lenguaje natural robusto con regex
+[33m5afb398[m fix: sesiones prioritarias - PARO/FIN/REANUDA interrumpen sesiones + CANCELAR operador
+[33ma290611[m feat: UPG-05 paro lenguaje natural directo - sin diesel funciona sin menu
+[33m87806e1[m fix: verificar.js exporta router de Express en vez de objeto
+[33mcacd3e1[m fix: quitar residente.js del webhook - reintegrar post-GDL
+[33mc689fee[m deploy: forzar redeploy con bcrypt fix
+[33md44d8d7[m fix: bcrypt lazy require en residente.js para evitar crash Railway
+[33mc567a57[m fix: agregar bcryptjs para flows/residente.js
+[33m0b28c89[m docs: IS_ESTADO_VIVO.md actualizado al 1 mayo
+[33m5a0ae4c[m scripts: fix UPG-05,09,13,14 + integraciones verificar/residente
+[33m7cce2e8[m feat: INT-01,02,03 - verificar, residente, deteccion residente en webhook
+[33mf5b2a03[m feat: UPG-13 idempotencia webhook + UPG-14 stateResolver integrado
+[33m196cb45[m feat: UPG-05 PARO lenguaje natural + UPG-09 comando EDITAR
+[33mb81032b[m sesión 30 abril: War Room ronda 1, SQL completo, 6 archivos nuevos, 7 upgrades UX
+[33m2b235ed[m feat: UPG-01,02,03,04,06,26,27 - activación, SIN FOTO, STATUS, mensajes humanos, saludos, horómetro prefill
+[33m5b4dac8[m feat: Fase 2 completa - idempotency, stateResolver, finanzas, saludos, verificar, residente
+[33m135b0c2[m fix12: flujo texto pide foto igual que guiado
+[33mf207aad[m fix11: ruteo operador optimizado - eq directo en vez de ilike
+[33mf197b49[m fix9: validacion fisica en onboarding - empresa, equipo, operador
+[33m3e6ddee[m fix8: cache local de sesiones con Map + TTL
+[33mb29c9a0[m fix6: validar turno_id en registrarParo
+[33m0a2a3e5[m fix5: cerrar paro abierto automaticamente al hacer FIN
