@@ -274,3 +274,22 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - webhook_test.js reclasificado de D-Riesgo a C (8 lineas, solo imports, sin logica).
 - Paquete compartido para validacion externa por ChatGPT, DeepSeek, GLM5 y equipo.
 - 0 codigo tocado. 0 archivos movidos/borrados. 0 limpieza ejecutada.
+
+---
+
+## 2026-05-04 — Fase 1 Rediseñada 63 C — Ajuste Conservador
+
+- Se creo docs/context/22_PLAN_DEL_DIA_REPO_CLEANUP_FASE_1_63C.md.
+- Estado: PLAN_DEL_DIA / EJECUCION_BLOQUEADA.
+- Ajuste conservador consolidado: 3 archivos C reclasificados a B.
+  - pdfReporteDiario.js (C→B): placeholder 0 bytes, valor historico.
+  - ver_case.js (C→B): script debug, evidencia historica.
+  - webhook_test.js (C→B): fragmento imports, snapshot historico integracion.
+- Mapa ajustado: A=7, B=18, C=63, D=0, D-Riesgo=0, DATA_LOCAL=4.
+- 8 lotes disenados de 5-11 archivos cada uno.
+- Maximo 10 archivos por lote. Commit separado por lote.
+- Validacion externa: ChatGPT, DeepSeek, GLM5 — GO condicionado.
+- Estructura destino: docs/archive/repo_cleanup/fase_1/.
+- archive_index.md obligatorio.
+- Siguiente decision: votacion GO/NO-GO para ejecutar Fase 1 Lote 1.
+- 0 codigo tocado. 0 archivos movidos/borrados. 0 limpieza ejecutada.
