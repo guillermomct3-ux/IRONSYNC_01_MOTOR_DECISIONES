@@ -201,3 +201,42 @@ Si se requiere revertir Lote 5:
 
 - Mover los 3 archivos de vuelta de docs/archive/repo_cleanup/fase_1/ a raiz.
 - Commit: revert: undo Fase 1 Lote 5 - restore 3 fix scripts to root
+
+---
+
+## Lote 6 — 2026-05-04
+
+Commit base: c8894e1
+Archivos: 5
+Tipo: fix_*.js untracked — scripts one-time
+Resultado: EXITO
+
+| # | Archivo original | Clasificacion | Origen | Razon | Accion | Commit base | Rollback | Prueba | Resultado |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | fix_status2.js | C | Untracked | Parche one-time status. 0 referencias produccion. | Move-Item a fase_1/ | c8894e1 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 2 | fix_status_callback.js | C | Untracked | Parche one-time status callback. 0 referencias produccion. | Move-Item a fase_1/ | c8894e1 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 3 | fix_webhook_line.js | C | Untracked | Parche one-time webhook line. 0 referencias produccion. | Move-Item a fase_1/ | c8894e1 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 4 | fix_webhook_override.js | C | Untracked | Parche one-time webhook override. 0 referencias produccion. | Move-Item a fase_1/ | c8894e1 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 5 | fix_webhook_status.js | C | Untracked | Parche one-time webhook status. 0 referencias produccion. | Move-Item a fase_1/ | c8894e1 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+
+### Pruebas Lote 6
+
+| Prueba | Antes | Despues | Resultado |
+|--------|-------|---------|-----------|
+| node --check webhook.js | OK | OK | SIN REGRESION |
+| node --check turnos.js | OK | OK | SIN REGRESION |
+| git status DATA_LOCAL | Clean | Clean | SIN CAMBIO |
+| git status produccion | Clean | Clean | SIN CAMBIO |
+| require('./fix_') | 0 | 0 | SIN DEPENDENCIA |
+
+### Nota tecnica Lote 6
+
+Lote 6 cierra los archivos untracked (C). Los Lotes 7 y 8 cambian de protocolo: usan git mv para archivos trackeados.
+Archivos B excluidos confirmados: turnos_backup_pre_fix_empresaIdTurno.js y webhook_backup.js permanecen en raiz.
+
+### Rollback Lote 6
+
+Si se requiere revertir Lote 6:
+
+- Mover los 5 archivos de vuelta de docs/archive/repo_cleanup/fase_1/ a raiz.
+- Commit: revert: undo Fase 1 Lote 6 - restore 5 fix scripts to root
