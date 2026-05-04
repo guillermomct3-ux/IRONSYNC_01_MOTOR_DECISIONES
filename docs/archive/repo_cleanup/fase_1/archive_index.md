@@ -165,3 +165,39 @@ Si se requiere revertir Lote 4:
 
 - Mover los 10 archivos de vuelta de docs/archive/repo_cleanup/fase_1/ a raiz.
 - Commit: revert: undo Fase 1 Lote 4 - restore 10 fix scripts to root
+
+---
+
+## Lote 5 — 2026-05-04
+
+Commit base: 85940b0
+Archivos: 3
+Tipo: fix_*.js untracked — scripts one-time
+Resultado: EXITO
+
+| # | Archivo original | Clasificacion | Origen | Razon | Accion | Commit base | Rollback | Prueba | Resultado |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | fix_twilio_client.js | C | Untracked | Parche one-time cliente Twilio. 0 referencias produccion. | Move-Item a fase_1/ | 85940b0 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 2 | fix_webhook_legacy_override.js | C | Untracked | Parche one-time override webhook legacy. 0 referencias produccion. | Move-Item a fase_1/ | 85940b0 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+| 3 | fix_webhook_legacy_v2.js | C | Untracked | Parche one-time webhook legacy v2. 0 referencias produccion. | Move-Item a fase_1/ | 85940b0 | Move-Item de vuelta a raiz | git status + node --check | EXITO |
+
+### Pruebas Lote 5
+
+| Prueba | Antes | Despues | Resultado |
+|--------|-------|---------|-----------|
+| node --check webhook.js | OK | OK | SIN REGRESION |
+| node --check turnos.js | OK | OK | SIN REGRESION |
+| git status DATA_LOCAL | Clean | Clean | SIN CAMBIO |
+| git status produccion | Clean | Clean | SIN CAMBIO |
+| require('./fix_') | 0 | 0 | SIN DEPENDENCIA |
+
+### Nota tecnica Lote 5
+
+Coincidencias sensibles en webhook.js: WEBHOOK_LEGACY_OPERATOR_OVERRIDE (linea 147) y LEGACY_OVERRIDE_ERROR (linea 164). Son strings de console.log/error dentro del codigo de produccion, NO referencias a los archivos C. No es STOP tecnico.
+
+### Rollback Lote 5
+
+Si se requiere revertir Lote 5:
+
+- Mover los 3 archivos de vuelta de docs/archive/repo_cleanup/fase_1/ a raiz.
+- Commit: revert: undo Fase 1 Lote 5 - restore 3 fix scripts to root
