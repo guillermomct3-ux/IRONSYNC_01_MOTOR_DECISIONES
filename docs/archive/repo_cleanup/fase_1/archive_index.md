@@ -40,3 +40,9 @@ Si se requiere revertir Lote 1:
 - Archivo 4: git mv docs/archive/repo_cleanup/fase_1/conciliacion_test.pdf de vuelta a raiz
 - Archivo 5: git mv docs/archive/repo_cleanup/fase_1/conciliacion_v21.pdf de vuelta a raiz
 - Commit: revert: undo Fase 1 Lote 1 - restore 5 files to root
+
+### Correccion Lote 1 — 2026-05-04
+
+Commit: 6c37a48
+Razon: El archivo con caracter Unicode U+F03C no pudo ser staged con git add normal porque git interpreta corchetes como glob pattern. Se uso GIT_LITERAL_PATHSPECS=1 para forzar pathspecs literales.
+Resultado: EXITO — rename confirmado 100% por git.

@@ -293,3 +293,24 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - archive_index.md obligatorio.
 - Siguiente decision: votacion GO/NO-GO para ejecutar Fase 1 Lote 1.
 - 0 codigo tocado. 0 archivos movidos/borrados. 0 limpieza ejecutada.
+
+---
+
+## 2026-05-04 — Fase 1 Lote 1 — 5 archivos C aislados
+
+- Se ejecuto Fase 1 Lote 1 del plan 22_PLAN_DEL_DIA_REPO_CLEANUP_FASE_1_63C.md.
+- 5 archivos C aislados a docs/archive/repo_cleanup/fase_1/.
+- Archivos movidos:
+  - et --hard 87806e1 (untracked — artefacto terminal)
+  - h origin main --force (trackeado — artefacto terminal)
+  - how --stat HEAD [U+F03C] more (untracked — artefacto terminal con Unicode)
+  - conciliacion_test.pdf (trackeado — PDF prueba)
+  - conciliacion_v21.pdf (trackeado — PDF prueba)
+- Commits: e37ef95 (principal) + 6c37a48 (correccion U+F03C).
+- Nota tecnica: archivo con U+F03C requirio GIT_LITERAL_PATHSPECS=1 porque git interpreta corchetes como glob pattern.
+- node --check webhook.js: OK antes y despues.
+- node --check turnos.js: OK antes y despues.
+- DATA_LOCAL: intacto.
+- A produccion: intacto.
+- Fase 1 Lote 2 sigue BLOQUEADO hasta votacion GO/NO-GO.
+- Mapa actualizado post-aislamiento: A=7, B=18, C=58 restantes, D=0, D-Riesgo=0, DATA_LOCAL=4.
