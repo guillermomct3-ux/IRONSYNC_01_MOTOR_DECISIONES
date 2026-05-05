@@ -1,4 +1,4 @@
-require('dotenv').config();
+﻿require('dotenv').config();
 const express = require('express');
 const twilio = require('twilio');
 const supabase = require('./lib/supabaseClient');
@@ -10,6 +10,9 @@ const { rutearMensaje } = require('./lib/router');
 const { deTwilioAtelefono } = require('./lib/telefono');
 const { registrarMensajeEntrante, marcarProcesado, marcarDuplicado, marcarFallido } = require('./lib/idempotency');
 const { resolverEstadoOperador } = require('./lib/stateResolver');
+const { extraerComandoLogbook, detectarCanal, parseHorometro } = require('./lib/logbookUtils');
+const logbookService = require('./services/logbookService');
+const { LOGBOOK_RESPUESTAS, respuestaLogbookDesdeResultado } = require('./respuestas_logbook');
 const { iniciarCronJob } = require('./jobs/limpiarSesiones');
 
 process.on('uncaughtException', (err) => {
@@ -141,6 +144,55 @@ app.post('/webhook', async (req, res) => {
   if (/^(nicio|icio)\b/i.test(textoOpRaw)) {
     textoOp = textoOpRaw.replace(/^(nicio|icio)\b/i, "inicio");
     bodyOp = body.replace(/^\s*(nicio|icio)\b/i, "INICIO");
+  }
+  // F-04.1 LOGBOOK ROUTING
+  {
+    const LOGBOOK_F04_ENABLED = String(process.env.LOGBOOK_F04_ENABLED || 'false').toLowerCase() === 'true';
+    if (LOGBOOK_F04_ENABLED) {
+      const LOGBOOK_CONFIG = { SESSION_TTL_MS: 10 * 60 * 1000, SESSION_TTL_INICIO_MS: 20 * 60 * 1000 };
+      const logbookSessions = global._logbookSessions || (global._logbookSessions = new Map());
+      const now = Date.now();
+      for (const [key, session] of logbookSessions) {
+        if (now > (session.timestampExpiracion || 0)) { logbookSessions.delete(key); }
+      }
+      const enviarRespuesta = (mensaje) => {
+        const MessagingResponse = twilio.twiml.MessagingResponse;
+        const twiml = new MessagingResponse();
+        twiml.message(mensaje);
+        res.set('Content-Type', 'text/xml');
+        return res.send(twiml.toString());
+      };
+      if (logbookSessions.has(from)) {
+        const session = logbookSessions.get(from);
+        if (session.accion === 'INICIO') {
+          const counter = parseHorometro(textoOp);
+          if (counter !== null) {
+            logbookSessions.delete(from);
+            const resultado = await logbookService.iniciarTurnoLogbook({ from, maquina: session.maquina, horometro: counter, canal: session.canal });
+            return enviarRespuesta(respuestaLogbookDesdeResultado(resultado));
+          }
+          return enviarRespuesta(LOGBOOK_RESPUESTAS.horometroInvalido());
+        }
+      }
+      const comandoLogbook = extraerComandoLogbook(textoOp);
+      if (comandoLogbook && comandoLogbook.maquina && comandoLogbook.accion === 'INICIO') {
+        const canal = detectarCanal(comandoLogbook);
+        try {
+          if (comandoLogbook.horometro === null) {
+            const ultimo = await logbookService.buscarUltimoCierre({ maquina: comandoLogbook.maquina, empresaId: null });
+            const promptMensaje = LOGBOOK_RESPUESTAS.pideHorometroInicio(comandoLogbook.maquina, ultimo ? ultimo.horometro_fin : null);
+            logbookSessions.set(from, { accion: 'INICIO', maquina: comandoLogbook.maquina, canal, timestampExpiracion: Date.now() + LOGBOOK_CONFIG.SESSION_TTL_INICIO_MS });
+            return enviarRespuesta(promptMensaje);
+          }
+          const resultadoDirecto = await logbookService.iniciarTurnoLogbook({ from, maquina: comandoLogbook.maquina, horometro: comandoLogbook.horometro, canal: 'manual' });
+          if (resultadoDirecto) {
+            return enviarRespuesta(respuestaLogbookDesdeResultado(resultadoDirecto));
+          }
+        } catch (errorLogbook) {
+          console.error('[LOGBOOK_ROUTING] Error:', errorLogbook.message);
+        }
+      }
+    }
   }
 
   if (/^(inicio|fin|paro|reanuda|falla|horas)\b/i.test(textoOp)) {
