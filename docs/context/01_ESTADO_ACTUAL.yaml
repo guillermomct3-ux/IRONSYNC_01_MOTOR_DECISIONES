@@ -213,3 +213,85 @@ documentos_contexto:
       estado: "pusheado"
 
 siguiente_accion: "Convocar votacion del equipo para FROZEN de 16_REPO_CLEANUP_PLAN.md. Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza."
+
+
+---
+# Actualizacion cierre de sesion 2026-05-05
+
+commit_actual: "99d9de9"
+commit_mensaje: "docs: mark Doc 27 FROZEN - IS Logbook v1 design approved 7/7"
+
+agente_actual: "ninguno — reposo entre bloques"
+ultimo_agente: "MiMo V2"
+ultima_sesion: "2026-05-05 — Guillermo + ChatGPT + MiMo V2 + Claude + DeepSeek + Grok + Gemini + Qwen — Fase 1 Repo Cleanup completada + Documento 27 FROZEN + Docs 24/25/26 DRAFT"
+
+fase_actual: "METODOLOGIA ARQUITECTONICA — Docs 24/25/26 DRAFT + Preparacion IS Logbook v1.0"
+
+estado_fase1_repo_cleanup: "COMPLETADA — 63/63 archivos C aislados — 17 commits — 0 incidentes"
+estado_documento_27: "FROZEN DOCUMENTAL — DISeno IS LOGBOOK v1.0 — 7/7 votos GO — commit 99d9de9"
+estado_bug_002: "ABIERTO — Persistencia dual JSON + Supabase — Opcion Pragmatica aprobada como diseno"
+estado_data_local: "BLOQUEADO — 4 archivos intocados hasta BUG-002 resuelto o mitigado"
+estado_fase2_repo_cleanup: "BLOQUEADA — Sin autorizacion"
+
+is_logbook_v1_features:
+  - id: "F-01"
+    nombre: "Metodologia arquitectonica en piloto 30 dias"
+    estado: "EN PROGRESO — Docs 24/25/26 DRAFT creados"
+  - id: "F-02"
+    nombre: "Fuente de verdad operativa para turnos"
+    estado: "PENDIENTE — BLOCKER"
+  - id: "F-03"
+    nombre: "Diseno IS Logbook v1.0"
+    estado: "FROZEN — Documento 27"
+  - id: "F-03.5"
+    nombre: "Multi-tenancy / Tenant Isolation"
+    estado: "PENDIENTE"
+  - id: "F-04"
+    nombre: "QR + machine_id / tenant_id"
+    estado: "PENDIENTE — Bloqueada por F-02"
+  - id: "F-05"
+    nombre: "INICIO desde QR"
+    estado: "PENDIENTE — Bloqueada por F-02"
+  - id: "F-06"
+    nombre: "Eventos de jornada"
+    estado: "PENDIENTE — Bloqueada por F-02"
+  - id: "F-07"
+    nombre: "FIN con foto"
+    estado: "PENDIENTE — Bloqueada por F-02"
+  - id: "F-08"
+    nombre: "PDF Reporte Diario neutral"
+    estado: "PENDIENTE — Bloqueada por F-02"
+  - id: "F-09"
+    nombre: "Consolidacion operativa 200h/30d"
+    estado: "PENDIENTE — Bloqueada por F-02"
+  - id: "F-10"
+    nombre: "Laboratorio Sintetico S01-S20"
+    estado: "PENDIENTE"
+  - id: "F-11"
+    nombre: "IS Logbook v1.0 FROZEN"
+    estado: "PENDIENTE"
+
+metodologia_arquitectonica:
+  doc_24: "DRAFT — 24_RIGOR_OPERATIVO_IRONSYNC_v0_1.md"
+  doc_25: "DRAFT — 25_DEBT_REGISTRY.md"
+  doc_26: "DRAFT — 26_DEEPSEEK_GUARDIAN_PROMPT_v0_1.md"
+  estado: "DRAFT / PARA REVISION DEL EQUIPO"
+  siguiente_paso: "Votacion GO/NO-GO para FROZEN de Docs 24/25/26"
+
+debt_registry_activo:
+  - id: "DEBT-001"
+    titulo: "Persistencia dual JSON + Supabase (BUG-002)"
+    severidad: "CRITICA"
+    estado: "ABIERTO"
+    blocker: true
+  - id: "DEBT-002"
+    titulo: "DATA_LOCAL bloqueado"
+    severidad: "ALTA"
+    estado: "ABIERTO"
+    blocker: true
+
+codigo_autorizado: false
+deploy_autorizado: false
+fase2_autorizada: false
+
+siguiente_accion: "Votar Docs 24/25/26 DRAFT para FROZEN. Despues resolver/aprobar F-02. Despues propuesta tecnica por feature."

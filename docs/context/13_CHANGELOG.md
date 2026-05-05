@@ -590,3 +590,22 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - Votos: Guillermo GO, ChatGPT GO, MiMo V2 GO, Claude GO, DeepSeek GO, Grok GO, Qwen GO.
 - Commit evaluado: bf40a58.
 - Documento final: docs/context/27_DISENO_IS_LOGBOOK_v1_0_SYNTHETIC_FIELD_LAB.md (849 lineas, 19 secciones).
+
+
+---
+
+## 2026-05-05 — Docs 24, 25, 26 DRAFT — Metodologia arquitectonica
+
+- Se crearon 3 documentos metodologicos como paquete DRAFT:
+  - 24_RIGOR_OPERATIVO_IRONSYNC_v0_1.md (16 secciones, clasificacion al nacer, 3 puertas, raiz sagrada, Plan del Dia, War Room, HOTFIX, comunicacion anti-falsa-estabilidad)
+  - 25_DEBT_REGISTRY.md (11 secciones, DEBT-001 BUG-002 critica, DEBT-002 DATA_LOCAL bloqueado, reglas de deuda)
+  - 26_DEEPSEEK_GUARDIAN_PROMPT_v0_1.md (12 secciones, prompt operativo reusable, 7 entradas obligatorias, NO-GO automatico, ejemplo veredicto)
+- Se actualizo 01_ESTADO_ACTUAL.yaml con estado completo del proyecto.
+- Estado: DRAFT / PARA REVISION DEL EQUIPO.
+- FROZEN de Docs 24/25/26 requiere votacion del equipo.
+- 0 codigo tocado.
+- 0 DATA_LOCAL tocado.
+- 0 produccion tocada.
+- F-02 sigue pendiente.
+- Fase 2 sigue bloqueada.
+- Siguiente paso: Votacion GO/NO-GO Docs 24/25/26.
