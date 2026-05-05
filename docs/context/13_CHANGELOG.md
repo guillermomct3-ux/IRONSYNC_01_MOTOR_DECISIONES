@@ -553,3 +553,22 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - Fase 2 Repo Cleanup: BLOQUEADA.
 - BUG-002: ABIERTO.
 - DATA_LOCAL: BLOQUEADO.
+
+---
+
+## 2026-05-05 — Documento 27 DRAFT — Correcciones post-votacion
+
+- Se aplicaron 6 correcciones documentales menores al Documento 27 DRAFT.
+- Correcciones:
+  - C1: Offline/mala senal agregado explicitamente en Out of Scope v1.0.
+  - C2: Riesgos ampliados de R1-R15 a R1-R21 (fuga cross-tenant, consolidacion sin supervision, mantenimiento lab, QR spoofing multi-tenant, complejidad acumulada, manualizacion fotos).
+  - C3: Blindaje de gobernanza reforzado con frase explicita sobre lo que FROZEN NO autoriza.
+  - C4: Opcion Pragmatica F-02 aclarada como diseno funcional, requiere Plan del Dia para implementacion.
+  - C5: Tabla de dependencias F-02 agregada (F-04 a F-09 bloqueadas por F-02).
+  - C6: Nota sobre futuros (IA, metadatos, geolocalizacion) agregada como out of scope v1.0.
+- 0 codigo tocado.
+- 0 DATA_LOCAL tocado.
+- 0 produccion tocada.
+- F-02 sigue pendiente.
+- Fase 2 sigue bloqueada.
+- Siguiente paso: Commit correcciones + nueva ronda de votacion para FROZEN.

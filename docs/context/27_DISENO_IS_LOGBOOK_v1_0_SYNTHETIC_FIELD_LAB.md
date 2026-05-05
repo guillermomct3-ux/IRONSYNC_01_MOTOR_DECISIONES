@@ -26,6 +26,7 @@
 - Raiz ordenada no es arquitectura sana.
 - FROZEN de diseno no es permiso de ejecucion.
 - Logbook registra lo que paso en campo; Finanzas decide cuanto cuesta.
+
 - Disenamos con libertad. Implementamos con rigor. Cerramos con evidencia.
 
 ---
@@ -423,6 +424,7 @@ QR → INICIO → jornada → eventos → FIN con foto → PDF → consolidacion
 - BUG-002 se declara bloqueado con workaround.
 - Se requiere plan propio para cerrar BUG-002 en el futuro.
 - DATA_LOCAL no se migra automaticamente.
+**Aclaracion de gobernanza:** La Opcion Pragmatica se adopta como diseno funcional. Su implementacion requiere Plan del Dia especifico y votacion GO/NO-GO.
 
 **Regla:** No declarar BUG-002 cerrado sin plan propio.
 
@@ -478,6 +480,22 @@ consolidaciones: id, tenant_id, machine_id, periodo_inicio, periodo_fin, horas_t
 - Sin autenticacion, el QR no funciona.
 
 ---
+
+### Tabla de dependencias F-02
+
+F-02 bloquea la IMPLEMENTACION de las siguientes features:
+
+| Feature | Bloqueada por F-02 | Razon |
+|---------|-------------------|-------|
+| F-04 | SI | QR resuelve contra fuente de verdad. Sin F-02 no se sabe donde buscar |
+| F-05 | SI | INICIO crea turno. Sin F-02 no se sabe donde persistir |
+| F-06 | SI | Eventos se asocian a turno. Sin F-02 no se sabe donde guardar |
+| F-07 | SI | FIN cierra turno. Sin F-02 no se sabe donde actualizar |
+| F-08 | SI | PDF lee datos del turno. Sin F-02 no se sabe de donde leer |
+| F-09 | SI | Consolidacion acumula turnos. Sin F-02 no se sabe donde acumular |
+| F-03.5 | NO | Multi-tenancy es diseno, no implementacion |
+| F-10 | PARCIAL | Laboratorio puede disenarse sin F-02, pero no ejecutarse |
+| F-11 | SI | FROZEN requiere todas las features completadas |
 
 ## 8. Flujo operativo completo
 
@@ -711,6 +729,12 @@ NO contiene: Dinero, Tarifa, Cobro, Factura.
 | R13 | Desfase de reloj | BAJO | Usar timestamp del servidor |
 | R14 | Offline / mala senal en campo | MEDIO | FUTURO: cola local + sync |
 | R15 | Multi-tenancy tardio | ALTO | Incluir desde F-03.5 |
+| R16 | Fuga de datos cross-tenant | ALTO | tenant_id obligatorio en TODAS las queries. Validacion estricta de scope. Testing de aislamiento en laboratorio. Sin acceso cross-tenant sin autorizacion explicita |
+| R17 | Consolidacion automatica sin supervision humana | MEDIO | Revision humana obligatoria antes de pasar a Finanzas. Flag revisado_humanamente como gate |
+| R18 | Mantenimiento continuo del laboratorio S01-S20 | MEDIO | Cada cambio en Logbook requiere re-ejecucion de escenarios afectados. Mantener lab actualizado |
+| R19 | QR estatico + tenant_id puede llevar a spoofing si se duplica | MEDIO | Autenticacion de operador como requisito obligatorio. QR es semilla, no llave. Sin autenticacion no funciona |
+| R20 | Complejidad arquitectonica acumulada | MEDIO | Documentar decisiones. No agregar complejidad sin votacion. Revisar en auditorias mensuales |
+| R21 | Manualizacion excesiva de revision de fotos | BAJO | Definir criterios claros de aceptacion/rechazo de fotos. Futuro: OCR como automatizacion |
 
 ---
 
@@ -728,6 +752,9 @@ NO contiene: Dinero, Tarifa, Cobro, Factura.
 | F-MULTI | Multi-turno por maquina por dia | FUTURO | Actualmente un turno por maquina por dia |
 | F-GEO | Geolocalizacion del operador | FUTURO | No es parte del flujo minimo viable |
 | F-NOTIF | Notificaciones push | FUTURO | Alertas automaticas al admin |
+| F-OFFLINE | Protocolo offline / mala senal | FUTURO | No core de v1.0. Sin cola local, sin app offline, sin sincronizacion diferida, sin reintentos locales. Documentado solo como riesgo operativo/futuro |
+| F-PENAL | Calculo de penalizaciones | FUTURO | Pertenece a IS Finanzas |
+| F-TARVAR | Tarifas variables | FUTURO | Pertenece a IS Finanzas |
 | F-APP | App nativa | FUTURO | WhatsApp es el canal actual |
 | F-PORTAL | Portal cliente | FUTURO | El cliente ve PDF, no portal |
 
@@ -758,6 +785,17 @@ Documento 27 DRAFT → Ronda de upgrades del equipo → Votacion equipo → Docu
 ### Regla fundamental
 
 > "FROZEN de diseno no es permiso de ejecucion; es permiso para preparar ejecucion con rigor."
+
+### Blindaje de gobernanza
+
+Documento 27 FROZEN congela unicamente el diseno funcional.
+No congela deuda tecnica.
+No autoriza codigo.
+No autoriza deploy.
+No autoriza QR funcional.
+No autoriza PDF funcional.
+No autoriza tocar DATA_LOCAL.
+No autoriza tocar produccion.
 
 ---
 
@@ -804,4 +842,8 @@ Documento 27 DRAFT → Ronda de upgrades del equipo → Votacion equipo → Docu
 
 ---
 
+**Nota sobre futuros:** IA predictiva, metadatos avanzados y geolocalizacion mejorada son consideraciones futuras validas, pero NO son requisito de IS Logbook v1.0. Se documentan como referencia para planificacion futura. No deben confundirse con features pendientes de v1.0.
+
 *"Disenamos con libertad. Implementamos con rigor. Cerramos con evidencia."*
+
+
