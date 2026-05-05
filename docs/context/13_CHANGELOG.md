@@ -609,3 +609,25 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - F-02 sigue pendiente.
 - Fase 2 sigue bloqueada.
 - Siguiente paso: Votacion GO/NO-GO Docs 24/25/26.
+
+
+---
+
+## 2026-05-05 — F-02 Opcion Pragmatica APROBADA — BUG-002 MITIGADO
+
+- BUG-002 / DEBT-001 cambiado de ABIERTO a MITIGADO.
+- Decision: 7/7 votos GO para Opcion Pragmatica F-02.
+- Supabase = fuente operativa unica para nuevos turnos IS Logbook v1.0.
+- DATA_LOCAL / JSON legacy = read-only / fallback documentado.
+- Ninguna nueva feature escribe en JSON legacy.
+- No sincronizacion bidireccional.
+- Escritura nueva a JSON legacy = STOP tecnico.
+- F-04 a F-09 desbloqueadas para Plan del Dia.
+- Cada feature requiere: revision tecnica + DeepSeek Guardian + War Room GO/NO-GO.
+- Codigo sigue NO autorizado sin War Room individual.
+- Riesgos residuales aceptados: desincronizacion fallback, confusion contexto, split-brain historico.
+- DEBT-003 / F-12 creada: migracion one-time turnos activos legacy. Estado: pendiente de analisis.
+- 0 codigo tocado.
+- 0 DATA_LOCAL tocado.
+- 0 produccion tocada.
+- Siguiente paso: F-04 QR propuesta tecnica + Plan del Dia.

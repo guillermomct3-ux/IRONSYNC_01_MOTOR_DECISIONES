@@ -51,8 +51,8 @@ Este documento es la fuente unica de verdad sobre deuda conocida. Todo item de d
 | ID | DEBT-001 |
 | Titulo | Persistencia dual JSON + Supabase |
 | Tipo | TECNICA |
-| Severidad | CRITICA |
-| Estado | ABIERTO |
+| Severidad | ALTA (residual/controlada) |
+| Estado | MITIGADO |
 | Owner | Guillermo |
 | Fecha deteccion | 2026-05-04 |
 | Fuente | Equipo IRONSYNC (auditorias multiples) |
@@ -64,6 +64,30 @@ Este documento es la fuente unica de verdad sobre deuda conocida. Todo item de d
 | Decision requerida | Aprobar formalmente la Opcion Pragmatica como mitigacion. Crear Plan del Dia especifico para implementacion de la opcion. |
 | Evidencia de cierre | PENDIENTE |
 | Fecha cierre | PENDIENTE |
+
+
+---
+
+### Mitigacion aprobada — Opcion Pragmatica (2026-05-05, 7/7 votos GO)
+
+**Decision formal:**
+- Supabase = fuente operativa unica para nuevos turnos IS Logbook v1.0.
+- DATA_LOCAL / JSON legacy = read-only / fallback documentado.
+- Ninguna nueva feature de Logbook escribe en JSON legacy.
+- No habra sincronizacion bidireccional entre JSON y Supabase.
+
+**Desbloqueo parcial:**
+- F-04 a F-09 quedan desbloqueadas UNICAMENTE para preparar Plan del Dia.
+- Cada feature seguira requiriendo: revision tecnica, DeepSeek Guardian, War Room GO/NO-GO.
+- Codigo sigue NO autorizado sin War Room individual por feature.
+
+**Regla absoluta:**
+- Cualquier escritura nueva a JSON legacy = STOP tecnico inmediato.
+
+**Riesgos residuales aceptados:**
+1. Desincronizacion de fallback: DATA_LOCAL puede quedar desactualizado respecto a Supabase.
+2. Confusion de contexto: agentes futuros pueden confundir cual es la fuente de verdad si no leen docs/context.
+3. Split-brain historico residual: datos viejos en JSON y datos nuevos en Supabase coexisten sin sincronizacion.
 
 **Regla:** No declarar BUG-002 cerrado sin plan propio y evidencia de resolucion.
 
@@ -77,7 +101,7 @@ Este documento es la fuente unica de verdad sobre deuda conocida. Todo item de d
 | Titulo | DATA_LOCAL bloqueado hasta resolucion de BUG-002 |
 | Tipo | TECNICA |
 | Severidad | ALTA |
-| Estado | ABIERTO |
+| Estado | MITIGADO |
 | Owner | Guillermo |
 | Fecha deteccion | 2026-05-04 |
 | Fuente | Equipo IRONSYNC (decision de gobernanza) |
@@ -110,7 +134,7 @@ Este documento es la fuente unica de verdad sobre deuda conocida. Todo item de d
 
 | ID | Titulo | Severidad | Estado | Blocker | Owner | Fecha revision |
 |----|--------|-----------|--------|--------|-------|----------------|
-| DEBT-001 | Persistencia dual JSON + Supabase (BUG-002) | CRITICA | ABIERTO | SI | Guillermo | PENDIENTE |
+| DEBT-001 | Persistencia dual JSON + Supabase (BUG-002) | ALTA | MITIGADO | SI | Guillermo | PENDIENTE |
 | DEBT-002 | DATA_LOCAL bloqueado | ALTA | ABIERTO | SI | Guillermo | PENDIENTE |
 
 ---
@@ -120,6 +144,33 @@ Este documento es la fuente unica de verdad sobre deuda conocida. Todo item de d
 | ID | Titulo | Resuelto por | Fecha | Commit | Evidencia |
 |----|--------|-------------|-------|--------|-----------|
 | (vacio) | — | — | — | — | — |
+
+
+
+---
+
+### DEBT-003 / F-12 — Migracion one-time turnos activos legacy
+
+| Campo | Valor |
+|-------|-------|
+| ID | DEBT-003 |
+| Titulo | Migracion one-time de turnos activos legacy a Supabase |
+| Tipo | TECNICA |
+| Severidad | MEDIA |
+| Estado | PENDIENTE DE ANALISIS |
+| Owner | Guillermo |
+| Fecha deteccion | 2026-05-05 |
+| Fuente | Equipo IRONSYNC (votacion Opcion Pragmatica) |
+| Descripcion | Los turnos activos que existen en DATA_LOCAL (turnos_activos.json) necesitan migrarse a Supabase como parte del cierre definitivo de BUG-002. Esta migracion es one-time y solo aplica a turnos activos pendientes al momento de la transicion. |
+| Impacto | Sin migracion, turnos activos legacy quedarian fuera de Supabase. No bloquea features nuevas pero si cierre definitivo de BUG-002. |
+| Blocker | NO (no bloquea implementacion de features nuevas) |
+| Features bloqueadas | Ninguna directamente. Requerido para cerrar BUG-002 definitivamente. |
+| Mitigacion | No aplica todavia. |
+| Decision requerida | Analisis de: cuantos turnos activos existen en JSON, formato de datos, mapping a schema Supabase, estrategia de migracion. |
+| Evidencia de cierre | PENDIENTE |
+| Fecha cierre | PENDIENTE |
+
+**Regla:** F-12 NO autoriza scripts de migracion. NO autoriza tocar DATA_LOCAL. Solo autoriza analisis previo.
 
 ---
 

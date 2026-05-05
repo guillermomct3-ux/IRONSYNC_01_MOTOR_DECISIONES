@@ -295,3 +295,67 @@ deploy_autorizado: false
 fase2_autorizada: false
 
 siguiente_accion: "Votar Docs 24/25/26 DRAFT para FROZEN. Despues resolver/aprobar F-02. Despues propuesta tecnica por feature."
+
+
+---
+# Actualizacion F-02 Opcion Pragmatica — 2026-05-05
+
+estado_bug_002: "MITIGADO — Opcion Pragmatica aprobada 7/7 votos GO"
+estado_f02: "MITIGADO — Supabase como fuente operativa para nuevos turnos"
+estado_data_local: "BLOQUEADO — read-only / fallback documentado"
+
+f02_mitigacion:
+  fecha: "2026-05-05"
+  votos: "7/7 GO"
+  decision: "Supabase = fuente operativa unica para nuevos turnos IS Logbook v1.0"
+  data_local: "read-only / fallback documentado"
+  nuevas_escrituras_json: "PROHIBIDO — STOP tecnico"
+  desbloqueo: "F-04 a F-09 desbloqueadas para Plan del Dia"
+  war_room_requerido: true
+  deepseek_guardian_requerido: true
+  codigo_autorado_sin_war_room: false
+
+debt_registry_activo:
+  - id: "DEBT-001"
+    titulo: "Persistencia dual JSON + Supabase (BUG-002)"
+    severidad: "ALTA (residual/controlada)"
+    estado: "MITIGADO"
+    blocker: true
+  - id: "DEBT-002"
+    titulo: "DATA_LOCAL bloqueado"
+    severidad: "ALTA"
+    estado: "ABIERTO"
+    blocker: true
+  - id: "DEBT-003"
+    titulo: "Migracion one-time turnos activos legacy (F-12)"
+    severidad: "MEDIA"
+    estado: "PENDIENTE DE ANALISIS"
+    blocker: false
+
+is_logbook_v1_features:
+  - id: "F-02"
+    nombre: "Fuente de verdad operativa para turnos"
+    estado: "MITIGADO — Opcion Pragmatica aprobada"
+  - id: "F-04"
+    nombre: "QR + machine_id / tenant_id"
+    estado: "DESBLOQUEADO para Plan del Dia"
+  - id: "F-05"
+    nombre: "INICIO desde QR"
+    estado: "DESBLOQUEADO para Plan del Dia"
+  - id: "F-06"
+    nombre: "Eventos de jornada"
+    estado: "DESBLOQUEADO para Plan del Dia"
+  - id: "F-07"
+    nombre: "FIN con foto"
+    estado: "DESBLOQUEADO para Plan del Dia"
+  - id: "F-08"
+    nombre: "PDF Reporte Diario neutral"
+    estado: "DESBLOQUEADO para Plan del Dia"
+  - id: "F-09"
+    nombre: "Consolidacion operativa 200h/30d"
+    estado: "DESBLOQUEADO para Plan del Dia"
+  - id: "F-12"
+    nombre: "Migracion one-time turnos activos legacy"
+    estado: "PENDIENTE DE ANALISIS"
+
+siguiente_accion: "F-04 QR: preparar propuesta tecnica + Plan del Dia + War Room GO/NO-GO"
