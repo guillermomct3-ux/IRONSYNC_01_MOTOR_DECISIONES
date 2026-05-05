@@ -359,3 +359,38 @@ is_logbook_v1_features:
     estado: "PENDIENTE DE ANALISIS"
 
 siguiente_accion: "F-04 QR: preparar propuesta tecnica + Plan del Dia + War Room GO/NO-GO"
+
+
+---
+# Actualizacion F-04.1 FROZEN DISENO — 2026-05-05
+
+estado_f04_1: "FROZEN DISENO — QR-first / manual-fallback — 6/6 votos GO"
+commit_f04_1: "PENDIENTE — este commit"
+
+is_logbook_v1_features:
+  - id: "F-04.1"
+    nombre: "QR-first / manual-fallback"
+    estado: "FROZEN DISENO"
+  - id: "F-04.2"
+    nombre: "PIN + validacion operador"
+    estado: "FUTURO"
+  - id: "F-04.3"
+    nombre: "Shift Config"
+    estado: "FUTURO"
+  - id: "F-04.4"
+    nombre: "Dashboard turnos"
+    estado: "FUTURO"
+
+f04_1_decisiones:
+  principio: "QR-first / manual-fallback"
+  acciones_qr_manual: "INICIO, FIN, RELEVO"
+  acciones_solo_texto: "PARO, FALLA, REANUDA, HORAS"
+  modelo_cierres: "CERRADO, CERRADO_POR_RELEVO, ANOMALIA_NO_CIERRE"
+  validacion: "Unificada — QR y texto misma logica"
+  origen_datos: "qr_legacy, manual, relevo_qr, relevo_manual"
+  manual_es_anomalia: false
+  zombie_libera_finanzas: false
+  pin_en_f04_1: false
+  codigo_autorizado: false
+
+siguiente_accion: "MiMo V2 propone codigo F-04.1. Equipo itera. FROZEN ejecucion."

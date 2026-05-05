@@ -631,3 +631,28 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - 0 DATA_LOCAL tocado.
 - 0 produccion tocada.
 - Siguiente paso: F-04 QR propuesta tecnica + Plan del Dia.
+
+
+---
+
+## 2026-05-05 — F-04.1 FROZEN DISENO — QR-first / manual-fallback
+
+- F-04.1 aprobado por 6/6 votos GO FROZEN.
+- Principio: QR-first / manual-fallback.
+- INICIO, FIN y RELEVO funcionan por QR y texto.
+- PARO, FALLA, REANUDA solo texto.
+- Modelo de 3 cierres: CERRADO, CERRADO_POR_RELEVO, ANOMALIA_NO_CIERRE.
+- Validacion Unificada: QR y texto misma logica.
+- origen_datos: qr_legacy, manual, relevo_qr, relevo_manual.
+- Manual no es anomalia. Es fallback valido.
+- Zombie no libera Finanzas ni PDF normal.
+- Relevo funciona por QR y manual. Notifica a Ulises.
+- Prerequisito: ALTER TABLE operadores ADD empresa_id.
+- PIN fuera de F-04.1 (F-04.2 futuro).
+- Shift Config fuera de F-04.1 (F-04.3 futuro).
+- Addendum incorporado a Doc 27 (849 -> 952 lineas).
+- 0 codigo tocado.
+- 0 DATA_LOCAL tocado.
+- 0 produccion tocada.
+- Codigo sigue NO autorizado.
+- Siguiente paso: MiMo V2 propone codigo F-04.1.

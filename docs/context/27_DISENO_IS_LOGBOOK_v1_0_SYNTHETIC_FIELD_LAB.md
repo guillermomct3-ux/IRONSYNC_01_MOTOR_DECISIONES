@@ -842,6 +842,109 @@ No autoriza tocar produccion.
 
 ---
 
+
+
+---
+
+## ADDENDUM — F-04.1 FROZEN DISENO: QR-FIRST / MANUAL-FALLBACK
+
+**Fecha FROZEN:** 2026-05-05
+**Votos:** 6/6 GO FROZEN
+**Estado:** FROZEN DISENO (NO autoriza codigo)
+
+### Principio fundamental
+
+> El QR es el camino rapido. El manual es la garantia de que nadie se queda afuera.
+
+### Acciones criticas (QR + manual)
+
+| Accion | QR | Manual | Unico canal |
+|--------|-----|--------|-------------|
+| INICIO | Preferente | Fallback | — |
+| FIN | Preferente | Fallback | — |
+| RELEVO | Preferente | Fallback | — |
+| PARO | No | Si | Solo texto |
+| FALLA | No | Si | Solo texto |
+| REANUDA | No | Si | Solo texto |
+| HORAS | No | Si | Solo texto |
+
+### Modelo de 3 cierres
+
+| Tipo | Mecanismo | Horometro | Finanzas | PDF |
+|------|-----------|-----------|----------|-----|
+| CERRADO | Operador cierra su turno (QR o manual) | Real | Libera | Normal |
+| CERRADO_POR_RELEVO | Otro operador abre turno en maquina ocupada | Real (del siguiente) | Libera con nota | Nota neutral |
+| ANOMALIA_NO_CIERRE | Nadie cerro, nadie relevo, timeout 24h | Estimado (0h) | No libera sin revision | No aparece hasta revision |
+
+### Validacion Unificada
+
+QR y texto pasan por la misma logica de negocio. El canal no cambia las reglas.
+
+Validaciones identicas:
+1. Operador autorizado (telefono en operadores, activo=true)
+2. empresa_id valido (no null)
+3. Equipo valido (existe en tabla equipos)
+4. Horometro coherente (>= anterior)
+5. Horometro numerico
+6. Estado turno correcto
+7. Supabase como fuente operativa
+8. Sin escritura en DATA_LOCAL
+9. Umbral relevo (>= 2 horas)
+
+### origen_datos
+
+| Valor | Significado |
+|-------|-------------|
+| qr_legacy | INICIO o FIN por QR |
+| manual | INICIO o FIN por texto |
+| relevo_qr | Cierre + apertura por QR de otro operador |
+| relevo_manual | Cierre + apertura por texto de otro operador |
+
+### Manual no es anomalia
+
+El uso manual es fallback valido y medible. Se mide proporcion QR vs manual para detectar problemas de adopcion, pero no se penaliza.
+
+### Regla zombie
+
+Si no hay cierre manual y no hay relevo:
+- No se inventa horometro.
+- No se libera a Finanzas.
+- No se genera PDF normal.
+- Se notifica a Ulises.
+- Se genera metrica de incumplimiento.
+- Pasos: recordatorio (2h), segundo recordatorio (4h), escalacion Ulises (6h), cierre zombie (24h).
+
+### Relevo
+
+Funciona por QR y manual. El horometro del operador siguiente funciona como frontera entre turnos. Se notifica a Ulises. PDF usa nota neutral. Caso de referencia: operacion SEDENA con doble turno en maquinaria pesada.
+
+### Prerequisito Supabase
+
+- ALTER TABLE operadores ADD COLUMN empresa_id UUID.
+- UPDATE operadores SET empresa_id con UUID de empresa.
+- empresa_id null bloquea inicio.
+
+### PIN
+
+Fuera de F-04.1. Registrado como F-04.2 futuro.
+
+### Shift Config
+
+Fuera de F-04.1. Registrado como F-04.3 futuro. Ulises configurara turnos por maquina, asignara operadores y definira horarios.
+
+### Fuera de alcance F-04.1
+
+QR tokenizado, nuevas placas, portal admin QR, OCR, geolocalizacion, PDF avanzado, Finanzas, deploy, produccion, DATA_LOCAL, F-12, scripts one-time, PARO/FALLA/REANUDA por QR, PIN.
+
+### F-04 roadmap
+
+| Feature | Nombre | Estado |
+|---------|--------|--------|
+| F-04.1 | QR-first / manual-fallback | FROZEN DISENO |
+| F-04.2 | PIN + validacion operador | FUTURO |
+| F-04.3 | Shift Config | FUTURO |
+| F-04.4 | Dashboard turnos | FUTURO |
+
 **Nota sobre futuros:** IA predictiva, metadatos avanzados y geolocalizacion mejorada son consideraciones futuras validas, pero NO son requisito de IS Logbook v1.0. Se documentan como referencia para planificacion futura. No deben confundirse con features pendientes de v1.0.
 
 *"Disenamos con libertad. Implementamos con rigor. Cerramos con evidencia."*
