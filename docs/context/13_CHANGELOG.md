@@ -524,3 +524,32 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - DATA_LOCAL: 4 archivos (intocados)
 - Fase 1: COMPLETADA
 - Fase 2: BLOQUEADA hasta autorizacion
+
+---
+
+## 2026-05-05 — Documento 27 DRAFT — IS Logbook v1.0 + Synthetic Field Lab
+
+- Se creo Documento 27 DRAFT: docs/context/27_DISENO_IS_LOGBOOK_v1_0_SYNTHETIC_FIELD_LAB.md.
+- Estado: DRAFT / PARA REVISION DEL EQUIPO.
+- NO autoriza codigo.
+- Contenido:
+  - 19 secciones completas.
+  - 11 features (F-01 a F-11, incluyendo F-03.5 multi-tenancy).
+  - 20 escenarios de laboratorio sintetico (S01-S20).
+  - 15 riesgos con mitigaciones (R1-R15).
+  - 10 consideraciones futuras.
+  - 6 decisiones pendientes.
+  - Gobernanza posterior: 13 pasos antes de codigo.
+  - Frontera Logbook/Finanzas explicita.
+  - F-02/BUG-002 como blocker de implementacion (no de diseno).
+  - Opcion pragmatica recomendada: Supabase fuente operativa, DATA_LOCAL read-only.
+  - Multi-tenancy desde inicio (F-03.5).
+  - QR estatico y durable.
+  - PDF neutral sin datos financieros.
+  - Footer: "Evidencia operativa — No documento fiscal."
+- Siguiente paso: Ronda de upgrades del equipo.
+- Despues de upgrades: Votacion GO/NO-GO para FROZEN.
+- FROZEN NO autoriza codigo.
+- Fase 2 Repo Cleanup: BLOQUEADA.
+- BUG-002: ABIERTO.
+- DATA_LOCAL: BLOQUEADO.
