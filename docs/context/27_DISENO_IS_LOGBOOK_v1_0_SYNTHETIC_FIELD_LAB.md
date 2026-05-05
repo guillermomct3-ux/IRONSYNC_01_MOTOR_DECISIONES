@@ -1,10 +1,10 @@
 ﻿# IS LOGBOOK v1.0 — DISENO FUNCIONAL + SYNTHETIC FIELD LAB
 
 **Fecha:** 2026-05-05
-**Estado:** DRAFT / PARA REVISION DEL EQUIPO
+**Estado:** FROZEN DOCUMENTAL — DISENO IS LOGBOOK v1.0
 **Autor:** Guillermo (direccion) + MiMo V2 (redaccion)
 **Clasificacion:** DOC
-**Autorizacion:** GO del equipo para crear como DRAFT
+**Autorizacion:** 7/7 votos GO FROZEN del equipo (2026-05-05)
 
 ---
 
@@ -18,7 +18,7 @@
 | Fase 2 Repo Cleanup | BLOQUEADA |
 | IS Logbook v1.0 | PENDIENTE de diseno e implementacion |
 | IS Finanzas | FUTURA (depende de Logbook) |
-| Documento 27 | DRAFT / NO autoriza codigo |
+| Documento 27 | FROZEN DOCUMENTAL / NO autoriza codigo |
 
 **Principios rectores:**
 
@@ -764,7 +764,7 @@ NO contiene: Dinero, Tarifa, Cobro, Factura.
 
 ### Flujo obligatorio
 
-1. Documento 27 se crea como DRAFT.
+1. Documento 27 se crea como DRAFT. [COMPLETADO — ahora FROZEN DOCUMENTAL]
 2. Equipo revisa.
 3. Equipo vota GO/NO-GO.
 4. Si hay GO → Documento 27 se marca FROZEN.
@@ -832,12 +832,12 @@ No autoriza tocar produccion.
 
 | Campo | Valor |
 |-------|-------|
-| Estado | DRAFT |
+| Estado | FROZEN DOCUMENTAL |
 | Version | 1.0 |
 | Fecha | 2026-05-05 |
 | Autor | Guillermo (direccion) + MiMo V2 (redaccion) |
-| Siguiente paso | Ronda de upgrades del equipo |
-| Despues de upgrades | Votacion GO/NO-GO para FROZEN |
+| Siguiente paso | Verificar/crear Docs 24, 25, 26 |
+| Despues de FROZEN | Resolver F-02 + propuesta tecnica por feature |
 | FROZEN autoriza | Solo diseno aprobado. NO autoriza codigo. |
 
 ---

@@ -572,3 +572,21 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - F-02 sigue pendiente.
 - Fase 2 sigue bloqueada.
 - Siguiente paso: Commit correcciones + nueva ronda de votacion para FROZEN.
+
+---
+
+## 2026-05-05 — Documento 27 FROZEN DOCUMENTAL — CIERRE DISENO IS LOGBOOK v1.0
+
+- Documento 27 aprobado por 7/7 votos GO FROZEN del equipo.
+- Estado cambiado de DRAFT a FROZEN DOCUMENTAL — DISENO IS LOGBOOK v1.0.
+- 6 correcciones post-votacion aplicadas y verificadas (C1-C6).
+- FROZEN congela unicamente el diseno funcional.
+- FROZEN NO autoriza codigo, deploy, QR funcional, PDF funcional.
+- FROZEN NO autoriza tocar DATA_LOCAL ni produccion.
+- F-02 sigue PENDIENTE como blocker de implementacion.
+- Fase 2 Repo Cleanup sigue BLOQUEADA.
+- Siguiente frente: verificar/crear Docs 24, 25, 26.
+- Despues: resolver F-02 + propuesta tecnica por feature.
+- Votos: Guillermo GO, ChatGPT GO, MiMo V2 GO, Claude GO, DeepSeek GO, Grok GO, Qwen GO.
+- Commit evaluado: bf40a58.
+- Documento final: docs/context/27_DISENO_IS_LOGBOOK_v1_0_SYNTHETIC_FIELD_LAB.md (849 lineas, 19 secciones).
