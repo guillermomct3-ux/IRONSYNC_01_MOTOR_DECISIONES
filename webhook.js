@@ -173,6 +173,20 @@ app.post('/webhook', async (req, res) => {
           }
           return enviarRespuesta(LOGBOOK_RESPUESTAS.horometroInvalido(textoOp));
         }
+        if (session.accion === 'FIN') {
+          const counter = parseHorometro(textoOp);
+          if (counter !== null) {
+            logbookSessions.delete(from);
+            const resultado = await logbookService.cerrarTurnoLogbook({
+              from,
+              maquina: session.maquina,
+              horometro: counter,
+              canal: session.canal
+            });
+            return enviarRespuesta(respuestaLogbookDesdeResultado(resultado));
+          }
+          return enviarRespuesta(LOGBOOK_RESPUESTAS.horometroInvalido());
+        }
       }
       const comandoLogbook = extraerComandoLogbook(textoOp);
       if (comandoLogbook && comandoLogbook.maquina && comandoLogbook.accion === 'INICIO') {
@@ -196,6 +210,40 @@ app.post('/webhook', async (req, res) => {
           }
         } catch (errorLogbook) {
           console.error('[LOGBOOK_ROUTING] Error:', errorLogbook.message);
+        }
+      }
+      if (comandoLogbook && comandoLogbook.maquina && comandoLogbook.accion === 'FIN') {
+        const canal = detectarCanal(comandoLogbook);
+        try {
+          if (comandoLogbook.horometro === null) {
+            if (comandoLogbook.raw) {
+              const tokens = comandoLogbook.raw.split(' ');
+              if (tokens.length >= 3) {
+                const intentoHorometro = tokens.slice(2).join(' ');
+                return enviarRespuesta(LOGBOOK_RESPUESTAS.horometroInvalido(intentoHorometro));
+              }
+            }
+            logbookSessions.set(from, {
+              accion: 'FIN',
+              maquina: comandoLogbook.maquina,
+              canal,
+              timestampExpiracion: Date.now() + LOGBOOK_CONFIG.SESSION_TTL_MS
+            });
+            return enviarRespuesta(comandoLogbook.maquina + '\nManda el contador final.');
+          }
+          const resultadoFIN = await logbookService.cerrarTurnoLogbook({
+            from,
+            maquina: comandoLogbook.maquina,
+            horometro: comandoLogbook.horometro,
+            canal
+          });
+          if (resultadoFIN) {
+            return enviarRespuesta(respuestaLogbookDesdeResultado(resultadoFIN));
+          }
+          return enviarRespuesta(LOGBOOK_RESPUESTAS.errorGeneral());
+        } catch (errorLogbookFIN) {
+          console.error('[LOGBOOK_ROUTING] Error FIN:', errorLogbookFIN.message);
+          return enviarRespuesta(LOGBOOK_RESPUESTAS.errorGeneral());
         }
       }
     }
