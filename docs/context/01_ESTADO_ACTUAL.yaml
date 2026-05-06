@@ -446,3 +446,29 @@ f04_1_lote1_pruebas:
   siguiente_paso: "War Room decision post-test"
 
 commit_actual: "3c346f9"
+
+---
+# FIX-T06 COMPLETADO — 2026-05-06
+
+fix_t06:
+  id: "FIX-T06"
+  titulo: "Detectar horometro invalido antes de crear sesion QR"
+  fecha: "2026-05-06"
+  commit: "a4d29c2"
+  archivos:
+    - "webhook.js"
+    - "respuestas_logbook.js"
+  veredicto: "B - GO CON MICRO-AJUSTE"
+  pruebas: "T06-R1 a T06-R7 = 7/7 PASS"
+  estado: "VALIDADO / DEPLOYADO / FLAG OFF"
+
+f04_1_lote1:
+  estado: "VALIDADO CON CORRECCIONES / FIX-T06 COMPLETADO / FLAG OFF"
+  commit_codigo: "3c346f9"
+  commit_fix: "a4d29c2"
+  turnos_prueba_abiertos: 6
+  turnos_prueba_marcados: true
+  lote2: "BLOQUEADO"
+  activar_flag: "BLOQUEADO"
+
+commit_actual: "a4d29c2"

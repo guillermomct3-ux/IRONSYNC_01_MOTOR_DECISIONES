@@ -696,3 +696,25 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - DATA_LOCAL intocado. Codigo no modificado. Deploy no ejecutado.
 - Doc 29 creado: docs/context/29_RESULTADOS_T01_T10_F04_1_LOTE_1.md.
 - 01_ESTADO_ACTUAL.yaml actualizado.
+
+---
+
+## 2026-05-06 — FIX-T06 COMPLETADO Y VALIDADO
+
+- War Room post-test F-04.1 Lote 1: VALIDADO CON CORRECCIONES.
+- FIX-T06 autorizado: detectar horometro invalido antes de crear sesion QR.
+- Veredicto Code Writer: B (GO CON MICRO-AJUSTE). Fix en webhook.js, no en logbookService.js.
+- Commit: a4d29c2. 2 archivos modificados, 13 inserciones, 3 eliminaciones.
+- Pruebas T06-R1 a T06-R7: 7/7 PASS, 0 FAIL.
+- T06-R1: INICIO CAT336 abc = Contador invalido: "abc". PASS.
+- T06-R2: INICIO CAT320 = Flujo QR normal. PASS.
+- T06-R3: INICIO CAT740 8000 = Turno ABIERTO. PASS.
+- T06-R4: INICIO CATD8T 6000.5 = Decimal preservado. PASS.
+- T06-R5: INICIO CAT336 -100 = Contador invalido: "-100". PASS.
+- T06-R6: hola = Legacy intacto. PASS.
+- T06-R7: INICIO CAT336 abc (flag OFF) = Legacy normal. PASS.
+- LOGBOOK_F04_ENABLED=false restaurado.
+- 6 turnos de prueba ABIERTOS en Supabase, marcados como TURNO DE PRUEBA.
+- DATA_LOCAL intocado. Supabase SQL adicional: solo UPDATE documental.
+- Lote 2 sigue BLOQUEADO.
+- Antes de Lote 2: decidir limpieza/cierre de turnos de prueba.

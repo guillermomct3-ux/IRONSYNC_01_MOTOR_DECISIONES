@@ -282,3 +282,82 @@ Decision requerida del equipo.
 | Fecha | 2026-05-06 |
 | Siguiente paso | Revision del equipo |
 | Autoriza | Solo documentacion. NO autoriza codigo, flag, ni Lote 2. |
+
+---
+
+## 11. FIX-T06 — Completado y validado
+
+**Fecha:** 2026-05-06
+**Commit:** a4d29c2
+**Archivos modificados:** webhook.js, respuestas_logbook.js
+**Archivos NO modificados:** services/logbookService.js, lib/
+
+### Patch aplicado
+
+| # | Archivo | Cambio |
+|---|---------|--------|
+| 1 | webhook.js | Deteccion tokens.length >= 3 antes de crear sesion QR |
+| 2 | webhook.js | Pasar textoOp a horometroInvalido() en error de sesion QR |
+| 3 | respuestas_logbook.js | horometroInvalido(valorInvalido) acepta parametro |
+| 4 | respuestas_logbook.js | Switch separa HOROMETRO_REQUERIDO de HOROMETRO_INVALIDO |
+
+### Veredicto Code Writer
+
+B — GO CON MICRO-AJUSTE.
+El upgrade original proponia modificar logbookService.js.
+MiMo V2 detecto que el fix debe ocurrir en webhook.js (routing layer)
+porque cuando horometro es null, iniciarTurnoLogbook() nunca se llama.
+El equipo aprobo el micro-ajuste.
+
+### Pruebas T06-R1 a T06-R7
+
+| Test | Mensaje | Resultado esperado | Resultado real | Estado |
+|------|---------|--------------------|----------------|--------|
+| T06-R1 | INICIO CAT336 abc | Contador invalido: "abc" | Contador invalido: "abc" | PASS |
+| T06-R2 | INICIO CAT320 | Flujo QR normal | CAT320 lista. Ultimo cierre: 3005. | PASS |
+| T06-R3 | INICIO CAT740 8000 | Turno ABIERTO | Turno ABIERTO CAT740 | PASS |
+| T06-R4 | INICIO CATD8T 6000.5 | Decimal preservado | Contador: 6000.5 | PASS |
+| T06-R5 | INICIO CAT336 -100 | Contador invalido: "-100" | Contador invalido: "-100" | PASS |
+| T06-R6 | hola | Legacy intacto | Menu legacy normal | PASS |
+| T06-R7 | INICIO CAT336 abc (flag OFF) | Legacy normal | Equipo CAT336ABC no reconocido | PASS |
+
+**Resultado: 7/7 PASS. 0 FAIL.**
+
+### Turnos de prueba creados
+
+| # | Folio | Maquina | Horometro | Origen | Observaciones |
+|---|-------|---------|-----------|--------|---------------|
+| 1 | CAT336-20260506-1963 | CAT336 | 5000 | manual (T01) | TURNO DE PRUEBA |
+| 2 | CAT966M-20260506-4442 | CAT966M | 7500 | qr_legacy (T03) | TURNO DE PRUEBA |
+| 3 | CAT140H-20260506-9205 | CAT140H | 5000.5 | manual (T09) | TURNO DE PRUEBA |
+| 4 | CAT320-20260506-9804 | CAT320 | 3005 | qr_legacy (T06-R2) | TURNO DE PRUEBA |
+| 5 | CAT740-20260506-5617 | CAT740 | 8000 | manual (T06-R3) | TURNO DE PRUEBA |
+| 6 | CATD8T-20260506-1435 | CATD8T | 6000.5 | manual (T06-R4) | TURNO DE PRUEBA |
+
+Los 6 turnos estan ABIERTOS y marcados como "TURNO DE PRUEBA" en observaciones.
+Se cerraran cuando Lote 2 (FIN) este activo.
+
+### Estado post FIX-T06
+
+| Verificacion | Estado |
+|-------------|--------|
+| LOGBOOK_F04_ENABLED | OFF |
+| FIX-T06 deployado | SI |
+| FIX-T06 validado | SI (7/7 PASS) |
+| Legacy funciona | SI |
+| DATA_LOCAL tocado | NO |
+| Supabase SQL adicional | NO (solo UPDATE documental de turnos) |
+| Lote 2 | BLOQUEADO |
+
+---
+
+## 12. Estado del documento (actualizado)
+
+| Campo | Valor |
+|-------|-------|
+| Estado | DRAFT |
+| Version | 1.1 |
+| Fecha | 2026-05-06 |
+| Actualizacion | FIX-T06 completado y validado (seccion 11) |
+| Siguiente paso | Revision del equipo |
+| Autoriza | Solo documentacion. NO autoriza codigo, flag, ni Lote 2. |
