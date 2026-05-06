@@ -1,520 +1,570 @@
-﻿# IronSync A — Estado Actual
-# Última actualización: 2026-05-03
-# Regla: si no está aquí, no está confirmado.
+﻿# ═══════════════════════════════════════════════════════════
+# IRONSYNC — ESTADO ACTUAL POST-FREEZE F-04.1
+# Fecha: 2026-05-07
+# Commit base auditado: 2e67a24
+# Commit actual: PENDIENTE_COMMIT_R1
+# Auditoría: Doc 31 DRAFT / NO-GO Qwen en remediación
+# Versión YAML: 2.0 (MiMo base + ChatGPT 10 correcciones + Claude 8 upgrades)
+# ═══════════════════════════════════════════════════════════
 
-proyecto: "IronSync A"
-repo: "IRONSYNC_01_MOTOR_DECISIONES"
-memoria_oficial: "GitHub /docs/context"
+proyecto:
+  nombre: IronSync
+  version: "0.4.1-freeze"
+  fase: "Post-Freeze / Pre-Laboratorio"
+  estado_general: "NO-GO_PREREQUISITOS_PENDIENTES"
 
-commit_actual: "31d46b5"
-commit_mensaje: "docs: add dev pipeline v1 - flujo obligatorio para volver a codigo"
+# ───────────────────────────────────────────────────────────
+# CÓDIGO
+# ───────────────────────────────────────────────────────────
 
-agente_actual: "ninguno — reposo entre bloques"
-ultimo_agente: "MiMo V2"
-ultima_sesion: "2026-05-03 — Guillermo + ChatGPT + MiMo V2 + Red Team — gobernanza documental base completada"
+codigo:
+  commit_base_auditado: "2e67a24"
+  commit_actual: "PENDIENTE_COMMIT_R1"
+  branch: "main"
 
-fase_actual: "FASE 2 DISEÑO — Persistencia única"
-estado_reorganizacion: "Gobernanza documental base completada"
-clasificacion_repo: "IS Logbook Lite / Sprint 0 funcional con deuda técnica alta"
+  deployment:
+    plataforma: "Railway"
+    url: "ironsync01motordecisiones-production.up.railway.app"
+    estado: "ACTIVO"
+    uptime_dias: 30
 
-stack_real:
-  backend: "Node.js + Express"
-  canal: "Twilio WhatsApp"
-  database: "Supabase"
-  storage: "Supabase Storage"
-  hosting: "Railway"
-  version_control: "GitHub"
+    variables_entorno:
+      verificadas: true
+      fecha_verificacion: "2026-05-07"
+      criticas:
+        - nombre: "LOGBOOK_F04_ENABLED"
+          valor_esperado: "false"
+          estado: "VERIFICADO"
 
-estado_funcional:
-  inicio: "funciona"
-  fin: "funciona"
-  pdf_automatico: "funciona / no bloquea FIN"
-  railway: "deploy correcto"
-  whatsapp: "probado en flujo real"
-  supabase: "recibe turnos/eventos"
+        - nombre: "SUPABASE_URL"
+          estado: "CONFIGURADO"
 
-ultima_prueba_real:
-  fecha: "2026-05-02"
-  flujo: "INICIO CAT336 5900 -> FIN CAT336 5901"
-  resultado: "PASS"
-  bug_cerrado: "BUG-001 empresaIdTurno fuera de scope en FIN"
+        - nombre: "SUPABASE_KEY"
+          estado: "CONFIGURADO"
 
-documentos_contexto:
-  obligatorios_arranque:
-    - "docs/context/00_LEER_PRIMERO.md"
-    - "docs/context/01_ESTADO_ACTUAL.yaml"
-    - "docs/context/10_PROTOCOLO_ARRANQUE_CIERRE.md"
-  completados:
-    - archivo: "docs/context/13_CHANGELOG.md"
-      commit: "ff00b2c"
-      estado: "pusheado"
-    - archivo: "docs/context/14_INVENTARIO_RAIZ_REPO.md"
-      commit: "70cd552"
-      estado: "pusheado"
-    - archivo: "docs/context/04_REBASELINE_REPORT.md"
-      commit: "b051b9c"
-      estado: "pusheado"
-    - archivo: "docs/context/05_MASTER_BASELINE.md"
-      commit: "40bd0a4"
-      estado: "pusheado"
-    - archivo: "docs/context/08_BUG_TRACKER.yaml"
-      commit: "f2be4e5"
-      estado: "pusheado"
-    - archivo: "docs/context/09_RISK_REGISTER.yaml"
-      commit: "b9f1a8c"
-      estado: "pusheado"
-    - archivo: "docs/context/11_DEV_PIPELINE.md"
-      commit: "31d46b5"
-      estado: "pusheado"
+        - nombre: "TWILIO_ACCOUNT_SID"
+          estado: "CONFIGURADO"
 
-bugs_activos:
-  - id: "BUG-002"
-    descripcion: "Persistencia dual JSON + Supabase"
-    estado: "ABIERTO"
-  - id: "BUG-003"
-    descripcion: "Scripts temporales / fix_*.js en raíz"
-    estado: "ABIERTO"
-  - id: "BUG-004"
-    descripcion: "Raíz repo desordenada"
-    estado: "ABIERTO"
-  - id: "BUG-005"
-    descripcion: "Versiones duales webhook/backups"
-    estado: "ABIERTO"
+  archivos_nuevos:
+    - path: "lib/logbookUtils.js"
+      lineas: 75
+      estado: "DEPLOYADO"
 
-bugs_cerrados:
-  - id: "BUG-001"
-    descripcion: "empresaIdTurno fuera de scope en FIN"
-    estado: "CERRADO"
-    commit_fix: "c715073"
+    - path: "lib/logbookCache.js"
+      lineas: 25
+      estado: "DEPLOYADO"
 
-riesgos_abiertos:
-  - id: "R-PERSISTENCIA-DUAL"
-    descripcion: "turnos_activos.json + Supabase pueden crear split-brain"
-    estado: "abierto"
-  - id: "R-CONTEXTO"
-    descripcion: "AIs pierden contexto entre chats si no leen /docs/context"
-    estado: "en mitigacion"
-  - id: "R-SCRIPTS-TEMP"
-    descripcion: "58 fix_*.js en raíz pueden confundir ejecución"
-    estado: "abierto"
-  - id: "R-RAIZ-DESORDENADA"
-    descripcion: "93 archivos raíz visibles localmente; deuda técnica alta"
-    estado: "abierto"
-  - id: "R-DUMP-CODIGO"
-    descripcion: "IRONSYNC_CODIGO_COMPLETO.txt puede crear segunda fuente de verdad"
-    estado: "abierto"
-  - id: "R-GIT-FORCE"
-    descripcion: "artefactos terminal sugieren comandos peligrosos guardados como archivos"
-    estado: "abierto"
-  - id: "R-VERSIONES-DUALES"
-    descripcion: "variantes de webhook/backups sin destino claro"
-    estado: "abierto"
-  - id: "R-ENV-LOCAL"
-    descripcion: ".env existe localmente pero no está trackeado por Git; verificar .gitignore sin exponer secretos"
-    estado: "abierto"
-  - id: "R-ARCHIVOS-VACIOS"
-    descripcion: "archivos 0 bytes con propósito no confirmado"
-    estado: "abierto"
+    - path: "services/logbookService.js"
+      lineas: 650
+      estado: "DEPLOYADO"
+      notas: "Incluye RELEVO dormido (Lote 3 bloqueado)"
 
-metodo_actual:
-  fase: "Diseño previo a ejecución técnica"
-  objetivo: "Diseñar arquitectura de persistencia única para BUG-002 / R-PERSISTENCIA-DUAL"
-  documento_siguiente_recomendado: "Diseño de arquitectura de persistencia única"
-  prohibido:
-    - "codigo"
-    - "fixes"
-    - "deploy"
-    - "limpieza"
-    - "mover/borrar archivos"
-    - "tocar turnos.js sin Plan del Día"
-    - "tocar webhook.js sin Plan del Día"
-    - "git add ."
+    - path: "respuestas_logbook.js"
+      lineas: 165
+      estado: "DEPLOYADO"
 
-siguiente_accion: "Diseñar arquitectura de persistencia única para BUG-002 / R-PERSISTENCIA-DUAL antes de tocar código"
+    - path: "webhook_logbook_routing.js"
+      lineas: 140
+      estado: "INSERTADO_EN_WEBHOOK"
 
-agent_strategy:
-  status: APPROVED_CONCEPTUAL
-  execution_status: BLOCKED
-  timing_decision: "Documentar ahora / ejecutar despues de persistencia unica + staging funcional"
-  primary_document: "docs/context/15_AGENT_STRATEGY_BRIEF.md"
-  agent_library_path: "docs/agents/"
-  allowed_now:
-    - "Documentar vision"
-    - "Crear carpeta pasiva Markdown"
-    - "Disenar prompts y escenarios"
-    - "Definir PASS/FAIL conceptual"
-  blocked_now:
-    - "Ejecutar agentes"
-    - "Conectar Workspace Agents"
-    - "Conectar Supabase"
-    - "Conectar Twilio"
-    - "Conectar Railway"
-    - "Consumir AI Ops Budget"
-    - "Modificar produccion"
-  unlock_conditions:
-    - "BUG-002 Persistencia Dual cerrado"
-    - "Persistencia unica implementada"
-    - "Supabase como fuente unica de verdad"
-    - "Staging environment funcional"
-    - "Staging DB aislada con fake data"
-    - "AI Ops Budget aprobado"
-    - "PASS/FAIL estructurado"
-    - "Dev Pipeline extendido para agentes"
-    - "Autorizacion explicita de Guillermo"
-  first_future_agent: "operador_ramon_synthetic.md"
-  future_engine_path:
-    - "Manual Markdown"
-    - "Workspace Agents"
-    - "LangGraph/CrewAI"
+  total_lineas_nuevas: 1055
+  dependencias_nuevas: 0
 
----
-# Actualizacion cierre de sesion 2026-05-04
-
-commit_actual: "256582d"
-commit_mensaje: "docs: add repo cleanup plan v1 - clasificacion A/B/C/D + 5 fases"
-
-agente_actual: "ninguno — reposo entre bloques"
-ultimo_agente: "MiMo V2"
-ultima_sesion: "2026-05-04 — Guillermo + ChatGPT + MiMo V2 + Qwen + Red Team — persistencia unica + synthetic field lab + repo cleanup plan"
-
-fase_actual: "FASE 2 DISENIO — Persistencia unica + Limpieza controlada"
-
-documentos_contexto:
-  completados:
-    - archivo: "docs/context/13_CHANGELOG.md"
-      commit: "ff00b2c"
-      estado: "pusheado"
-    - archivo: "docs/context/14_INVENTARIO_RAIZ_REPO.md"
-      commit: "70cd552"
-      estado: "pusheado"
-    - archivo: "docs/context/04_REBASELINE_REPORT.md"
-      commit: "b051b9c"
-      estado: "pusheado"
-    - archivo: "docs/context/05_MASTER_BASELINE.md"
-      commit: "40bd0a4"
-      estado: "pusheado"
-    - archivo: "docs/context/08_BUG_TRACKER.yaml"
-      commit: "f2be4e5"
-      estado: "pusheado"
-    - archivo: "docs/context/09_RISK_REGISTER.yaml"
-      commit: "b9f1a8c"
-      estado: "pusheado"
-    - archivo: "docs/context/11_DEV_PIPELINE.md"
-      commit: "31d46b5"
-      estado: "pusheado"
-    - archivo: "docs/context/15_AGENT_STRATEGY_BRIEF.md"
-      commit: "9f4f6b7"
-      estado: "pusheado"
-    - archivo: "docs/context/12_PERSISTENCIA_UNICA_DESIGN.md"
-      commit: "42d67f7"
-      estado: "pusheado"
-    - archivo: "docs/context/16_REPO_CLEANUP_PLAN.md"
-      commit: "256582d"
-      estado: "pusheado"
-
-siguiente_accion: "Convocar votacion del equipo para FROZEN de 16_REPO_CLEANUP_PLAN.md. Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza."
-
-
----
-# Actualizacion cierre de sesion 2026-05-05
-
-commit_actual: "99d9de9"
-commit_mensaje: "docs: mark Doc 27 FROZEN - IS Logbook v1 design approved 7/7"
-
-agente_actual: "ninguno — reposo entre bloques"
-ultimo_agente: "MiMo V2"
-ultima_sesion: "2026-05-05 — Guillermo + ChatGPT + MiMo V2 + Claude + DeepSeek + Grok + Gemini + Qwen — Fase 1 Repo Cleanup completada + Documento 27 FROZEN + Docs 24/25/26 DRAFT"
-
-fase_actual: "METODOLOGIA ARQUITECTONICA — Docs 24/25/26 DRAFT + Preparacion IS Logbook v1.0"
-
-estado_fase1_repo_cleanup: "COMPLETADA — 63/63 archivos C aislados — 17 commits — 0 incidentes"
-estado_documento_27: "FROZEN DOCUMENTAL — DISeno IS LOGBOOK v1.0 — 7/7 votos GO — commit 99d9de9"
-estado_bug_002: "ABIERTO — Persistencia dual JSON + Supabase — Opcion Pragmatica aprobada como diseno"
-estado_data_local: "BLOQUEADO — 4 archivos intocados hasta BUG-002 resuelto o mitigado"
-estado_fase2_repo_cleanup: "BLOQUEADA — Sin autorizacion"
-
-is_logbook_v1_features:
-  - id: "F-01"
-    nombre: "Metodologia arquitectonica en piloto 30 dias"
-    estado: "EN PROGRESO — Docs 24/25/26 DRAFT creados"
-  - id: "F-02"
-    nombre: "Fuente de verdad operativa para turnos"
-    estado: "PENDIENTE — BLOCKER"
-  - id: "F-03"
-    nombre: "Diseno IS Logbook v1.0"
-    estado: "FROZEN — Documento 27"
-  - id: "F-03.5"
-    nombre: "Multi-tenancy / Tenant Isolation"
+  verificacion_integridad:
+    metodo: "git hash-object"
+    fecha_verificacion: "2026-05-07"
     estado: "PENDIENTE"
-  - id: "F-04"
-    nombre: "QR + machine_id / tenant_id"
-    estado: "PENDIENTE — Bloqueada por F-02"
-  - id: "F-05"
-    nombre: "INICIO desde QR"
-    estado: "PENDIENTE — Bloqueada por F-02"
-  - id: "F-06"
-    nombre: "Eventos de jornada"
-    estado: "PENDIENTE — Bloqueada por F-02"
-  - id: "F-07"
-    nombre: "FIN con foto"
-    estado: "PENDIENTE — Bloqueada por F-02"
-  - id: "F-08"
-    nombre: "PDF Reporte Diario neutral"
-    estado: "PENDIENTE — Bloqueada por F-02"
-  - id: "F-09"
-    nombre: "Consolidacion operativa 200h/30d"
-    estado: "PENDIENTE — Bloqueada por F-02"
-  - id: "F-10"
-    nombre: "Laboratorio Sintetico S01-S20"
-    estado: "PENDIENTE"
-  - id: "F-11"
-    nombre: "IS Logbook v1.0 FROZEN"
-    estado: "PENDIENTE"
+    notas: "Ejecutar checksums durante proximo commit"
 
-metodologia_arquitectonica:
-  doc_24: "DRAFT — 24_RIGOR_OPERATIVO_IRONSYNC_v0_1.md"
-  doc_25: "DRAFT — 25_DEBT_REGISTRY.md"
-  doc_26: "DRAFT — 26_DEEPSEEK_GUARDIAN_PROMPT_v0_1.md"
-  estado: "DRAFT / PARA REVISION DEL EQUIPO"
-  siguiente_paso: "Votacion GO/NO-GO para FROZEN de Docs 24/25/26"
+# ───────────────────────────────────────────────────────────
+# FEATURE FLAGS
+# ───────────────────────────────────────────────────────────
 
-debt_registry_activo:
-  - id: "DEBT-001"
-    titulo: "Persistencia dual JSON + Supabase (BUG-002)"
-    severidad: "CRITICA"
-    estado: "ABIERTO"
-    blocker: true
-  - id: "DEBT-002"
-    titulo: "DATA_LOCAL bloqueado"
-    severidad: "ALTA"
-    estado: "ABIERTO"
-    blocker: true
+feature_flags:
+  LOGBOOK_F04_ENABLED:
+    valor: false
+    descripcion: "Master switch INICIO/FIN/RELEVO"
+    estado: "OFF"
+    ultima_activacion: null
+    proxima_activacion: "Post-Laboratorio S01-S20"
 
-codigo_autorizado: false
-deploy_autorizado: false
-fase2_autorizada: false
+    comportamiento_observado:
+      cuando_off:
+        - "webhook.js salta bloque logbook routing completo"
+        - "legacy routing ejecuta normalmente"
+        - "0 llamadas a logbookService.js"
+        - "0 escrituras Supabase desde codigo nuevo"
+        - "0 sesiones logbookSessions activas"
 
-siguiente_accion: "Votar Docs 24/25/26 DRAFT para FROZEN. Despues resolver/aprobar F-02. Despues propuesta tecnica por feature."
+      cuando_on:
+        - "TODO codigo logbook ejecuta (INICIO + FIN + RELEVO potencial)"
+        - "Sesiones QR activas con TTL 10min INICIO / 10min FIN"
+        - "Cache logbookCache activo (5min TTL)"
+        - "Escrituras Supabase en tabla turnos"
+        - "Respuestas personalizadas via respuestas_logbook.js"
 
+    verificacion_flag_off:
+      test_manual: "PASS - legacy responde normal"
+      railway_logs: "0 ejecuciones codigo logbook"
+      fecha_verificacion: "2026-05-07"
 
----
-# Actualizacion F-02 Opcion Pragmatica — 2026-05-05
+# ───────────────────────────────────────────────────────────
+# BASE DE DATOS
+# ───────────────────────────────────────────────────────────
 
-estado_bug_002: "MITIGADO — Opcion Pragmatica aprobada 7/7 votos GO"
-estado_f02: "MITIGADO — Supabase como fuente operativa para nuevos turnos"
-estado_data_local: "BLOQUEADO — read-only / fallback documentado"
+database:
+  supabase:
+    proyecto: "yfspmcffwwruitxzrzaw"
 
-f02_mitigacion:
-  fecha: "2026-05-05"
-  votos: "7/7 GO"
-  decision: "Supabase = fuente operativa unica para nuevos turnos IS Logbook v1.0"
-  data_local: "read-only / fallback documentado"
-  nuevas_escrituras_json: "PROHIBIDO — STOP tecnico"
-  desbloqueo: "F-04 a F-09 desbloqueadas para Plan del Dia"
-  war_room_requerido: true
-  deepseek_guardian_requerido: true
-  codigo_autorado_sin_war_room: false
+    schema_cambios:
+      - tabla: "operadores"
+        columna: "empresa_id"
+        tipo: "UUID"
+        nullable: true
+        fecha_agregada: "2026-05-06"
+        migration: "migrations/001_add_operadores_empresa_id.sql"
+        proposito: "Validacion strict logbookService.js"
 
-debt_registry_activo:
-  - id: "DEBT-001"
-    titulo: "Persistencia dual JSON + Supabase (BUG-002)"
-    severidad: "ALTA (residual/controlada)"
-    estado: "MITIGADO"
-    blocker: true
-  - id: "DEBT-002"
-    titulo: "DATA_LOCAL bloqueado"
-    severidad: "ALTA"
-    estado: "ABIERTO"
-    blocker: true
-  - id: "DEBT-003"
-    titulo: "Migracion one-time turnos activos legacy (F-12)"
-    severidad: "MEDIA"
-    estado: "PENDIENTE DE ANALISIS"
-    blocker: false
+      - tabla: "turnos"
+        columna: "cerrado_por"
+        tipo: "text"
+        nullable: true
+        valores_esperados:
+          - "operador"
+          - "operador_siguiente"
+          - "supervisor"
+          - "sistema"
+        fecha_agregada: "2026-05-06"
+        migration: "migrations/002_add_turnos_cerrado_por.sql"
+        proposito: "Trazabilidad cierre turnos"
 
-is_logbook_v1_features:
-  - id: "F-02"
-    nombre: "Fuente de verdad operativa para turnos"
-    estado: "MITIGADO — Opcion Pragmatica aprobada"
-  - id: "F-04"
-    nombre: "QR + machine_id / tenant_id"
-    estado: "DESBLOQUEADO para Plan del Dia"
-  - id: "F-05"
-    nombre: "INICIO desde QR"
-    estado: "DESBLOQUEADO para Plan del Dia"
-  - id: "F-06"
-    nombre: "Eventos de jornada"
-    estado: "DESBLOQUEADO para Plan del Dia"
-  - id: "F-07"
-    nombre: "FIN con foto"
-    estado: "DESBLOQUEADO para Plan del Dia"
-  - id: "F-08"
-    nombre: "PDF Reporte Diario neutral"
-    estado: "DESBLOQUEADO para Plan del Dia"
-  - id: "F-09"
-    nombre: "Consolidacion operativa 200h/30d"
-    estado: "DESBLOQUEADO para Plan del Dia"
-  - id: "F-12"
-    nombre: "Migracion one-time turnos activos legacy"
-    estado: "PENDIENTE DE ANALISIS"
+    datos_prueba:
+      turnos_totales: 22
+      turnos_cerrados: 18
+      turnos_abiertos_anomalia: 4
+      decision_anomalias: "EXCLUIR de Laboratorio (no DELETE)"
 
-siguiente_accion: "F-04 QR: preparar propuesta tecnica + Plan del Dia + War Room GO/NO-GO"
+      lineage:
+        t01_t10_lote1: "10 turnos (7 cerrados, 1 parcial, 2 skip)"
+        t06_r1_r7_fix: "7 turnos (cerrados durante pruebas FIX-T06)"
+        t11_t15_lote2: "5 turnos (2 cerrados por FIN real, 3 remanentes)"
 
+      remanentes_controlados:
+        cantidad: 4
+        estado: "ABIERTO"
+        tiene_anomalia: true
+        accion: "EXCLUIR"
+        excluidos_de:
+          - "laboratorio_sintetico"
+          - "produccion"
+          - "metricas"
+          - "conteo_turnos_reales"
+        folios:
+          - "CAT140H-20260506-9205"
+          - "CAT320-20260506-9804"
+          - "CAT740-20260506-5617"
+          - "CATD8T-20260506-1435"
 
----
-# Actualizacion F-04.1 FROZEN DISENO — 2026-05-05
+      query_exclusion:
+        descripcion: "Query para Laboratorio S01-S20 excluye turnos anomalia"
+        sql: |
+          SELECT * FROM turnos
+          WHERE tiene_anomalia = false
+            AND created_at >= '2026-05-06'
 
-estado_f04_1: "FROZEN DISENO — QR-first / manual-fallback — 6/6 votos GO"
-commit_f04_1: "PENDIENTE — este commit"
+# ───────────────────────────────────────────────────────────
+# PRUEBAS
+# ───────────────────────────────────────────────────────────
 
-is_logbook_v1_features:
-  - id: "F-04.1"
-    nombre: "QR-first / manual-fallback"
-    estado: "FROZEN DISENO"
-  - id: "F-04.2"
-    nombre: "PIN + validacion operador"
-    estado: "FUTURO"
-  - id: "F-04.3"
-    nombre: "Shift Config"
-    estado: "FUTURO"
-  - id: "F-04.4"
-    nombre: "Dashboard turnos"
-    estado: "FUTURO"
+pruebas:
+  lote_1_inicio:
+    tests: "T01-T10"
+    pass: 7
+    fail: 0
+    skip: 2
+    parcial: 1
+    skip_detalles:
+      - "T04: operador no autorizado (requiere 2do telefono)"
+      - "T07: turno ya abierto (validado como T14 en Lote 2)"
+    parcial_detalle: "T06: INICIO CAT336 abc entro flujo QR, corregido en FIX-T06"
 
-f04_1_decisiones:
-  principio: "QR-first / manual-fallback"
-  acciones_qr_manual: "INICIO, FIN, RELEVO"
-  acciones_solo_texto: "PARO, FALLA, REANUDA, HORAS"
-  modelo_cierres: "CERRADO, CERRADO_POR_RELEVO, ANOMALIA_NO_CIERRE"
-  validacion: "Unificada — QR y texto misma logica"
-  origen_datos: "qr_legacy, manual, relevo_qr, relevo_manual"
-  manual_es_anomalia: false
-  zombie_libera_finanzas: false
-  pin_en_f04_1: false
-  codigo_autorizado: false
+  fix_t06:
+    tests: "T06-R1 a T06-R7"
+    pass: 7
+    fail: 0
 
-siguiente_accion: "MiMo V2 propone codigo F-04.1. Equipo itera. FROZEN ejecucion."
+  lote_2_fin:
+    tests: "T11-T15 + T12b"
+    pass: 6
+    fail: 0
+    nota: "T12b cuenta como prueba separada: verifico cierre real vs sesion QR"
 
----
-# INCIDENTE-GOV-001 — 2026-05-05
+  resumen:
+    tests_unicos_documentados: 23
+    pruebas_acumuladas_reportadas_previamente: 23
+    total_pass: 20
+    total_fail: 0
+    total_skip: 2
+    total_parcial: 1
+    tasa_exito: "87.0%"
+    nota: "23 incluye T06 original + T06-R1..R7 + T12b como prueba separada"
 
-incidente_gov_001:
-  id: "INCIDENTE-GOV-001"
-  titulo: "Deploy F-04.1 Lote 1 sin War Room multiagente"
-  fecha: "2026-05-05"
-  commit: "3c346f9"
-  estado: "DEPLOYADO / FLAG OFF / CUARENTENA TECNICA"
-  impacto_tecnico: "BAJO - flag OFF, legacy intacto, Railway OK"
-  impacto_gobernanza: "ALTO - sin War Room, sin code review, sin Dev Pipeline"
-  mitigacion: "Cuarentena tecnica. No activar flag. No Lote 2. Solo documentacion."
-  documento_asociado: "docs/context/28_INCIDENTE_GOV_001_DEPLOY_F04_1_SIN_WAR_ROOM.md"
+  cobertura_funcional:
+    inicio:
+      funciones_totales: 3
+      funciones_probadas: 3
+      cobertura: "100%"
+      funciones:
+        - "iniciarTurnoLogbook"
+        - "validarOperacionBase"
+        - "buscarUltimoCierre"
 
-f04_1_lote1:
-  estado: "DEPLOYADO / FLAG OFF / CUARENTENA TECNICA"
-  commit: "3c346f9"
-  archivos_creados:
-    - "lib/logbookUtils.js"
-    - "lib/logbookCache.js"
-    - "services/logbookService.js"
-    - "respuestas_logbook.js"
-  archivo_modificado:
-    - "webhook.js (+88 lineas)"
-  feature_flag: "LOGBOOK_F04_ENABLED=false por default"
-  lote2: "BLOQUEADO"
-  activar_flag: "BLOQUEADO"
+    fin:
+      funciones_totales: 2
+      funciones_probadas: 2
+      cobertura: "100%"
+      funciones:
+        - "cerrarTurnoLogbook"
+        - "buscarTurnoAbiertoPropio"
 
-commit_actual: "3c346f9"
-commit_mensaje: "F-04.1 Lote 1: Logbook INICIO QR/manual - V4.3.2"
+    relevo:
+      funciones_totales: 2
+      funciones_probadas: 0
+      cobertura: "0%"
+      estado: "Lote 3 bloqueado"
+      funciones:
+        - "procesarRelevoLogbook"
+        - "notificarUlises"
 
----
-# F-04.1 LOTE 1 — PRUEBAS T01-T10 COMPLETADAS — 2026-05-06
+    total:
+      funciones_core: 7
+      funciones_probadas: 5
+      cobertura: "71.4%"
 
-f04_1_lote1_pruebas:
-  fecha: "2026-05-06"
-  documento: "docs/context/29_RESULTADOS_T01_T10_F04_1_LOTE_1.md"
-  resultado: "7 PASS / 1 PASS PARCIAL / 2 SKIP / 0 FAIL"
-  flag: "LOGBOOK_F04_ENABLED=false"
-  turnos_creados:
-    - "CAT336-20260506-1963 (manual)"
-    - "CAT966M-20260506-4442 (qr_legacy)"
-    - "CAT140H-20260506-9205 (manual)"
-  hallazgos:
-    t06: "PASS PARCIAL - INICIO con horometro invalido entra flujo QR en vez de rechazar"
-  tests_skip:
-    - "T04: requiere segundo telefono"
-    - "T07: requiere FIN (Lote 2)"
-  siguiente_paso: "War Room decision post-test"
+# ───────────────────────────────────────────────────────────
+# PERFORMANCE
+# ───────────────────────────────────────────────────────────
 
-commit_actual: "3c346f9"
+performance_baseline:
+  fecha_medicion: "PENDIENTE"
+  metodo: "PENDIENTE_MEDICION"
+  entorno: "Railway production"
 
----
-# FIX-T06 COMPLETADO — 2026-05-06
+  metricas:
+    - operacion: "INICIO sin QR"
+      tiempo_respuesta_p50: "PENDIENTE_MEDICION"
+      tiempo_respuesta_p95: "PENDIENTE_MEDICION"
 
-fix_t06:
-  id: "FIX-T06"
-  titulo: "Detectar horometro invalido antes de crear sesion QR"
-  fecha: "2026-05-06"
-  commit: "a4d29c2"
-  archivos:
-    - "webhook.js"
-    - "respuestas_logbook.js"
-  veredicto: "B - GO CON MICRO-AJUSTE"
-  pruebas: "T06-R1 a T06-R7 = 7/7 PASS"
-  estado: "VALIDADO / DEPLOYADO / FLAG OFF"
+    - operacion: "INICIO con QR sesion existente"
+      tiempo_respuesta_p50: "PENDIENTE_MEDICION"
+      tiempo_respuesta_p95: "PENDIENTE_MEDICION"
 
-f04_1_lote1:
-  estado: "VALIDADO CON CORRECCIONES / FIX-T06 COMPLETADO / FLAG OFF"
-  commit_codigo: "3c346f9"
-  commit_fix: "a4d29c2"
-  turnos_prueba_abiertos: 6
-  turnos_prueba_marcados: true
-  lote2: "BLOQUEADO"
-  activar_flag: "BLOQUEADO"
+    - operacion: "FIN incluye calcularHoras"
+      tiempo_respuesta_p50: "PENDIENTE_MEDICION"
+      tiempo_respuesta_p95: "PENDIENTE_MEDICION"
 
-commit_actual: "a4d29c2"
+    - operacion: "Legacy routing"
+      tiempo_respuesta_p50: "PENDIENTE_MEDICION"
+      tiempo_respuesta_p95: "PENDIENTE_MEDICION"
 
----
-# LOTE 2 / FIN VALIDADO — 2026-05-06
+  notas:
+    - "Mediciones pendientes: no se han ejecutado benchmarks reales"
+    - "Laboratorio S01-S20 debe incluir mediciones basicas"
+    - "Railway free tier: 512MB RAM"
 
-lote2_fin:
-  estado: "VALIDADO / FLAG OFF"
-  pruebas: "T11-T15 = 6/6 PASS"
-  commit_fix: "fbe2fdb"
-  cerrado_por: "FUNCIONANDO"
-  turnos_cerrados: 2
-  turnos_abiertos_restantes: 4
+# ───────────────────────────────────────────────────────────
+# DEUDA TÉCNICA
+# ───────────────────────────────────────────────────────────
 
-f04_1:
-  lote1: "VALIDADO"
-  lote2: "VALIDADO"
-  fix_t06: "VALIDADO"
-  fix_t07: "VALIDADO"
-  lote3: "BLOQUEADO"
-  activar_flag: "BLOQUEADO"
+deuda_tecnica:
+  estado_revision: "EN_RECLASIFICACION_POST_QWEN"
+  bloqueantes_confirmados: 0
+  bloqueantes_en_revision:
+    - "DEBT-001"
+    - "DEBT-004"
 
-commit_actual: "fbe2fdb"
+  activas:
+    - id: "DEBT-001"
+      descripcion: "BUG-002 persistencia dual Supabase/DATA_LOCAL"
+      severidad: "ALTA"
+      estado: "MITIGADO_NO_CERRADO"
+      bloqueante_laboratorio: "NO"
+      bloqueante_produccion: "SI"
+      mitigacion: "Congelar DATA_LOCAL durante Laboratorio"
+      cierre_requerido: "Eliminar dependencia DATA_LOCAL o fusionar fuentes"
 
----
-# FREEZE PARCIAL INICIO/FIN — 2026-05-06
+    - id: "DEBT-002"
+      descripcion: "resolverEquipo() full scan"
+      severidad: "BAJA"
+      estado: "ABIERTO"
+      bloqueante_laboratorio: "NO"
+      bloqueante_produccion: "NO"
+      accion: "Optimizar cuando >15 equipos"
 
-freeze_parcial:
-  id: "FREEZE-F04.1-INICIO-FIN"
-  fecha: "2026-05-06"
-  documento: "docs/context/30_FREEZE_PARCIAL_F04_1_INICIO_FIN.md"
-  estado: "FROZEN PARCIAL"
-  alcance: "INICIO + FIN"
-  flag: "LOGBOOK_F04_ENABLED=false"
-  pruebas: "23 (20 PASS / 1 PARCIAL / 2 SKIP / 0 FAIL)"
-  commits: "276c047, a4d29c2, 1c40b66, fbe2fdb, a9edeaf"
-  turnos_cerrados: 2
-  turnos_remanentes: 4
+    - id: "DEBT-003"
+      descripcion: "calcularHoras() sin limite superior"
+      severidad: "MEDIA"
+      estado: "ABIERTO"
+      bloqueante_laboratorio: "NO"
+      bloqueante_produccion: "NO"
+      accion: "Agregar validacion >500h con alerta"
 
-f04_1:
-  lote1_inicio: "FROZEN PARCIAL"
-  lote2_fin: "FROZEN PARCIAL"
-  fix_t06: "FROZEN"
-  fix_t07: "FROZEN"
-  lote3_relevo: "BLOQUEADO"
-  activar_flag: "BLOQUEADO"
+    - id: "DEBT-004"
+      descripcion: "INCIDENTE-GOV-001 proceso"
+      severidad: "ALTA"
+      estado: "MITIGADO_NO_CERRADO"
+      bloqueante_laboratorio: "CONDICIONAL"
+      bloqueante_produccion: "SI"
+      cierre_requerido: "War Room formal sin violacion en proxima activacion"
+      evidencia_cierre: "War Room Laboratorio (Doc 32)"
 
-commit_actual: "a9edeaf"
+    - id: "DEBT-005"
+      descripcion: "T04 no validado (2do telefono)"
+      severidad: "BAJA"
+      estado: "ABIERTO"
+      bloqueante_laboratorio: "NO"
+      bloqueante_produccion: "NO"
+      accion: "Validar en produccion piloto"
+
+    - id: "DEBT-006"
+      descripcion: "Auditoria estructurada"
+      severidad: "MEDIA"
+      estado: "DIFERIDO"
+      bloqueante_laboratorio: "NO"
+      bloqueante_produccion: "NO"
+      accion: "F-04.4 post-piloto"
+
+    - id: "DEBT-007"
+      descripcion: "Re-validar turno confirmacion relevo"
+      severidad: "BAJA"
+      estado: "DIFERIDO"
+      bloqueante_laboratorio: "NO"
+      bloqueante_produccion: "NO"
+      accion: "F-04.2 si ocurre edge case"
+
+    - id: "DEBT-008"
+      descripcion: "Respuestas error genericas"
+      severidad: "MEDIA"
+      estado: "ABIERTO"
+      bloqueante_laboratorio: "NO"
+      bloqueante_produccion: "NO"
+      accion: "Agregar codigos error v2.0"
+
+# ───────────────────────────────────────────────────────────
+# GOBERNANZA
+# ───────────────────────────────────────────────────────────
+
+gobernanza:
+  incidentes:
+    - id: "INCIDENTE-GOV-001"
+      fecha: "2026-05-05"
+      descripcion: "Deploy sin War Room"
+      responsable: "Guillermo (founder)"
+      estado: "DOCUMENTADO"
+      documento: "Doc 28 v1.1"
+      leccion: "War Room obligatorio antes de deploy"
+      proceso_corregido: true
+
+  auditoria_actual:
+    documento: "Doc 31"
+    auditor: "Qwen3.6 adversarial"
+    fecha: "2026-05-07"
+    veredicto: "NO-GO"
+    estado: "REMEDIACION_R1_EN_PROGRESO"
+    prerequisitos:
+      cumplidos: 4
+      total: 6
+      pendientes: 2
+    prerequisitos_cumplidos:
+      - "Doc 31 versionado"
+      - "Migrations SQL versionadas"
+      - "YAML actualizado"
+      - "Decision turnos: EXCLUIR"
+    prerequisitos_pendientes:
+      - "Doc 32 Plan Laboratorio S01-S20"
+      - "War Room formal GO/NO-GO"
+    condiciones_go: "Doc 31 + migrations + YAML + Plan Lab + War Room"
+
+  proxima_decision:
+    tipo: "War Room Laboratorio"
+    fecha_estimada: "2026-05-08 o 2026-05-09"
+    quorum_minimo: "3/5 agentes"
+    alcance: "GO/NO-GO Laboratorio S01-S20"
+    formato: "Revision Doc 32 + votacion formal"
+
+# ───────────────────────────────────────────────────────────
+# PRÓXIMOS HITOS
+# ───────────────────────────────────────────────────────────
+
+proximos_hitos:
+  hoy_2026_05_07:
+    - accion: "Commit Doc 31 + migrations + YAML"
+      estado: "EN_PROGRESO"
+
+  manana_2026_05_08:
+    - accion: "Crear Doc 32 Plan Laboratorio S01-S20"
+      estado: "PENDIENTE"
+      tiempo_estimado: "1 dia"
+      contenido:
+        - "20 tests integracion detallados"
+        - "Criterios PASS/FAIL objetivos"
+        - "Datos sinteticos por test"
+        - "Procedimiento rollback"
+        - "Query exclusion turnos anomalia"
+
+    - accion: "Preparar War Room Laboratorio"
+      estado: "PENDIENTE"
+      tiempo_estimado: "2h"
+
+  pasado_2026_05_09:
+    - accion: "War Room Laboratorio"
+      estado: "CONDICIONAL"
+      depende_de: "Doc 32 aprobado"
+      duracion: "2h"
+      quorum: "3/5 agentes"
+
+    - accion: "Ejecutar Laboratorio S01-S20"
+      estado: "CONDICIONAL"
+      depende_de: "War Room GO"
+      duracion: "4h"
+
+    - accion: "Decidir produccion piloto"
+      estado: "CONDICIONAL"
+      depende_de: "Laboratorio >= 18/20 PASS"
+      criterio_go: "90% exito + 0 bugs bloqueantes"
+
+# ───────────────────────────────────────────────────────────
+# RESTRICCIONES ACTIVAS
+# ───────────────────────────────────────────────────────────
+
+restricciones:
+  codigo:
+    - "NO codigo funcional nuevo hasta War Room"
+    - "NO modificar logbookService.js/webhook.js"
+    - "NO tocar DATA_LOCAL"
+    - "Solo documentacion y migraciones SQL versionadas"
+
+  database:
+    - "NO SQL nuevo ejecutado"
+    - "NO DELETE turnos (solo EXCLUIR en queries)"
+    - "NO cerrar turnos artificialmente"
+    - "NO modificar turnos tiene_anomalia=true"
+
+  features:
+    - "NO activar LOGBOOK_F04_ENABLED"
+    - "NO Lote 3 RELEVO"
+    - "NO Laboratorio sin War Room previo"
+    - "NO produccion abierta DPM"
+
+  gobernanza:
+    - "War Room obligatorio antes de activacion flag"
+    - "Quorum minimo 3/5 agentes"
+    - "Documentacion prerequisito antes de ejecucion"
+    - "Rollback plan definido antes de GO"
+
+# ───────────────────────────────────────────────────────────
+# CONTINGENCIA
+# ───────────────────────────────────────────────────────────
+
+contingencia:
+  rollback_inmediato:
+    trigger: "Bug critico detectado en Laboratorio"
+    tiempo_total: "<5min"
+    pasos:
+      - paso: 1
+        accion: "Railway Variables LOGBOOK_F04_ENABLED = false"
+        tiempo: "<30s"
+        responsable: "Guillermo"
+      - paso: 2
+        accion: "Verificar legacy responde: enviar hola a bot"
+        tiempo: "<1min"
+        esperado: "Respuesta legacy normal"
+      - paso: 3
+        accion: "git revert HEAD si commit nuevo existe"
+        tiempo: "<2min"
+      - paso: 4
+        accion: "Notificar equipo en chat"
+        tiempo: "<5min"
+
+  rollback_completo:
+    trigger: "Corrupcion datos Supabase"
+    tiempo_total: "<30min"
+    pasos:
+      - paso: 1
+        accion: "Flag OFF inmediato"
+      - paso: 2
+        accion: "Backup Supabase antes de limpieza"
+      - paso: 3
+        accion: "DELETE turnos prueba Laboratorio"
+        sql: "DELETE FROM turnos WHERE origen_datos LIKE '%laboratorio%'"
+      - paso: 4
+        accion: "Restaurar migrations si necesario"
+        referencia: "migrations/README.md"
+
+# ───────────────────────────────────────────────────────────
+# COMUNICACIÓN
+# ───────────────────────────────────────────────────────────
+
+comunicacion:
+  laboratorio:
+    pre_activacion:
+      - destinatario: "Equipo IA"
+        canal: "Chat proyecto"
+        timing: "10 minutos antes"
+    durante_ejecucion:
+      frecuencia: "Cada 5 tests"
+      formato: "X/20 PASS | Y FAIL"
+    post_ejecucion:
+      - destinatario: "Equipo completo"
+        contenido: "Resultados finales + decision War Room"
+
+  produccion_piloto:
+    pre_activacion:
+      - destinatario: "[PENDIENTE: Guillermo llena nombres]"
+        metodo: "WhatsApp"
+        timing: "24h antes activacion"
+    incidente:
+      - trigger: "Error >3 consecutivos mismo operador"
+        destinatario: "[PENDIENTE: supervisor DPM]"
+        metodo: "WhatsApp + llamada"
+
+# ───────────────────────────────────────────────────────────
+# ESTADO LEGACY
+# ───────────────────────────────────────────────────────────
+
+legacy:
+  estado: "INTACTO"
+  verificacion:
+    t10_lote1: "PARO respuesta normal"
+    t15_lote2: "hola flag OFF legacy funciona"
+  regresiones_detectadas: 0
+
+# ───────────────────────────────────────────────────────────
+# METADATA
+# ───────────────────────────────────────────────────────────
+
+metadata:
+  version_yaml: "2.0"
+  ultima_actualizacion: "2026-05-07"
+  autores:
+    - "MiMo V2 estructura base"
+    - "ChatGPT 10 correcciones"
+    - "Claude 8 upgrades"
+  correcciones_aplicadas:
+    v2_0:
+      - "Corregir aprobada a DRAFT NO-GO en remediacion"
+      - "commit_base_auditado + commit_actual PENDIENTE"
+      - "uptime_dias sin signo +"
+      - "turnos_totales sin tilde YAML"
+      - "Nota explicita cuenta 23 pruebas"
+      - "DEBT-001/004 diferenciar bloqueante_laboratorio vs produccion"
+      - "prerequisitos como campos separados"
+      - "remanentes_controlados explicito"
+      - "Performance baseline PENDIENTE_MEDICION (no datos fabricados)"
+      - "Rollback plan inline"
+      - "Comportamiento flag observado"
+      - "Communication plan generico"
+
+# ═══════════════════════════════════════════════════════════
+# FIN YAML v2.0
+# ═══════════════════════════════════════════════════════════
