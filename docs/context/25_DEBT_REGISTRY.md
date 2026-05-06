@@ -233,3 +233,37 @@ Este documento es la fuente unica de verdad sobre deuda conocida. Todo item de d
 ---
 
 *"Si no esta en DEBT_REGISTRY, no existe como deuda conocida."*
+
+---
+
+### DEBT-004 / INCIDENTE-GOV-001 — Deploy F-04.1 Lote 1 sin War Room
+
+| Campo | Valor |
+|-------|-------|
+| ID | DEBT-004 |
+| Titulo | Deploy F-04.1 Lote 1 sin War Room multiagente |
+| Tipo | ARQUITECTONICA |
+| Severidad | ALTA |
+| Estado | ABIERTO |
+| Owner | MiMo V2 + Guillermo |
+| Fecha deteccion | 2026-05-05 |
+| Fuente | ChatGPT (auditoria post-deploy) |
+| Descripcion | El commit 3c346f9 fue implementado y deployado sin War Room multiagente, sin code review, sin Dev Pipeline, sin DeepSeek Guardian. Se rompio el protocolo de gobernanza definido en Docs 24/25/26/27. |
+| Impacto | Gobernanza rota. Codigo en produccion sin revision multiagente. Codigo dormido de Lote 2/3 incluido sin autorizacion. |
+| Blocker | SI |
+| Features bloqueadas | Lote 2, activacion de LOGBOOK_F04_ENABLED, cualquier cambio funcional sobre Lote 1 |
+| Mitigacion | Cuarentena tecnica: flag OFF, no Lote 2, no activar flag, solo documentacion. Documento 28 creado. |
+| Decision requerida | Auditoria post-deploy del commit 3c346f9 por equipo multiagente. Decision MANTENER/REVERTIR. |
+| Evidencia de cierre | PENDIENTE |
+| Fecha cierre | PENDIENTE |
+
+---
+
+## 5b. Tabla de deuda activa actualizada (post INCIDENTE-GOV-001)
+
+| ID | Titulo | Severidad | Estado | Blocker | Owner | Fecha revision |
+|----|--------|-----------|--------|--------|-------|----------------|
+| DEBT-001 | Persistencia dual JSON + Supabase (BUG-002) | ALTA | MITIGADO | SI | Guillermo | PENDIENTE |
+| DEBT-002 | DATA_LOCAL bloqueado | ALTA | ABIERTO | SI | Guillermo | PENDIENTE |
+| DEBT-003 | Migracion one-time turnos activos legacy | MEDIA | PENDIENTE DE ANALISIS | NO | Guillermo | PENDIENTE |
+| DEBT-004 | Deploy F-04.1 Lote 1 sin War Room (INCIDENTE-GOV-001) | ALTA | ABIERTO | SI | MiMo V2 + Guillermo | PENDIENTE |

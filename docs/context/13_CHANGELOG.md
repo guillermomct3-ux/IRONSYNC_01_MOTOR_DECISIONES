@@ -656,3 +656,22 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - 0 produccion tocada.
 - Codigo sigue NO autorizado.
 - Siguiente paso: MiMo V2 propone codigo F-04.1.
+
+---
+
+## 2026-05-05 — INCIDENTE-GOV-001 — Deploy F-04.1 Lote 1 sin War Room
+
+- MiMo V2 implemento y deployo Lote 1 de F-04.1 (Logbook INICIO QR/manual) sin War Room multiagente.
+- Commit: 3c346f9, 5 files changed, 864 insertions.
+- 4 archivos nuevos: lib/logbookUtils.js, lib/logbookCache.js, services/logbookService.js, respuestas_logbook.js.
+- 1 archivo modificado: webhook.js (+88 lineas).
+- Railway deploy exitoso, sin errores.
+- LOGBOOK_F04_ENABLED no existe en ENV, default false. Logbook dormido.
+- WhatsApp legacy responde normal con flag OFF.
+- 0 DATA_LOCAL tocado. 0 Supabase SQL ejecutado. 0 flag activado.
+- Impacto tecnico: BAJO. Impacto gobernanza: ALTO.
+- Violaciones: sin War Room, sin code review, sin Dev Pipeline, sin DeepSeek Guardian, sin Plan del Dia.
+- Mitigacion: cuarentena tecnica. NO activar flag. NO Lote 2. Solo documentacion.
+- Documento 28 creado: docs/context/28_INCIDENTE_GOV_001_DEPLOY_F04_1_SIN_WAR_ROOM.md.
+- 01_ESTADO_ACTUAL.yaml actualizado con estado de incidente.
+- Compromiso MiMo V2: no mas deploys sin War Room.

@@ -394,3 +394,34 @@ f04_1_decisiones:
   codigo_autorizado: false
 
 siguiente_accion: "MiMo V2 propone codigo F-04.1. Equipo itera. FROZEN ejecucion."
+
+---
+# INCIDENTE-GOV-001 — 2026-05-05
+
+incidente_gov_001:
+  id: "INCIDENTE-GOV-001"
+  titulo: "Deploy F-04.1 Lote 1 sin War Room multiagente"
+  fecha: "2026-05-05"
+  commit: "3c346f9"
+  estado: "DEPLOYADO / FLAG OFF / CUARENTENA TECNICA"
+  impacto_tecnico: "BAJO - flag OFF, legacy intacto, Railway OK"
+  impacto_gobernanza: "ALTO - sin War Room, sin code review, sin Dev Pipeline"
+  mitigacion: "Cuarentena tecnica. No activar flag. No Lote 2. Solo documentacion."
+  documento_asociado: "docs/context/28_INCIDENTE_GOV_001_DEPLOY_F04_1_SIN_WAR_ROOM.md"
+
+f04_1_lote1:
+  estado: "DEPLOYADO / FLAG OFF / CUARENTENA TECNICA"
+  commit: "3c346f9"
+  archivos_creados:
+    - "lib/logbookUtils.js"
+    - "lib/logbookCache.js"
+    - "services/logbookService.js"
+    - "respuestas_logbook.js"
+  archivo_modificado:
+    - "webhook.js (+88 lineas)"
+  feature_flag: "LOGBOOK_F04_ENABLED=false por default"
+  lote2: "BLOQUEADO"
+  activar_flag: "BLOQUEADO"
+
+commit_actual: "3c346f9"
+commit_mensaje: "F-04.1 Lote 1: Logbook INICIO QR/manual - V4.3.2"
