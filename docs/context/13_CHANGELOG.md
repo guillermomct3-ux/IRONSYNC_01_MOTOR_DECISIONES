@@ -740,3 +740,19 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - cerrado_por FUNCIONANDO: text, nullable, poblado por FIN.
 - DATA_LOCAL intocado. Supabase SQL: solo ALTER cerrado_por.
 - Lote 3 sigue BLOQUEADO.
+
+---
+
+## 2026-05-06 — FREEZE PARCIAL F-04.1 INICIO/FIN
+
+- Doc 30 creado: docs/context/30_FREEZE_PARCIAL_F04_1_INICIO_FIN.md.
+- F-04.1 INICIO + FIN declarado FROZEN PARCIAL.
+- Alcance: INICIO directo, INICIO QR, FIN directo, FIN QR, validaciones, rechazos.
+- No incluye: RELEVO, ZOMBIE, FOTO, PARO, FALLA, REANUDA, HORAS, PDF.
+- Commits soporte: 276c047, a4d29c2, 1c40b66, fbe2fdb, a9edeaf.
+- Pruebas acumuladas: 23 (20 PASS, 1 PARCIAL, 2 SKIP, 0 FAIL).
+- SQL ejecutado: 2 ALTER TABLE + 3 UPDATE.
+- Turnos de prueba: 2 cerrados, 4 remanente controlado.
+- Flag: LOGBOOK_F04_ENABLED=false.
+- Lote 3 RELEVO: BLOQUEADO.
+- Reglas: no flag sin War Room, no Lote 3 sin Plan del Dia, no tocar DATA_LOCAL.

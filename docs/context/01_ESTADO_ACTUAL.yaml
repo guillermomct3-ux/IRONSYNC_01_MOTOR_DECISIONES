@@ -493,3 +493,28 @@ f04_1:
   activar_flag: "BLOQUEADO"
 
 commit_actual: "fbe2fdb"
+
+---
+# FREEZE PARCIAL INICIO/FIN — 2026-05-06
+
+freeze_parcial:
+  id: "FREEZE-F04.1-INICIO-FIN"
+  fecha: "2026-05-06"
+  documento: "docs/context/30_FREEZE_PARCIAL_F04_1_INICIO_FIN.md"
+  estado: "FROZEN PARCIAL"
+  alcance: "INICIO + FIN"
+  flag: "LOGBOOK_F04_ENABLED=false"
+  pruebas: "23 (20 PASS / 1 PARCIAL / 2 SKIP / 0 FAIL)"
+  commits: "276c047, a4d29c2, 1c40b66, fbe2fdb, a9edeaf"
+  turnos_cerrados: 2
+  turnos_remanentes: 4
+
+f04_1:
+  lote1_inicio: "FROZEN PARCIAL"
+  lote2_fin: "FROZEN PARCIAL"
+  fix_t06: "FROZEN"
+  fix_t07: "FROZEN"
+  lote3_relevo: "BLOQUEADO"
+  activar_flag: "BLOQUEADO"
+
+commit_actual: "a9edeaf"
