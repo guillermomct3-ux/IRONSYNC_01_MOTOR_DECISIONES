@@ -361,3 +361,121 @@ Se cerraran cuando Lote 2 (FIN) este activo.
 | Actualizacion | FIX-T06 completado y validado (seccion 11) |
 | Siguiente paso | Revision del equipo |
 | Autoriza | Solo documentacion. NO autoriza codigo, flag, ni Lote 2. |
+
+---
+
+## 13. Lote 2 / FIN — Pruebas T11-T15 completadas
+
+**Fecha:** 2026-05-06
+**War Room:** GO para pruebas T11-T15
+**Commits:** fbe2fdb (FIX-T07 routing FIN), Supabase ALTER cerrado_por
+
+### Prerequisitos ejecutados
+
+| # | Prerequisito | Estado |
+|---|-------------|--------|
+| 1 | ALTER TABLE turnos ADD COLUMN cerrado_por text | Ejecutado |
+| 2 | Verificacion: cerrado_por = text, nullable | Confirmado |
+| 3 | FIX-T07: routing FIN directo + sesion QR FIN | Commit fbe2fdb |
+| 4 | 6 turnos de prueba ABIERTOS en Supabase | Listos |
+
+### Resultado general
+
+| Metrica | Cantidad |
+|---------|----------|
+| PASS | 6 |
+| FAIL | 0 |
+| Total | 6 |
+
+### Tabla T11-T15
+
+| Test | Mensaje WhatsApp | Resultado esperado | Resultado real | Estado |
+|------|------------------|--------------------|----------------|--------|
+| T11 | FIN CAT336 5100 | Turno CERRADO, 100h, cerrado_por=operador | Turno CERRADO, 5000->5100=100h, cerrado_por=operador | PASS |
+| T12 | FIN CAT966M | Sesion QR FIN, pide contador | CAT966M, Manda el contador final. | PASS |
+| T12b | 7600 | Turno CERRADO, 100h, origen=qr_legacy | Turno CERRADO, 7500->7600=100h, cerrado_por=operador | PASS |
+| T13 | FIN BATMAN9000 5000 | Equipo no encontrado | Equipo BATMAN9000 no encontrado | PASS |
+| T14 | FIN CAT140H 4000 | Horometro menor, turno ABIERTO | Contador menor al anterior. Anterior: 5000.5 | PASS |
+| T15 | hola (flag OFF) | Legacy intacto | Menu legacy normal | PASS |
+
+### Supabase — Turnos despues de pruebas
+
+| # | Folio | Maquina | horometro_inicio | horometro_fin | horas_turno | estado | cerrado_por | origen_datos |
+|---|-------|---------|-----------------|---------------|-------------|--------|-------------|-------------|
+| 1 | CAT336-20260506-1963 | CAT336 | 5000 | 5100 | 100.00 | CERRADO | operador | manual |
+| 2 | CAT966M-20260506-4442 | CAT966M | 7500 | 7600 | 100.00 | CERRADO | operador | qr_legacy |
+| 3 | CAT140H-20260506-9205 | CAT140H | 5000.5 | null | null | ABIERTO | null | manual |
+| 4 | CAT320-20260506-9804 | CAT320 | 3005 | null | null | ABIERTO | null | qr_legacy |
+| 5 | CAT740-20260506-5617 | CAT740 | 8000 | null | null | ABIERTO | null | manual |
+| 6 | CATD8T-20260506-1435 | CATD8T | 6000.5 | null | null | ABIERTO | null | manual |
+
+### Verificaciones Supabase T11
+
+| Campo | Esperado | Real | OK? |
+|-------|----------|------|-----|
+| horometro_inicio | 5000 | 5000 | SI |
+| horometro_fin | 5100 | 5100 | SI |
+| horas_turno | 100 | 100.00 | SI |
+| estado | CERRADO | CERRADO | SI |
+| cerrado_por | operador | operador | SI |
+| origen_datos | manual | manual | SI |
+| fin | timestamp | 2026-05-06 20:10:01 | SI |
+
+### Verificaciones Supabase T12b
+
+| Campo | Esperado | Real | OK? |
+|-------|----------|------|-----|
+| horometro_inicio | 7500 | 7500 | SI |
+| horometro_fin | 7600 | 7600 | SI |
+| horas_turno | 100 | 100.00 | SI |
+| estado | CERRADO | CERRADO | SI |
+| cerrado_por | operador | operador | SI |
+| origen_datos | qr_legacy | qr_legacy | SI |
+| fin | timestamp | 2026-05-06 20:12:08 | SI |
+
+### Verificaciones Supabase T14
+
+| Campo | Esperado | Real | OK? |
+|-------|----------|------|-----|
+| horometro_inicio | 5000.5 | 5000.5 | SI |
+| horometro_fin | null | null | SI |
+| estado | ABIERTO | ABIERTO | SI |
+
+### Turnos de prueba — Estado final
+
+| # | Folio | Maquina | Estado | Accion pendiente |
+|---|-------|---------|--------|-----------------|
+| 1 | CAT336-20260506-1963 | CAT336 | CERRADO | Ninguna |
+| 2 | CAT966M-20260506-4442 | CAT966M | CERRADO | Ninguna |
+| 3 | CAT140H-20260506-9205 | CAT140H | ABIERTO | Cerrar con FIN o DELETE |
+| 4 | CAT320-20260506-9804 | CAT320 | ABIERTO | Cerrar con FIN o DELETE |
+| 5 | CAT740-20260506-5617 | CAT740 | ABIERTO | Cerrar con FIN o DELETE |
+| 6 | CATD8T-20260506-1435 | CATD8T | ABIERTO | Cerrar con FIN o DELETE |
+
+### Estado post Lote 2
+
+| Verificacion | Estado |
+|-------------|--------|
+| LOGBOOK_F04_ENABLED | OFF |
+| Lote 1 (INICIO) | VALIDADO |
+| Lote 2 (FIN) | VALIDADO |
+| FIX-T06 (horometro invalido INICIO) | VALIDADO |
+| FIX-T07 (routing FIN) | VALIDADO |
+| cerrado_por | FUNCIONANDO |
+| Turnos cerrados por FIN real | 2 de 6 |
+| Turnos ABIERTOS restantes | 4 |
+| Legacy funciona | SI |
+| DATA_LOCAL tocado | NO |
+
+---
+
+## 14. Estado del documento (actualizado)
+
+| Campo | Valor |
+|-------|-------|
+| Estado | DRAFT |
+| Version | 1.2 |
+| Fecha | 2026-05-06 |
+| Actualizacion | Lote 2 / FIN validado (seccion 13) |
+| Siguiente paso | Revision del equipo |
+| Autoriza | Solo documentacion. NO autoriza codigo, flag, ni Lote 3. |

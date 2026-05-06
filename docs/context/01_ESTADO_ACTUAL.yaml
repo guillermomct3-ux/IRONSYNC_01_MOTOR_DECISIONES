@@ -472,3 +472,24 @@ f04_1_lote1:
   activar_flag: "BLOQUEADO"
 
 commit_actual: "a4d29c2"
+
+---
+# LOTE 2 / FIN VALIDADO — 2026-05-06
+
+lote2_fin:
+  estado: "VALIDADO / FLAG OFF"
+  pruebas: "T11-T15 = 6/6 PASS"
+  commit_fix: "fbe2fdb"
+  cerrado_por: "FUNCIONANDO"
+  turnos_cerrados: 2
+  turnos_abiertos_restantes: 4
+
+f04_1:
+  lote1: "VALIDADO"
+  lote2: "VALIDADO"
+  fix_t06: "VALIDADO"
+  fix_t07: "VALIDADO"
+  lote3: "BLOQUEADO"
+  activar_flag: "BLOQUEADO"
+
+commit_actual: "fbe2fdb"

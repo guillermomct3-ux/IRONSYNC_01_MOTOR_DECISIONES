@@ -718,3 +718,25 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - DATA_LOCAL intocado. Supabase SQL adicional: solo UPDATE documental.
 - Lote 2 sigue BLOQUEADO.
 - Antes de Lote 2: decidir limpieza/cierre de turnos de prueba.
+
+---
+
+## 2026-05-06 — LOTE 2 / FIN VALIDADO
+
+- War Room autorizo pruebas T11-T15 para Lote 2 / FIN.
+- Prerequisito: ALTER TABLE turnos ADD COLUMN cerrado_por text ejecutado.
+- FIX-T07 commit: fbe2fdb. Routing FIN directo + sesion QR FIN en webhook.js.
+- Veredicto Code Writer: A (GO PATCH CONSOLIDADO TAL CUAL).
+- Pruebas T11-T15: 6/6 PASS, 0 FAIL.
+- T11: FIN CAT336 5100 = Turno CERRADO, 100h, cerrado_por=operador. PASS.
+- T12: FIN CAT966M = Sesion QR FIN. PASS.
+- T12b: 7600 = Turno CERRADO, 100h, origen=qr_legacy. PASS.
+- T13: FIN BATMAN9000 5000 = Equipo no encontrado. PASS.
+- T14: FIN CAT140H 4000 = Horometro menor rechazado, turno ABIERTO. PASS.
+- T15: hola (flag OFF) = Legacy intacto. PASS.
+- LOGBOOK_F04_ENABLED=false restaurado.
+- 2 turnos cerrados por FIN real: CAT336, CAT966M.
+- 4 turnos ABIERTOS restantes: CAT140H, CAT320, CAT740, CATD8T.
+- cerrado_por FUNCIONANDO: text, nullable, poblado por FIN.
+- DATA_LOCAL intocado. Supabase SQL: solo ALTER cerrado_por.
+- Lote 3 sigue BLOQUEADO.
