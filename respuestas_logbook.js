@@ -66,7 +66,10 @@
     return 'Equipo "' + maquina + '" no encontrado. Verifica o habla con Ulises.';
   },
 
-  horometroInvalido: function() {
+  horometroInvalido: function(valorInvalido) {
+    if (valorInvalido) {
+      return 'Contador invalido: "' + valorInvalido + '"\nDebe ser un numero. Ejemplo: 5000 o 5000.5';
+    }
     return 'El contador debe ser un numero. Ejemplo: 5000 o 5000.5';
   },
 
@@ -142,8 +145,9 @@ function respuestaLogbookDesdeResultado(resultado) {
     case 'EQUIPO_NO_ENCONTRADO':
       return LOGBOOK_RESPUESTAS.equipoNoEncontrado(resultado.maquina || 'solicitado');
     case 'HOROMETRO_REQUERIDO':
-    case 'HOROMETRO_INVALIDO':
       return LOGBOOK_RESPUESTAS.horometroInvalido();
+    case 'HOROMETRO_INVALIDO':
+      return LOGBOOK_RESPUESTAS.horometroInvalido(resultado.valor);
     case 'HOROMETRO_MENOR':
       return LOGBOOK_RESPUESTAS.horometroMenor(resultado.horometro, resultado.anterior);
     case 'HOROMETRO_REGRESIVO':

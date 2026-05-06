@@ -171,7 +171,7 @@ app.post('/webhook', async (req, res) => {
             const resultado = await logbookService.iniciarTurnoLogbook({ from, maquina: session.maquina, horometro: counter, canal: session.canal });
             return enviarRespuesta(respuestaLogbookDesdeResultado(resultado));
           }
-          return enviarRespuesta(LOGBOOK_RESPUESTAS.horometroInvalido());
+          return enviarRespuesta(LOGBOOK_RESPUESTAS.horometroInvalido(textoOp));
         }
       }
       const comandoLogbook = extraerComandoLogbook(textoOp);
@@ -179,6 +179,12 @@ app.post('/webhook', async (req, res) => {
         const canal = detectarCanal(comandoLogbook);
         try {
           if (comandoLogbook.horometro === null) {
+            // FIX-T06: Detectar intento de horometro invalido
+            const tokens = textoOp.split(' ').filter(function(t) { return t.length > 0; });
+            if (tokens.length >= 3) {
+              const intentoHorometro = tokens.slice(2).join(' ');
+              return enviarRespuesta(LOGBOOK_RESPUESTAS.horometroInvalido(intentoHorometro));
+            }
             const ultimo = await logbookService.buscarUltimoCierre({ maquina: comandoLogbook.maquina, empresaId: null });
             const promptMensaje = LOGBOOK_RESPUESTAS.pideHorometroInicio(comandoLogbook.maquina, ultimo ? ultimo.horometro_fin : null);
             logbookSessions.set(from, { accion: 'INICIO', maquina: comandoLogbook.maquina, canal, timestampExpiracion: Date.now() + LOGBOOK_CONFIG.SESSION_TTL_INICIO_MS });
