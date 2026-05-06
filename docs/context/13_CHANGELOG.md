@@ -675,3 +675,24 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - Documento 28 creado: docs/context/28_INCIDENTE_GOV_001_DEPLOY_F04_1_SIN_WAR_ROOM.md.
 - 01_ESTADO_ACTUAL.yaml actualizado con estado de incidente.
 - Compromiso MiMo V2: no mas deploys sin War Room.
+
+---
+
+## 2026-05-06 — F-04.1 LOTE 1 — PRUEBAS T01-T10 EJECUTADAS
+
+- War Room autorizo activacion controlada de LOGBOOK_F04_ENABLED=true.
+- Checklist Supabase ejecutado: 8 queries SELECT.
+- Hallazgo bloqueador resuelto: operadores.empresa_id no existia.
+- ALTER TABLE operadores ADD COLUMN empresa_id UUID ejecutado.
+- UPDATE operadores SET empresa_id para 4 operadores activos ejecutado.
+- Verificacion: 0 operadores activos sin empresa_id.
+- LOGBOOK_F04_ENABLED=true activado temporalmente en Railway.
+- Pruebas T01-T10 ejecutadas con Guillermo operando WhatsApp.
+- Resultado: 7 PASS, 1 PASS PARCIAL (T06), 2 SKIP (T04, T07), 0 FAIL.
+- 3 turnos creados en Supabase: CAT336, CAT966M, CAT140H.
+- Hallazgo T06: INICIO con horometro invalido entra flujo QR. Pendiente decision equipo.
+- LOGBOOK_F04_ENABLED=false restaurado al finalizar.
+- Legacy WhatsApp verificado intacto.
+- DATA_LOCAL intocado. Codigo no modificado. Deploy no ejecutado.
+- Doc 29 creado: docs/context/29_RESULTADOS_T01_T10_F04_1_LOTE_1.md.
+- 01_ESTADO_ACTUAL.yaml actualizado.

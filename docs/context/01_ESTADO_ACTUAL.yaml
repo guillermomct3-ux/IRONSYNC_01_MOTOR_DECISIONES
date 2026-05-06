@@ -425,3 +425,24 @@ f04_1_lote1:
 
 commit_actual: "3c346f9"
 commit_mensaje: "F-04.1 Lote 1: Logbook INICIO QR/manual - V4.3.2"
+
+---
+# F-04.1 LOTE 1 — PRUEBAS T01-T10 COMPLETADAS — 2026-05-06
+
+f04_1_lote1_pruebas:
+  fecha: "2026-05-06"
+  documento: "docs/context/29_RESULTADOS_T01_T10_F04_1_LOTE_1.md"
+  resultado: "7 PASS / 1 PASS PARCIAL / 2 SKIP / 0 FAIL"
+  flag: "LOGBOOK_F04_ENABLED=false"
+  turnos_creados:
+    - "CAT336-20260506-1963 (manual)"
+    - "CAT966M-20260506-4442 (qr_legacy)"
+    - "CAT140H-20260506-9205 (manual)"
+  hallazgos:
+    t06: "PASS PARCIAL - INICIO con horometro invalido entra flujo QR en vez de rechazar"
+  tests_skip:
+    - "T04: requiere segundo telefono"
+    - "T07: requiere FIN (Lote 2)"
+  siguiente_paso: "War Room decision post-test"
+
+commit_actual: "3c346f9"
