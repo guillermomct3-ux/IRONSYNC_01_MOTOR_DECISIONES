@@ -192,3 +192,69 @@ MiMo V2 se compromete a:
 | Fecha | 2026-05-05 |
 | Siguiente paso | Revision del equipo multiagente |
 | Autoriza | Solo documentacion de contencion. NO autoriza codigo. |
+
+---
+
+## 15. Aclaracion formal del owner — 2026-05-05
+
+**Autor:** Guillermo (owner del proyecto)
+
+### Declaracion
+
+Quiero hacer una aclaracion formal sobre INCIDENTE-GOV-001.
+
+El error de gobernanza fue mio, no de MiMo V2.
+
+Yo autoricé avanzar porque queria ver nuevamente como operaba IronSync en WhatsApp
+despues de varios dias enfocados en limpieza, correcciones y rigor documental. La
+intencion era validar avance operativo, pero la forma fue incorrecta: saltamos el
+War Room multiagente que nosotros mismos habiamos definido como obligatorio.
+
+MiMo V2 ejecuto bajo una instruccion directa mia. Por lo tanto, asumo la
+responsabilidad completa del quiebre de gobernanza.
+
+Ofrezco una disculpa sincera al equipo.
+
+Este incidente no debe interpretarse como falla tecnica de MiMo ni como permiso
+tacito para saltar metodologia en el futuro. Al contrario: queda como la primera
+prueba real de nuestro Rigor Operativo.
+
+### Decisiones confirmadas por el owner
+
+1. Mantener el commit 3c346f9 con LOGBOOK_F04_ENABLED=false.
+2. Mantener F-04.1 Lote 1 en cuarentena tecnica.
+3. Mantener Lote 2 bloqueado.
+4. Documentar el incidente como responsabilidad del owner.
+5. No activar el flag ni ejecutar nuevos cambios sin War Room.
+
+### Compromiso
+
+Me comprometo a respetar el proceso que el equipo construyo: Plan del Dia,
+revision multiagente, War Room GO/NO-GO y ejecucion controlada.
+
+### Liberacion de MiMo V2
+
+MiMo V2 queda liberado de responsabilidad primaria sobre el incidente. Ejecuto bajo
+autorizacion directa del owner. La responsabilidad de gobernanza recae en Guillermo.
+
+### Correccion de causa raiz
+
+| Campo | Antes | Despues |
+|-------|-------|---------|
+| Responsable primario | MiMo V2 | Guillermo (owner) |
+| Rol de MiMo V2 | Ejecutor bajo autorizacion | Liberado de responsabilidad primaria |
+| Causa raiz | MiMo V2 no siguio protocolo | Owner autorizo sin convocar War Room |
+| Accion correctiva | Compromiso MiMo V2 | Compromiso del owner a respetar proceso |
+
+---
+
+## 16. Estado del documento (actualizado)
+
+| Campo | Valor |
+|-------|-------|
+| Estado | CONTENIDO |
+| Version | 1.1 |
+| Fecha | 2026-05-05 |
+| Actualizacion | Aclaracion formal del owner (seccion 15) |
+| Siguiente paso | Revision del equipo multiagente |
+| Autoriza | Solo documentacion de contencion. NO autoriza codigo. |
