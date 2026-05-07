@@ -756,3 +756,46 @@ Despues crear Plan del Dia para Fase 0/Fase 1 de limpieza.
 - Flag: LOGBOOK_F04_ENABLED=false.
 - Lote 3 RELEVO: BLOQUEADO.
 - Reglas: no flag sin War Room, no Lote 3 sin Plan del Dia, no tocar DATA_LOCAL.
+
+---
+
+## 2026-05-07 -- Laboratorio S01-S20 + Feature Memory + Plan S21
+
+### Laboratorio Sintetico S01-S20
+- Ejecutado por Guillermo en ventana controlada (~24 min)
+- 13/13 tests ejecutados PASS
+- 7 SKIP justificados por cobertura previa (Lote 1)
+- 6/6 bloqueantes PASS
+- 0 FAIL, 0 STOP, 0 regresiones legacy
+- Flag ON ~24 min, OFF al cierre
+- 5 turnos creados y cerrados en CAT336
+- Resultado: EXITOSO
+- Doc 33: docs/context/33_RESULTADOS_LABORATORIO_S01_S20.md
+- Commit: f9ab4c8
+
+### Feature Memory (docs/features/)
+- Memoria modular simple por feature desplegada
+- 18 archivos: README.md + notes.md
+- Modulos: shared, logbook, finanzas, gemelo_digital
+- PDF Reporte Diario archivado como caso de prueba
+- Commit: 87ee00b
+- Principio: context/ gobierna, features/ recuerda
+
+### Hallazgos
+- 36 anomalias totales (4 ABIERTOS remanentes + 32 CERRADOS historicos)
+- CAT320 remanente excluido (Opcion B: solo CAT336)
+- Horometro decimal punto funciona (5121.5)
+- Equipo olvido que PDF ya existia (motivacion docs/features/)
+
+### Plan S21
+- Doc 34: docs/context/34_PLAN_S21_JORNADA_VIRTUAL_PDF.md
+- Jornada Virtual Completa + PDF automatico
+- Flag ON solo durante INICIO y FIN, OFF durante jornada pasiva
+- Estado: PENDIENTE
+
+### Estado sistema
+- LOGBOOK_F04_ENABLED: false
+- Legacy: intacto
+- DATA_LOCAL: intacto
+- Produccion piloto: NO-GO hasta S21 + Qwen + War Room
+- Lote 3 / RELEVO: BLOQUEADO
