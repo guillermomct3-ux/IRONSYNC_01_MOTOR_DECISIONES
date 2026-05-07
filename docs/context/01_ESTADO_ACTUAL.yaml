@@ -1,11 +1,11 @@
-# ═══════════════════════════════════════════════════════════
+﻿# ═══════════════════════════════════════════════════════════
 # IRONSYNC — ESTADO ACTUAL
 # Fecha: 2026-05-07
 # Commit base auditado: 2e67a24
 # Commits R1: b89c1d6, 694ba40
-# Commit actual: PENDIENTE_COMMIT_DOC32
+# Commit actual: b5caccd
 # Auditoria: Doc 31 DRAFT / NO-GO Qwen en remediacion
-# Version YAML: 3.2 (estados prerequisitos actualizados)
+# Version YAML: 3.3 (ajustes ChatGPT pre-War Room)
 # ═══════════════════════════════════════════════════════════
 
 proyecto:
@@ -19,7 +19,9 @@ codigo:
   commits_r1:
     - "b89c1d6"
     - "694ba40"
-  commit_actual: "PENDIENTE_COMMIT_DOC32"
+  commit_doc32: "64de4e9"
+  commit_fix_fechas: "b5caccd"
+  commit_actual: "b5caccd"
   branch: "main"
   deployment:
     plataforma: "Railway"
@@ -191,8 +193,8 @@ gobernanza:
     estado: "REMEDIACION_R1_EN_PROGRESO"
     prerequisitos:
       total: 6
-      cumplidos: 4
-      en_progreso: 1
+      cumplidos: 5
+      en_progreso: 0
       pendientes: 1
       lista:
         - item: "Doc 31 versionado en repo"
@@ -203,12 +205,12 @@ gobernanza:
           commit: "b89c1d6"
         - item: "YAML actualizado commit correcto"
           estado: "CUMPLIDO"
-          commit: "694ba40"
+          commit: "b5caccd"
         - item: "Decision turnos: EXCLUIR"
           estado: "CUMPLIDO"
         - item: "Doc 32 Plan Laboratorio S01-S20"
-          estado: "EN_PROGRESO"
-          archivo: "docs/context/32_PLAN_LABORATORIO_SINTETICO_S01_S20.md"
+          estado: "CUMPLIDO"
+          commit: "64de4e9"
         - item: "War Room formal GO/NO-GO"
           estado: "PENDIENTE"
   lote_3_relevo: "BLOQUEADO"
@@ -231,10 +233,10 @@ legacy:
   regresiones_detectadas: 0
 
 metadata:
-  version_yaml: "3.2"
+  version_yaml: "3.3"
   fecha: "2026-05-07"
-  tipo: "ACTUALIZACION PREREQUISITOS"
-  razon: "Doc 31 + migrations + YAML commiteados; Doc 32 en progreso"
+  tipo: "AJUSTES PRE-WAR ROOM"
+  razon: "commit_actual actualizado; Doc 32 a CUMPLIDO; 5/6 prerequisitos"
   autores:
     - "MiMo V2 (estructura base)"
     - "ChatGPT (correcciones + ajustes)"

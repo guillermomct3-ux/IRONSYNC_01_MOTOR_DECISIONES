@@ -62,27 +62,27 @@ Antes de iniciar S01, el sistema DEBE cumplir TODAS estas condiciones:
 
 ### Operador test:
 - nombre: "OPERADOR_LAB"
-- telefono: "[PENDIENTE: Guillermo asigna numero test]"
-- empresa_id: "[PENDIENTE: UUID empresa test]"
+- telefono: "[SE ASIGNA EN CHECKLIST PRE-ACTIVACION — si falta, War Room NO puede dar GO]"
+- empresa_id: "[SE ASIGNA EN CHECKLIST PRE-ACTIVACION — si falta, War Room NO puede dar GO]"
 - autorizado: true
 
 ### Maquinas test:
-- equipo_1: "[PENDIENTE: ID maquina real o sintetico]"
-- equipo_2: "[PENDIENTE: ID maquina real o sintetico]"
+- equipo_1: "[SE ASIGNA EN CHECKLIST PRE-ACTIVACION — si falta, War Room NO puede dar GO]"
+- equipo_2: "[SE ASIGNA EN CHECKLIST PRE-ACTIVACION — si falta, War Room NO puede dar GO]"
 - equipo_inexistente: "EQUIPO_NO_EXISTE_999"
 
 ### Horometros:
-- horometro_inicial_1: "[PENDIENTE: valor valido, ej: 1000]"
-- horometro_final_1: "[PENDIENTE: valor > inicial, ej: 1005]"
+- horometro_inicial_1: "[SE ASIGNA EN CHECKLIST PRE-ACTIVACION — si falta, War Room NO puede dar GO]"
+- horometro_final_1: "[SE ASIGNA EN CHECKLIST PRE-ACTIVACION — si falta, War Room NO puede dar GO]"
 - horometro_invalido: "-1"
 - horometro_invalido_texto: "abc"
 - horometro_cero: "0"
-- horometro_regresivo: "[PENDIENTE: valor < inicial, ej: 999]"
+- horometro_regresivo: "[SE ASIGNA EN CHECKLIST PRE-ACTIVACION — si falta, War Room NO puede dar GO]"
 - horometro_decimal_punto: "1000.5"
 - horometro_decimal_coma: "1000,5"
 
 ### Folios:
-- patron_esperado: "[PENDIENTE: patron folio IronSync, ej: CATXXX-YYYYMMDD-NNNN]"
+- patron_esperado: "[SE ASIGNA EN CHECKLIST PRE-ACTIVACION — si falta, War Room NO puede dar GO]"
 - criterio: "Cada turno nuevo genera folio unico incremental"
 
 ### Criterio exclusion remanentes:
@@ -289,7 +289,7 @@ Antes de iniciar S01, el sistema DEBE cumplir TODAS estas condiciones:
 ### S20 — Verificacion final Supabase
 - tipo: VALIDACION
 - precondicion: Todos los tests S01-S19 completados, flag OFF
-- query_verificacion: "SELECT * FROM turnos WHERE creado_en >= [fecha_laboratorio] AND tiene_anomalia = false"
+- query_verificacion: "-- Confirmar columna timestamp real antes de ejecucion (creado_en / inicio / fecha_turno)`nSELECT * FROM turnos WHERE tiene_anomalia = false AND origen_datos LIKE '%laboratorio%'"
 - resultado_esperado: Turnos creados por S01-S17 presentes, turnos anomalia excluidos
 - criterio_pass: Turnos correctos + 0 duplicados + 0 contaminacion + remanentes intactos
 - riesgo_cubierto: Integridad datos post-laboratorio
