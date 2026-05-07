@@ -1,59 +1,4 @@
-﻿# migrations/README.md
-# IRONSYNC — MIGRACIONES F-04.1
-# Fecha: 2026-05-07
-# Estado: Versionadas en repo
-# ═══════════════════════════════════════════════════════════
-
-## Orden de migraciones F-04.1
-
-Las migraciones versionan SQL ya ejecutado manualmente durante F-04.1.
-
-Orden:
-1. 001_add_operadores_empresa_id.sql
-2. 002_add_turnos_cerrado_por.sql
-
-Estas migraciones son idempotentes y deben revisarse antes de cualquier ejecucion.
-
-No ejecutar migraciones en produccion sin War Room.
-
-## Archivos
-
-### 001_add_operadores_empresa_id.sql
-- Tabla: operadores
-- Columna: empresa_id
-- Tipo: UUID
-- Nullable: true
-- Proposito: Validacion strict logbookService.js
-- Estado: EJECUTADA
-
-### 002_add_turnos_cerrado_por.sql
-- Tabla: turnos
-- Columna: cerrado_por
-- Tipo: text
-- Nullable: true
-- Valores esperados: operador, operador_siguiente, supervisor, sistema
-- Proposito: Trazabilidad cierre turnos
-- Estado: EJECUTADA
-
-## Restricciones
-
-- NO ejecutar sin War Room
-- NO ejecutar en produccion sin aprobacion explicita
-- Las migraciones son idempotentes (pueden re-ejecutarse sin efecto secundario)
-- Revisar contenido antes de ejecutar
-
-## Rollback
-
-Si se requiere rollback de migrations:
-
-`sql
--- Rollback 002
-ALTER TABLE turnos DROP COLUMN IF EXISTS cerrado_por;
-
--- Rollback 001
-ALTER TABLE operadores DROP COLUMN IF EXISTS empresa_id;
-@"
-# ═══════════════════════════════════════════════════════════
+﻿# ═══════════════════════════════════════════════════════════
 # IRONSYNC — ESTADO ACTUAL
 # Fecha: 2026-05-07
 # Commit base auditado: 2e67a24
@@ -61,9 +6,10 @@ ALTER TABLE operadores DROP COLUMN IF EXISTS empresa_id;
 # Commit Doc 32: 64de4e9
 # Commit fix fechas: b5caccd
 # Commit prerequisitos: dd5b742
-# Commit actual: PENDIENTE_COMMIT_PATCH
+# Commit patch Doc 32: cd1a440
+# Commit actual: PENDIENTE_COMMIT_GOV01
 # Auditoria: Doc 31 DRAFT / NO-GO Qwen en remediacion
-# Version YAML: 3.4 (patch documental pre-War Room)
+# Version YAML: 3.5 (GOV-CODE-REVIEW-01)
 # ═══════════════════════════════════════════════════════════
 
 proyecto:
@@ -80,7 +26,8 @@ codigo:
   commit_doc32: "64de4e9"
   commit_fix_fechas: "b5caccd"
   commit_prerequisitos: "dd5b742"
-  commit_actual: "PENDIENTE_COMMIT_PATCH"
+  commit_patch_doc32: "cd1a440"
+  commit_actual: "PENDIENTE_COMMIT_GOV01"
   branch: "main"
   deployment:
     plataforma: "Railway"
@@ -264,12 +211,12 @@ gobernanza:
           commit: "b89c1d6"
         - item: "YAML actualizado commit correcto"
           estado: "CUMPLIDO"
-          commit: "dd5b742"
+          commit: "cd1a440"
         - item: "Decision turnos: EXCLUIR"
           estado: "CUMPLIDO"
         - item: "Doc 32 Plan Laboratorio S01-S20"
           estado: "CUMPLIDO"
-          commit: "64de4e9"
+          commit: "cd1a440"
         - item: "War Room formal GO/NO-GO"
           estado: "PENDIENTE"
   pre_war_room_review:
@@ -283,6 +230,64 @@ gobernanza:
       - "ChatGPT"
     veredicto_consolidado: "LISTO_CON_AJUSTES_MENORES"
     laboratorio: "NO-GO_HASTA_WAR_ROOM"
+
+  reglas_activas:
+    GOV-CODE-REVIEW-01:
+      nombre: "Revision obligatoria antes de ejecutar"
+      estado: "ACTIVA"
+      fecha_aprobacion: "2026-05-07"
+      aprobada_por: "Guillermo (founder)"
+      owner_go: "Guillermo"
+      descripcion: |
+        Cuando MiMo va a escribir codigo, SQL, YAML, documentos estructurales,
+        cambios de feature flags o cualquier archivo del repo, no ejecuta
+        directamente. Primero entrega propuesta completa para revision.
+      razon: "Evitar ejecucion iterativa sin consolidacion previa, reducir inconsistencias y prevenir repeticion de INCIDENTE-GOV-001."
+      entregables_obligatorios:
+        - "Archivo(s) a tocar"
+        - "Diff propuesto o bloque completo"
+        - "Objetivo"
+        - "Alcance"
+        - "Riesgos"
+        - "Rollback"
+        - "Tests / verificacion"
+        - "Lista de cosas que NO toca"
+      flujo:
+        paso_1: "MiMo entrega propuesta / PATCH PREVIEW"
+        paso_2: "ChatGPT / Claude / equipo revisan"
+        paso_3: "Se agregan upgrades si aplican"
+        paso_4: "ChatGPT consolida version final"
+        paso_5: "Guillermo da GO explicito"
+        paso_6: "MiMo ejecuta UNA SOLA VEZ sin desviarse del patch aprobado"
+        paso_7: "Verificacion post-ejecucion en repo/logs/resultados"
+      aplica_a:
+        - "Codigo funcional: webhook.js, logbookService.js, lib/, respuestas_logbook.js"
+        - "Documentos estructurales: YAML, Doc 31, Doc 32, DEBT_REGISTRY, CHANGELOG"
+        - "SQL y migrations"
+        - "Cambios en feature flags"
+        - "Routing"
+        - "Estado vivo del proyecto"
+        - "Cualquier archivo en el repo"
+      no_aplica_a:
+        - "Confirmaciones de estado"
+        - "Respuestas a preguntas"
+        - "Analisis en silencio"
+        - "Votaciones War Room sin cambios de archivo"
+      enforcement:
+        violacion_detectada:
+          trigger: "MiMo ejecuta cambio sin PATCH PREVIEW previo"
+          accion: "STOP, revision inmediata y posible rollback"
+          severidad: "ALTA"
+        excepcion_permitida:
+          condicion: "Emergencia critica de produccion"
+          requisito: "Aprobacion explicita de Guillermo y documentacion post-facto"
+      beneficio_esperado:
+        - "Capturar upgrades antes de ejecutar, no despues"
+        - "Reducir commits iterativos innecesarios"
+        - "Mantener trazabilidad preview -> review -> consolidado -> GO -> ejecucion -> verificacion"
+        - "Evitar inconsistencias documentales"
+        - "Preservar control final de Guillermo"
+
   lote_3_relevo: "BLOQUEADO"
   laboratorio: "NO-GO"
   produccion_piloto: "NO-GO"
@@ -305,14 +310,14 @@ legacy:
   regresiones_detectadas: 0
 
 metadata:
-  version_yaml: "3.4"
+  version_yaml: "3.5"
   fecha: "2026-05-07"
-  tipo: "PATCH DOCUMENTAL PRE-WAR ROOM"
-  razon: "12 propuestas consolidadas ChatGPT+Claude+GLM5+DeepSeek+Grok+Gemini"
+  tipo: "GOV-CODE-REVIEW-01 GOVERNANCE RULE"
+  razon: "Registrar regla activa de gobernanza aprobada por Guillermo"
   autores:
     - "MiMo V2 (estructura base)"
-    - "ChatGPT (correcciones + ajustes + consolidacion)"
-    - "Claude (revision conceptual)"
+    - "ChatGPT (correcciones + ajustes + consolidacion + regla GOV)"
+    - "Claude (revision conceptual + regla GOV)"
     - "GLM5 (revision)"
     - "DeepSeek (revision)"
     - "Grok (revision)"
