@@ -1,10 +1,11 @@
 ﻿# ═══════════════════════════════════════════════════════════
 # IRONSYNC — ESTADO ACTUAL
-# Fecha: 2026-05-07
+# Fecha: 2026-05-08
 # Commit base auditado: 2e67a24
-# Commit actual: PENDIENTE_COMMIT_R1
+# Commits R1: b89c1d6, 694ba40
+# Commit actual: PENDIENTE_COMMIT_DOC32
 # Auditoria: Doc 31 DRAFT / NO-GO Qwen en remediacion
-# Version YAML: 3.1 (ajustes ChatGPT sobre v3.0 MiMo)
+# Version YAML: 3.2 (estados prerequisitos actualizados)
 # ═══════════════════════════════════════════════════════════
 
 proyecto:
@@ -15,7 +16,10 @@ proyecto:
 
 codigo:
   commit_base_auditado: "2e67a24"
-  commit_actual: "PENDIENTE_COMMIT_R1"
+  commits_r1:
+    - "b89c1d6"
+    - "694ba40"
+  commit_actual: "PENDIENTE_COMMIT_DOC32"
   branch: "main"
   deployment:
     plataforma: "Railway"
@@ -134,7 +138,7 @@ pruebas:
 
 migraciones:
   directorio: "migrations/"
-  versionadas: "PENDIENTE_COMMIT_R1"
+  versionadas: true
   ejecutadas: true
   archivos:
     - "001_add_operadores_empresa_id.sql"
@@ -187,20 +191,24 @@ gobernanza:
     estado: "REMEDIACION_R1_EN_PROGRESO"
     prerequisitos:
       total: 6
-      cumplidos: 1
-      en_progreso: 3
-      pendientes: 2
+      cumplidos: 4
+      en_progreso: 1
+      pendientes: 1
       lista:
         - item: "Doc 31 versionado en repo"
-          estado: "EN_PROGRESO"
+          estado: "CUMPLIDO"
+          commit: "b89c1d6"
         - item: "Migrations SQL versionadas"
-          estado: "EN_PROGRESO"
-        - item: "YAML actualizado"
-          estado: "EN_PROGRESO"
+          estado: "CUMPLIDO"
+          commit: "b89c1d6"
+        - item: "YAML actualizado commit correcto"
+          estado: "CUMPLIDO"
+          commit: "694ba40"
         - item: "Decision turnos: EXCLUIR"
           estado: "CUMPLIDO"
         - item: "Doc 32 Plan Laboratorio S01-S20"
-          estado: "PENDIENTE"
+          estado: "EN_PROGRESO"
+          archivo: "docs/context/32_PLAN_LABORATORIO_SINTETICO_S01_S20.md"
         - item: "War Room formal GO/NO-GO"
           estado: "PENDIENTE"
   lote_3_relevo: "BLOQUEADO"
@@ -223,10 +231,10 @@ legacy:
   regresiones_detectadas: 0
 
 metadata:
-  version_yaml: "3.1"
-  fecha: "2026-05-07"
-  tipo: "REESCRIPCION COMPLETA LIMPIA"
-  razon: "Eliminar bloques historicos contaminados con commit_actual contradictorios"
+  version_yaml: "3.2"
+  fecha: "2026-05-08"
+  tipo: "ACTUALIZACION PREREQUISITOS"
+  razon: "Doc 31 + migrations + YAML commiteados; Doc 32 en progreso"
   autores:
     - "MiMo V2 (estructura base)"
     - "ChatGPT (correcciones + ajustes)"
