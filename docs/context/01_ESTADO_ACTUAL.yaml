@@ -1,11 +1,69 @@
-﻿# ═══════════════════════════════════════════════════════════
+﻿# migrations/README.md
+# IRONSYNC — MIGRACIONES F-04.1
+# Fecha: 2026-05-07
+# Estado: Versionadas en repo
+# ═══════════════════════════════════════════════════════════
+
+## Orden de migraciones F-04.1
+
+Las migraciones versionan SQL ya ejecutado manualmente durante F-04.1.
+
+Orden:
+1. 001_add_operadores_empresa_id.sql
+2. 002_add_turnos_cerrado_por.sql
+
+Estas migraciones son idempotentes y deben revisarse antes de cualquier ejecucion.
+
+No ejecutar migraciones en produccion sin War Room.
+
+## Archivos
+
+### 001_add_operadores_empresa_id.sql
+- Tabla: operadores
+- Columna: empresa_id
+- Tipo: UUID
+- Nullable: true
+- Proposito: Validacion strict logbookService.js
+- Estado: EJECUTADA
+
+### 002_add_turnos_cerrado_por.sql
+- Tabla: turnos
+- Columna: cerrado_por
+- Tipo: text
+- Nullable: true
+- Valores esperados: operador, operador_siguiente, supervisor, sistema
+- Proposito: Trazabilidad cierre turnos
+- Estado: EJECUTADA
+
+## Restricciones
+
+- NO ejecutar sin War Room
+- NO ejecutar en produccion sin aprobacion explicita
+- Las migraciones son idempotentes (pueden re-ejecutarse sin efecto secundario)
+- Revisar contenido antes de ejecutar
+
+## Rollback
+
+Si se requiere rollback de migrations:
+
+`sql
+-- Rollback 002
+ALTER TABLE turnos DROP COLUMN IF EXISTS cerrado_por;
+
+-- Rollback 001
+ALTER TABLE operadores DROP COLUMN IF EXISTS empresa_id;
+@"
+# ═══════════════════════════════════════════════════════════
 # IRONSYNC — ESTADO ACTUAL
 # Fecha: 2026-05-07
 # Commit base auditado: 2e67a24
 # Commits R1: b89c1d6, 694ba40
-# Commit actual: b5caccd
+# Commit Doc 32: 64de4e9
+# Commit fix fechas: b5caccd
+# Commit prerequisitos: dd5b742
+# Commit actual: PENDIENTE_COMMIT_PATCH
 # Auditoria: Doc 31 DRAFT / NO-GO Qwen en remediacion
-# Version YAML: 3.3 (ajustes ChatGPT pre-War Room)
+# Version YAML: 3.4 (patch documental pre-War Room)
 # ═══════════════════════════════════════════════════════════
 
 proyecto:
@@ -21,7 +79,8 @@ codigo:
     - "694ba40"
   commit_doc32: "64de4e9"
   commit_fix_fechas: "b5caccd"
-  commit_actual: "b5caccd"
+  commit_prerequisitos: "dd5b742"
+  commit_actual: "PENDIENTE_COMMIT_PATCH"
   branch: "main"
   deployment:
     plataforma: "Railway"
@@ -205,7 +264,7 @@ gobernanza:
           commit: "b89c1d6"
         - item: "YAML actualizado commit correcto"
           estado: "CUMPLIDO"
-          commit: "b5caccd"
+          commit: "dd5b742"
         - item: "Decision turnos: EXCLUIR"
           estado: "CUMPLIDO"
         - item: "Doc 32 Plan Laboratorio S01-S20"
@@ -213,6 +272,17 @@ gobernanza:
           commit: "64de4e9"
         - item: "War Room formal GO/NO-GO"
           estado: "PENDIENTE"
+  pre_war_room_review:
+    estado: "AJUSTES_DOC32_EN_PROGRESO"
+    agentes_revisores:
+      - "GLM5"
+      - "DeepSeek"
+      - "Grok"
+      - "Gemini"
+      - "Claude"
+      - "ChatGPT"
+    veredicto_consolidado: "LISTO_CON_AJUSTES_MENORES"
+    laboratorio: "NO-GO_HASTA_WAR_ROOM"
   lote_3_relevo: "BLOQUEADO"
   laboratorio: "NO-GO"
   produccion_piloto: "NO-GO"
@@ -227,17 +297,23 @@ restricciones:
   - "NO tocar legacy"
   - "NO DELETE turnos"
   - "NO cerrar turnos artificialmente"
+  - "NO agentes automatizados ejecutores"
+  - "NO datos productivos reales en laboratorio"
 
 legacy:
   estado: "INTACTO"
   regresiones_detectadas: 0
 
 metadata:
-  version_yaml: "3.3"
+  version_yaml: "3.4"
   fecha: "2026-05-07"
-  tipo: "AJUSTES PRE-WAR ROOM"
-  razon: "commit_actual actualizado; Doc 32 a CUMPLIDO; 5/6 prerequisitos"
+  tipo: "PATCH DOCUMENTAL PRE-WAR ROOM"
+  razon: "12 propuestas consolidadas ChatGPT+Claude+GLM5+DeepSeek+Grok+Gemini"
   autores:
     - "MiMo V2 (estructura base)"
-    - "ChatGPT (correcciones + ajustes)"
+    - "ChatGPT (correcciones + ajustes + consolidacion)"
     - "Claude (revision conceptual)"
+    - "GLM5 (revision)"
+    - "DeepSeek (revision)"
+    - "Grok (revision)"
+    - "Gemini (revision)"

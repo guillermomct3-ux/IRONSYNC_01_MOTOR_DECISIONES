@@ -294,3 +294,178 @@ Antes de iniciar S01, el sistema DEBE cumplir TODAS estas condiciones:
 - criterio_pass: Turnos correctos + 0 duplicados + 0 contaminacion + remanentes intactos
 - riesgo_cubierto: Integridad datos post-laboratorio
 - bloqueante: SI
+
+## 14. AISLAMIENTO SINTETICO / S00
+
+El Laboratorio Sintetico S01-S20 debe ejecutarse con identidad y datos de prueba controlados.
+
+Queda prohibido usar operadores, maquinas, turnos o telefonos productivos reales durante el laboratorio.
+
+### Identidad S00 requerida
+
+Antes de activar LOGBOOK_F04_ENABLED=true, el War Room debe confirmar:
+
+| Campo | Estado requerido |
+|---|---|
+| Operador QA | Definido |
+| Telefono QA | Definido |
+| Empresa / tenant QA o criterio equivalente | Definido |
+| Maquinas QA | Definidas |
+| Criterio de exclusion de metricas | Definido |
+| Query pre-lab | Preparada |
+| Query post-lab | Preparada |
+
+Si cualquiera de estos campos falta, el War Room no puede dar GO de ejecucion.
+
+### Prohibicion de datos reales
+
+Durante el Laboratorio queda prohibido enviar comandos INICIO o FIN a maquinas productivas reales o potencialmente activas.
+
+El laboratorio no debe afectar:
+- turnos productivos
+- remanentes controlados
+- metricas operativas
+- PDF
+- IS Finanzas
+- conteo de turnos reales
+- DATA_LOCAL
+
+## 15. ESTADO CERO PRE-LAB
+
+Antes de ejecutar S01, debe documentarse un SELECT pre-lab que confirme estado limpio.
+
+### Checklist Estado Cero
+
+| Validacion | Requisito | Estado |
+|---|---|---|
+| Flag | LOGBOOK_F04_ENABLED=false | Pendiente pre-lab |
+| Operador QA | 0 turnos abiertos | Pendiente pre-lab |
+| Maquinas QA | 0 turnos abiertos | Pendiente pre-lab |
+| Turnos reales no-test | 0 turnos abiertos que puedan interferir | Pendiente pre-lab |
+| Remanentes controlados | Excluidos | Pendiente pre-lab |
+| DATA_LOCAL | Intacto / no tocado | Pendiente pre-lab |
+| Legacy | Responde con hola | Pendiente pre-lab |
+
+### Query pre-lab obligatoria
+
+`sql
+SELECT
+  COUNT(*) AS turnos_abiertos_reales
+FROM turnos
+WHERE estado = 'ABIERTO'
+  AND tiene_anomalia = false
+  AND origen_datos NOT LIKE '%test%'
+  AND origen_datos NOT LIKE '%laboratorio%';
+@"
+
+## 18. CRITERIOS STOP REFORZADOS
+
+El laboratorio debe detenerse inmediatamente si ocurre cualquiera de los siguientes eventos.
+
+### STOP critico
+
+- Falla cualquier test bloqueante (S01, S11, S15, S18, S19, S20).
+- LOGBOOK_F04_ENABLED no puede volver a false.
+- Legacy deja de responder.
+- DATA_LOCAL es modificado.
+- Aparece ejecucion no autorizada de RELEVO.
+- Supabase registra corrupcion o cambio fuera del dataset QA.
+- Se detecta afectacion a turnos productivos o remanentes controlados.
+
+### STOP medio
+
+- Mas de 3 pruebas acumulan estado SKIP o FAIL.
+- Latencia sostenida mayor a 15 segundos en 3 pruebas consecutivas.
+- Timeout Railway mayor a 30 segundos en 3 requests consecutivos.
+- Duplicados Twilio no controlados.
+- Error no clasificable en logs [LOGBOOK_*].
+
+### Accion ante STOP
+
+1. Apagar flag: LOGBOOK_F04_ENABLED=false.
+2. Verificar legacy con mensaje hola.
+3. Guardar logs relevantes.
+4. Documentar hallazgo.
+5. No ejecutar mas pruebas.
+6. Convocar analisis causa raiz.
+
+## 19. ROLLBACK NO DESTRUCTIVO
+
+El rollback del laboratorio debe preservar evidencia. No se autoriza limpieza destructiva automatica.
+
+### Rollback inmediato
+
+1. Railway -> Variables -> LOGBOOK_F04_ENABLED=false.
+2. Confirmar redeploy / restart si Railway lo requiere.
+3. Enviar hola al bot.
+4. Confirmar respuesta legacy.
+5. Revisar Railway logs.
+6. Documentar incidente en el chat de proyecto.
+7. Detener ejecucion S01-S20.
+
+### Verificacion post-rollback
+
+`sql
+SELECT id, folio, maquina, estado, tiene_anomalia, origen_datos, creado_en
+FROM turnos
+WHERE origen_datos LIKE '%LAB_S01_S20%'
+   OR origen_datos LIKE '%QA%';
+@"
+
+## 22. REFERENCIAS DE GOBERNANZA
+
+Este Plan de Laboratorio depende de los siguientes documentos:
+
+- docs/context/01_ESTADO_ACTUAL.yaml
+- docs/context/30_FREEZE_PARCIAL_F04_1_INICIO_FIN.md
+- docs/context/31_AUDITORIA_POST_FREEZE_F04_1_INICIO_FIN.md
+- docs/context/25_DEBT_REGISTRY.md
+- docs/context/13_CHANGELOG.md
+- migrations/README.md
+
+### Commits de referencia
+
+Codigo base auditado:
+- 2e67a24 — Freeze parcial F-04.1 INICIO/FIN
+
+Documentacion actual:
+- b89c1d6 — Doc 31 v1.0 + migrations SQL
+- 694ba40 — YAML v3.1 reescritura limpia
+- 64de4e9 — Doc 32 lab plan S01-S20
+- b5caccd — fix fechas 2026-05-07
+- dd5b742 — YAML v3.3 prerequisitos pre-War Room
+
+Nota:
+El laboratorio no requiere codigo nuevo. Activa temporalmente codigo ya desplegado mediante flag controlado.
+
+## 23. AJUSTE migrations/README.md
+
+### Orden de migraciones F-04.1
+
+Las migraciones versionan SQL ya ejecutado manualmente durante F-04.1.
+
+Orden:
+1. 001_add_operadores_empresa_id.sql
+2. 002_add_turnos_cerrado_por.sql
+
+Estas migraciones son idempotentes y deben revisarse antes de cualquier ejecucion.
+
+No ejecutar migraciones en produccion sin War Room.
+
+## METADATA ACTUALIZADA
+
+| Campo | Valor |
+|-------|-------|
+| Documento | Doc 32 |
+| Version | 2.0 |
+| Fecha | 2026-05-07 |
+| Autor | MiMo V2 |
+| Revisores | ChatGPT, Claude, GLM5, DeepSeek, Grok, Gemini |
+| Estado | DRAFT - Pendiente War Room |
+| Commit | PENDIENTE_COMMIT_PATCH |
+| Relacionado | Doc 31, Doc 30, Doc 29, YAML v3.3 |
+| Secciones nuevas | 14-23 (S00, Estado Cero, Ejecucion, PASS/FAIL, STOP, Rollback, RELEVO, Horometros, Referencias, README) |
+
+# ═══════════════════════════════════════════════════════════
+# FIN DOC 32 v2.0
+# ═══════════════════════════════════════════════════════════
