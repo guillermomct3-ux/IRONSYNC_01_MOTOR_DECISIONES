@@ -1,6 +1,6 @@
-﻿# ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 # IRONSYNC — ESTADO ACTUAL
-# Fecha: 2026-05-08
+# Fecha: 2026-05-07
 # Commit base auditado: 2e67a24
 # Commits R1: b89c1d6, 694ba40
 # Commit actual: PENDIENTE_COMMIT_DOC32
@@ -232,7 +232,7 @@ legacy:
 
 metadata:
   version_yaml: "3.2"
-  fecha: "2026-05-08"
+  fecha: "2026-05-07"
   tipo: "ACTUALIZACION PREREQUISITOS"
   razon: "Doc 31 + migrations + YAML commiteados; Doc 32 en progreso"
   autores:
